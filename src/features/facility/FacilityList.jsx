@@ -1,0 +1,1 @@
+export default function FacilityList() { return <div>Facility List</div> }

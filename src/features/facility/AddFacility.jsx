@@ -1,0 +1,1 @@
+export default function AddFacility() { return <div>Add Facility</div> }
