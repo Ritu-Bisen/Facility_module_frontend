@@ -11,11 +11,24 @@ import {
   ChartBarIcon,
   ShoppingCartIcon,
   ClipboardDocumentCheckIcon,
+  DocumentMinusIcon,
 } from '@heroicons/react/24/outline';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
+  { path: '/stock-dashboard', label: 'Stock Dashboard', Icon: ChartBarIcon },
   { path: '/users',     label: 'Users',     Icon: UsersIcon },
+  {
+    label: 'Masters',
+    Icon: ClipboardDocumentListIcon,
+    subItems: [
+      { path: '/masters/facility-wards', label: 'Facility Wards' },
+      { path: '/masters/facility-information', label: 'Facility Information' },
+      { path: '/masters/storage-location', label: 'Storage Location' },
+      { path: '/masters/special-receipt-location', label: 'Special Receipt Location' },
+      { path: '/masters/doctor-information', label: 'Doctor Information' }
+    ]
+  },
   {
     label: 'Issue',
     Icon: ClipboardDocumentListIcon,
@@ -23,12 +36,14 @@ const NAV_ITEMS = [
       { path: '/ward-issues', label: 'Ward Issue' }
     ]
   },
+  { path: '/breakage-voucher', label: 'Breakage Voucher', Icon: DocumentMinusIcon },
   {
     label: 'Inter Facility',
     Icon: ClipboardDocumentListIcon,
     subItems: [
       { path: '/inter-facility-issue', label: 'Inter Facility Issue' },
-      { path: '/inter-facility-receipt', label: 'Inter Facility Receipt' }
+      { path: '/inter-facility-receipt', label: 'Inter Facility Receipt' },
+      { path: '/inter-facility-shc-transfer', label: 'SHC Inter Facility Transfer' }
     ]
   },
   {
@@ -50,6 +65,8 @@ const NAV_ITEMS = [
   },
   { path: '/reports',   label: 'Reports',   Icon: ChartBarIcon },
   { path: '/indent/shc-approval', label: 'SHC Indent Approval', Icon: ClipboardDocumentCheckIcon },
+  { path: '/indent-to-other-facility', label: 'Indent To Other Facility', Icon: ClipboardDocumentListIcon },
+  { path: '/inter-facility-issue-against-online-indent', label: 'Inter Facility Issue Against Online Indent', Icon: ClipboardDocumentListIcon },
 ];
 
 export default function Sidebar() {
@@ -148,7 +165,7 @@ export default function Sidebar() {
       )}
 
       {/* Nav links */}
-      <nav className="flex flex-col gap-1 px-2 pt-3 flex-1">
+      <nav className="flex flex-col gap-1 px-2 pt-3 pb-4 flex-1 overflow-y-auto">
         {NAV_ITEMS.map((item) => {
           if (item.subItems) {
             const isOpen = openMenus[item.label];
@@ -179,7 +196,7 @@ export default function Sidebar() {
                 </button>
                 {/* Submenu items */}
                 {isOpen && !collapsed && (
-                  <div className="pl-6 flex flex-col gap-1 mt-1 transition-all duration-300">
+                  <div className="pl-6 flex flex-col gap-1 mt-1 mb-2 transition-all duration-300">
                     {item.subItems.map((sub) => {
                       const isActive = active(sub.path);
                       return (

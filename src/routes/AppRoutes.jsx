@@ -23,18 +23,33 @@ import InterFacilityIssueFAC from '../pages/InterFacilityIssueFAC';
 import AddInterFacilityIssueFAC from '../pages/AddInterFacilityIssueFAC';
 import InterFacilityReceiptsFAC from '../pages/InterFacilityReceiptsFAC';
 import AddInterFacilityReceiptFAC from '../pages/AddInterFacilityReceiptFAC';
+import BreakageVoucherMain from '../pages/BreakageVoucherMain';
+import BreakageVoucherItems from '../pages/BreakageVoucherItems';
+import PrintBreakageVoucherPage from '../pages/PrintBreakageVoucherPage';
+import StockDashboard from '../pages/StockDashboard';
+import FacilityWardsPage from '../pages/FacilityWardsPage';
+import FacilityInformationPage from '../pages/FacilityInformationPage';
+import StorageLocationPage from '../pages/StorageLocationPage';
+import SpLocationPage from '../pages/SpLocationPage';
+import DoctorInformationPage from '../pages/DoctorInformationPage';
+import ShcInterFacilityTransferPage from '../pages/ShcInterFacilityTransferPage';
+import AddShcInterFacilityTransferPage from '../pages/AddShcInterFacilityTransferPage';
+import AddShcIssueDirectPage from '../pages/AddShcIssueDirectPage';
+import IndentToOtherFacilityPage from '../pages/IndentToOtherFacilityPage';
+import AddIndentToOtherFacilityPage from '../pages/AddIndentToOtherFacilityPage';
 
-function PlaceholderPage({ title, description }) {
+function PlaceholderPage({ title, description, children }) {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-8">
-            <div className="bg-white p-8 rounded-2xl border border-slate-200 max-w-xl shadow-sm">
-              <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
-              <p className="text-slate-500 mt-2 text-sm">{description}</p>
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+            <div className="max-w-7xl mx-auto space-y-6">
+              <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+              <p className="text-gray-600">{description}</p>
+              {children}
             </div>
           </main>
           <Footer />
@@ -52,6 +67,36 @@ export default function AppRoutes() {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <DashboardPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/masters/facility-wards" element={
+        <ProtectedRoute>
+          <FacilityWardsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/masters/facility-information" element={
+        <ProtectedRoute>
+          <FacilityInformationPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/masters/storage-location" element={
+        <ProtectedRoute>
+          <StorageLocationPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/masters/special-receipt-location" element={
+        <ProtectedRoute>
+          <SpLocationPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/masters/doctor-information" element={
+        <ProtectedRoute>
+          <DoctorInformationPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/stock-dashboard" element={
+        <ProtectedRoute>
+          <StockDashboard />
         </ProtectedRoute>
       } />
       <Route path="/store/facility-stock-item-wise" element={
@@ -208,6 +253,71 @@ export default function AppRoutes() {
       <Route path="/inter-facility-receipt/edit/:facReceiptId" element={
         <ProtectedRoute>
           <AddInterFacilityReceiptFAC />
+        </ProtectedRoute>
+      } />
+      <Route path="/indent-to-other-facility" element={
+        <ProtectedRoute>
+          <IndentToOtherFacilityPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/indent-to-other-facility/add" element={
+        <ProtectedRoute>
+          <AddIndentToOtherFacilityPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/indent-to-other-facility/edit/:indentId" element={
+        <ProtectedRoute>
+          <AddIndentToOtherFacilityPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/inter-facility-issue-against-online-indent" element={
+        <ProtectedRoute>
+          <PlaceholderPage title="Inter Facility Issue Against Online Indent" description="Manage inter facility issues against online indents." />
+        </ProtectedRoute>
+      } />
+      <Route path="/inter-facility-shc-transfer" element={
+        <ProtectedRoute>
+          <ShcInterFacilityTransferPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/inter-facility-shc-transfer/direct-add" element={
+        <ProtectedRoute>
+          <AddShcIssueDirectPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/inter-facility-shc-transfer/add/:nocId" element={
+        <ProtectedRoute>
+          <AddShcInterFacilityTransferPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/inter-facility-shc-transfer/edit/:issueId" element={
+        <ProtectedRoute>
+          <AddShcInterFacilityTransferPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/breakage-voucher" element={
+        <ProtectedRoute>
+          <BreakageVoucherMain />
+        </ProtectedRoute>
+      } />
+      <Route path="/breakage-voucher/create" element={
+        <ProtectedRoute>
+          <BreakageVoucherItems mode="Create" />
+        </ProtectedRoute>
+      } />
+      <Route path="/breakage-voucher/edit/:id" element={
+        <ProtectedRoute>
+          <BreakageVoucherItems mode="Edit" />
+        </ProtectedRoute>
+      } />
+      <Route path="/breakage-voucher/view/:id" element={
+        <ProtectedRoute>
+          <BreakageVoucherItems mode="View" />
+        </ProtectedRoute>
+      } />
+      <Route path="/breakage-voucher/print/:id" element={
+        <ProtectedRoute>
+          <PrintBreakageVoucherPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />

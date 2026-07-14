@@ -295,10 +295,9 @@ export default function FacilityStockItemWisePage() {
                         <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider sticky top-0 z-10">
                           <th className="px-4 py-3 text-center w-10">S.No.</th>
                           <th className="px-4 py-3">Code</th>
-                          <th className="px-4 py-3">Item</th>
-                         
-                          <th className="px-4 py-3 text-center">Strength</th>
-                           <th className="px-4 py-3 text-center">Dosage Form</th>
+                          <th className="px-4 py-3 min-w-[250px] whitespace-normal">Item</th>
+                          <th className="px-4 py-3 text-center min-w-[150px] whitespace-normal">Strength</th>
+                          <th className="px-4 py-3 text-center">Dosage Form</th>
                           <th className="px-4 py-3 text-center">Packing</th>
                           <th className="px-4 py-3 text-center">Stock(in nos)</th>
                           <th className="px-4 py-3 text-center">Reserv Qty</th>
@@ -312,8 +311,8 @@ export default function FacilityStockItemWisePage() {
                           <tr key={idx} className="hover:bg-slate-50/60 align-middle">
                             <td className="px-4 py-3 text-center font-bold text-slate-400 text-xs">{idx + 1}</td>
                             <td className="px-4 py-3 font-mono text-xs font-bold text-slate-600">{item.UNIQUEITEMCODE || item.uniqueitemcode || '—'}</td>
-                            <td className="px-4 py-3 font-semibold text-slate-800 text-xs">{item.ITEMNAME || item.itemname || '—'}</td>
-                            <td className="px-4 py-3 text-center text-xs text-slate-600">{item.STRENGTH1 || item.strength1 || '—'}</td>
+                            <td className="px-4 py-3 font-semibold text-slate-800 text-xs min-w-[250px] whitespace-normal break-words">{item.ITEMNAME || item.itemname || '—'}</td>
+                            <td className="px-4 py-3 text-center text-xs text-slate-600 min-w-[150px] whitespace-normal break-words">{item.STRENGTH1 || item.strength1 || '—'}</td>
                              <td className="px-4 py-3 font-semibold text-slate-800 text-xs">{item.ITEMTYPENAME || item.itemtypename || '—'}</td>
                             <td className="px-4 py-3 text-center text-xs text-slate-600">{item.UNIT || item.unit || '—'}</td>
                             <td className="px-4 py-3 text-center">

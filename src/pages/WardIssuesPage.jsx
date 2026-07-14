@@ -44,6 +44,7 @@ export default function WardIssuesPage() {
   const [loadingFilters, setLoadingFilters] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [loadingReceipts, setLoadingReceipts] = useState({});
+  const [isCheckingIncomplete, setIsCheckingIncomplete] = useState(false);
 
   useEffect(() => {
     if (facilityId) {
@@ -52,7 +53,7 @@ export default function WardIssuesPage() {
   }, [facilityId]);
 
   useEffect(() => {
-    if (facilityId) {
+    if (facilityId && selectedYear) {
       if (activeTab === 'issues') {
         loadIssues();
       } else {
@@ -229,6 +230,7 @@ export default function WardIssuesPage() {
     localStorage.setItem('currentIssueHeaderSaved', 'true');
     localStorage.setItem('currentIssueForm', JSON.stringify({
       ward: String(issue.WardID),
+      wardName: issue.WardName,
       reqDate: parseToIsoDate(issue.WRequestDate),
       issueDate: parseToIsoDate(issue.IssueDate),
       reqBy: issue.WRequestBy || ''
@@ -237,6 +239,7 @@ export default function WardIssuesPage() {
   };
 
   const handleAddIssue = async () => {
+    setIsCheckingIncomplete(true);
     try {
       const res = await api.get('/ward-issue/incomplete');
       if (res.data) {
@@ -264,6 +267,8 @@ export default function WardIssuesPage() {
       localStorage.removeItem('currentIssueHeaderSaved');
       localStorage.removeItem('currentIssueForm');
       navigate('/ward-issues/add');
+    } finally {
+      setIsCheckingIncomplete(false);
     }
   };
 
@@ -273,7 +278,15 @@ export default function WardIssuesPage() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar />
         
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+          {isCheckingIncomplete && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-50/80 backdrop-blur-sm">
+              <div className="flex flex-col items-center">
+                <div className="w-10 h-10 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                <p className="mt-4 text-sm font-bold text-slate-600 uppercase tracking-wider">Checking Incomplete Issues...</p>
+              </div>
+            </div>
+          )}
           <main className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="max-w-7xl mx-auto space-y-6">
               
@@ -325,7 +338,7 @@ export default function WardIssuesPage() {
               </div>
 
               {/* Content Grid */}
-              {loadingData ? (
+              {(loadingData || loadingFilters) ? (
                 <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-200 shadow-sm">
                   <svg className="animate-spin w-8 h-8 text-indigo-600 mb-3" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

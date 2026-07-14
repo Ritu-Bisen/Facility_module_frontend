@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { ArrowLeftIcon, PrinterIcon } from '@heroicons/react/24/outline';
 
-export default function PrintWardIssuePage() {
+export default function PrintBreakageVoucherPage() {
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const type = searchParams.get('type');
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +61,7 @@ export default function PrintWardIssuePage() {
           <p className="text-sm font-bold text-red-600">⚠ Error Loading Voucher</p>
           <p className="text-xs text-red-500 mt-2">{error || 'Voucher not found.'}</p>
           <button
-            onClick={() => navigate('/ward-issues')}
+            onClick={() => navigate('/breakage-voucher')}
             className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 px-3.5 py-1.5 rounded-lg"
           >
             <ArrowLeftIcon className="w-4 h-4" /> Go Back
@@ -81,7 +79,7 @@ export default function PrintWardIssuePage() {
       {/* Print Controls (Hidden on print) */}
       <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200 print:hidden max-w-[1100px] mx-auto">
         <button
-          onClick={() => navigate('/ward-issues')}
+          onClick={() => navigate('/breakage-voucher')}
           className="flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 px-3.5 py-2 rounded-xl transition"
         >
           <ArrowLeftIcon className="w-4 h-4" /> Back to List
@@ -95,32 +93,23 @@ export default function PrintWardIssuePage() {
       </div>
 
       {/* Voucher Container */}
-      <div id="print-area" className="max-w-[1100px] mx-auto border border-slate-300 rounded-2xl p-8 print:border-0 print:p-0 font-sans text-xs">
+      <div className="max-w-[1100px] mx-auto border border-slate-300 rounded-2xl p-8 print:border-0 print:p-0 font-sans text-xs">
         
         {/* Header Block */}
-        <div className="bg-slate-800 p-6 flex items-center justify-between print-header">
-            <div>
-              <h1 className="text-2xl font-black text-white tracking-tight">CGMSC</h1>
-              <p className="text-slate-400 text-xs mt-1">Chhattisgarh Medical Services Corporation Ltd.</p>
-            </div>
-            <h2 className="text-lg font-bold text-white tracking-widest border border-slate-600 px-4 py-2 rounded">
-              {type === 'shc' ? 'SHC ISSUE VOUCHER' : 'WARD ISSUE VOUCHER'}
-            </h2>
+        <div className="text-center pb-6 border-b border-slate-300">
+          <h1 className="text-lg font-extrabold tracking-wider uppercase text-indigo-950 print:text-black">
+            {header.FacilityName || 'FACILITY'}
+          </h1>
+          <p className="text-slate-500 font-semibold text-[10px] uppercase mt-0.5 print:text-slate-700">
+            {header.DistrictName || 'DISTRICT'}, {header.StateName || 'STATE'}
+          </p>
+          <h2 className="text-sm font-extrabold uppercase tracking-widest text-slate-800 mt-4 border-y border-dashed border-slate-300 py-1.5 inline-block px-8">
+            BREAKAGE VOUCHER
+          </h2>
         </div>
 
         {/* Voucher Meta details grid */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3 py-6 px-8 text-slate-700 border-b border-slate-200">
-          <div>
-            <p className="font-semibold text-slate-400 uppercase text-[9px] tracking-wider">Facility Name</p>
-            <p className="font-bold text-slate-800 text-xs mt-0.5">{header.FacilityName}</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">{header.DistrictName}, {header.StateName}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-slate-400 uppercase text-[9px] tracking-wider">
-              {type === 'shc' ? 'Transfer To Facility' : 'Issued To Ward'}
-            </p>
-            <p className="font-bold text-slate-800 text-xs mt-0.5">{header.WardName} ({header.WardCode})</p>
-          </div>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-3 py-6 text-slate-700 border-b border-slate-200">
           <div>
             <p className="font-semibold text-slate-400 uppercase text-[9px] tracking-wider">Issue Date</p>
             <p className="font-bold text-slate-800 text-xs mt-0.5">{fmtDate(header.IssueDate)}</p>
@@ -130,9 +119,10 @@ export default function PrintWardIssuePage() {
             <p className="font-bold text-slate-800 text-xs mt-0.5 font-mono">{header.IssueNo}</p>
           </div>
           <div>
-            <p className="font-semibold text-slate-400 uppercase text-[9px] tracking-wider">Requested By</p>
-            <p className="font-bold text-slate-800 text-xs mt-0.5">{header.WRequestBy || '—'} (Req. Date: {fmtDate(header.WRequestDate)})</p>
+            <p className="font-semibold text-slate-400 uppercase text-[9px] tracking-wider">Remarks</p>
+            <p className="font-bold text-slate-800 text-xs mt-0.5">{header.Remarks || '—'}</p>
           </div>
+          <div></div>
         </div>
 
         {/* Items list table */}
@@ -175,21 +165,16 @@ export default function PrintWardIssuePage() {
                     </div>
                   </td>
                   
-                  {/* Issue Info */}
                   <td className="py-3 px-3 text-[11px] text-slate-800 font-bold space-y-1.5 align-middle">
                     <div className="flex justify-between max-w-[220px]">
                       <span>Facility Stock:</span>
-                      <span>{(item.CurrentStock !== undefined && item.CurrentStock !== null) ? Number(item.CurrentStock).toLocaleString('en-IN') : '39,900'}</span>
-                    </div>
-                    <div className="flex justify-between max-w-[220px]">
-                      <span>Requested Qty in No.:</span>
-                      <span>{item.Allotted || '200'}</span>
+                      <span>{(item.CurrentStock !== undefined && item.CurrentStock !== null) ? Number(item.CurrentStock).toLocaleString('en-IN') : '0'}</span>
                     </div>
                   </td>
                   
                   {/* Quantity */}
                   <td className="py-3 px-3 text-[11px] text-slate-800 font-bold align-middle">
-                    <p>Issue Qty in No.: {item.IssueQty}</p>
+                    <p>Breakage Qty in No.: {item.IssueQty}</p>
                   </td>
                   
                   {/* Batches nested table */}
@@ -228,21 +213,16 @@ export default function PrintWardIssuePage() {
         </div>
 
         {/* Signature Area (Bottom of Voucher) */}
-        <div className="mt-16 pt-12 border-t border-slate-300 grid grid-cols-3 text-center gap-12 font-bold text-slate-500 uppercase text-[9px] tracking-wider print:mt-24">
+        <div className="mt-16 pt-12 border-t border-slate-300 grid grid-cols-2 text-center gap-12 font-bold text-slate-500 uppercase text-[9px] tracking-wider print:mt-24">
           <div>
             <div className="w-full border-b border-slate-300 h-8 mb-2"></div>
-            <p>Issued By</p>
+            <p>Generated By</p>
             <p className="text-[8px] text-slate-400 lowercase mt-0.5">store keeper</p>
           </div>
           <div>
             <div className="w-full border-b border-slate-300 h-8 mb-2"></div>
-            <p>Checked By</p>
+            <p>Verified By</p>
             <p className="text-[8px] text-slate-400 lowercase mt-0.5">superintendent / MOIC</p>
-          </div>
-          <div>
-            <div className="w-full border-b border-slate-300 h-8 mb-2"></div>
-            <p>Received By</p>
-            <p className="text-[8px] text-slate-400 lowercase mt-0.5">ward in-charge</p>
           </div>
         </div>
 

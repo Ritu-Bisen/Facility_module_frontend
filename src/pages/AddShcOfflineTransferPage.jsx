@@ -164,7 +164,7 @@ function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, on
     try {
       let activeIssueItemId = row.issueItemId;
       if (row.issueItemId) {
-        await api.put(`/ward-issue/items/${row.issueItemId}`, {
+        await api.post(`/api/shc-inter-facility-transfers/issues/${issueId}/items`, {
           issueId,
           itemId: row.itemId,
           curStock: row.facilityStock || 0,
@@ -173,7 +173,7 @@ function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, on
         });
         setIsEditing(false);
       } else {
-        const response = await api.post(`/ward-issue/${issueId}/items`, {
+        const response = await api.post(`/api/shc-inter-facility-transfers/issues/${issueId}/items`, {
           itemId: row.itemId,
           curStock: row.facilityStock || 0,
           allotted: row.requestedQty || 0,
@@ -572,22 +572,22 @@ function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, on
 /* ─────────────────────────────────────────────────────────────
    Main Page
 ───────────────────────────────────────────────────────────── */
-export default function AddWardIssuePage() {
+export default function AddShcOfflineTransferPage() {
   const navigate = useNavigate();
   const user = useSelector((s) => s.auth.user);
   const facilityId = user?.facilityId;
 
   const [form, setForm] = useState(() => {
-    const savedForm = localStorage.getItem('currentIssueForm');
-    return savedForm ? JSON.parse(savedForm) : { ward: '', reqDate: '', issueDate: today, reqBy: '' };
+    const savedForm = localStorage.getItem('currentShcOfflineForm');
+    return savedForm ? JSON.parse(savedForm) : { targetShc: '', reqDate: '', issueDate: today, reqBy: '' };
   });
-  const [wards, setWards] = useState([]);
-  const [loadingWards, setLoadingWards] = useState(false);
+  const [shcs, setShcs] = useState([]);
+  const [loadingShcs, setLoadingShcs] = useState(false);
   const [errors, setErrors] = useState({});
-  const [issueNo, setIssueNo] = useState(() => localStorage.getItem('currentIssueNo') || '');
+  const [issueNo, setIssueNo] = useState(() => localStorage.getItem('currentShcOfflineIssueNo') || '');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [headerSaved, setHeaderSaved] = useState(() => localStorage.getItem('currentIssueHeaderSaved') === 'true');
-  const [issueId, setIssueId] = useState(() => localStorage.getItem('currentIssueId') || null);
+  const [headerSaved, setHeaderSaved] = useState(() => localStorage.getItem('currentShcOfflineHeaderSaved') === 'true');
+  const [issueId, setIssueId] = useState(() => localStorage.getItem('currentShcOfflineId') || null);
 
   const [allItems, setAllItems] = useState([]);
   const [rows, setRows] = useState([emptyRow()]);
@@ -604,7 +604,7 @@ export default function AddWardIssuePage() {
     if (!activeId || !facilityId) return;
     setIsItemsLoading(true);
     try {
-      const res = await api.get(`/ward-issue/${activeId}/items?facilityId=${facilityId}`);
+      const res = await api.get(`/api/shc-inter-facility-transfers/${activeId}/items`);
       if (res.data && res.data.length > 0) {
         const loadedRows = res.data.map(item => ({
           itemId: item.ITEMID ?? item.itemId,
@@ -658,8 +658,8 @@ export default function AddWardIssuePage() {
         const incId = res.data.IssueID;
         const incNo = res.data.IssueNo;
         const incForm = {
-          ward: String(res.data.WardID),
-          wardName: res.data.WardName || '',
+          ward: String(res.data.FacilityID),
+          targetShcName: res.data.FacilityName || '',
           reqDate: parseToIsoDate(res.data.WRequestDate),
           issueDate: parseToIsoDate(res.data.IssueDate),
           reqBy: res.data.WRequestBy || ''
@@ -670,10 +670,10 @@ export default function AddWardIssuePage() {
         setHeaderSaved(true);
         setForm(incForm);
         
-        localStorage.setItem('currentIssueId', String(incId));
-        localStorage.setItem('currentIssueNo', incNo);
-        localStorage.setItem('currentIssueHeaderSaved', 'true');
-        localStorage.setItem('currentIssueForm', JSON.stringify(incForm));
+        localStorage.setItem('currentShcOfflineId', String(incId));
+        localStorage.setItem('currentShcOfflineIssueNo', incNo);
+        localStorage.setItem('currentShcOfflineHeaderSaved', 'true');
+        localStorage.setItem('currentShcOfflineForm', JSON.stringify(incForm));
         
         alert("An incomplete ward issue already exists for this facility. Please complete or cancel it before creating a new issue.");
       }
@@ -686,7 +686,7 @@ export default function AddWardIssuePage() {
 
   useEffect(() => {
     if (facilityId) {
-      loadWards();
+      loadShcs();
       loadItems();
       if (!issueId) {
         checkForIncompleteIssue();
@@ -702,29 +702,29 @@ export default function AddWardIssuePage() {
 
   // Fallback for old data: If ward is missing but reqBy matches a ward name, preselect it and clear reqBy
   useEffect(() => {
-    if (headerSaved && wards.length > 0 && (!form.ward || form.ward === 'null' || form.ward === 'undefined' || form.ward === '0')) {
+    if (headerSaved && wards.length > 0 && (!form.targetShc || form.targetShc === 'null' || form.targetShc === 'undefined' || form.targetShc === '0')) {
       if (form.reqBy) {
-        const matchedWard = wards.find(w => w.WARDNAME && w.WARDNAME.toLowerCase() === form.reqBy.toLowerCase());
+        const matchedWard = wards.find(w => w.FacilityName && w.FacilityName.toLowerCase() === form.reqBy.toLowerCase());
         if (matchedWard) {
           setForm(p => {
-            const u = { ...p, ward: String(matchedWard.WARDID), reqBy: '' };
-            localStorage.setItem('currentIssueForm', JSON.stringify(u));
+            const u = { ...p, ward: String(matchedWard.FacilityID), reqBy: '' };
+            localStorage.setItem('currentShcOfflineForm', JSON.stringify(u));
             return u;
           });
         }
       }
     }
-  }, [wards, headerSaved, form.reqBy, form.ward]);
+  }, [shcs, headerSaved, form.reqBy, form.targetShc]);
 
-  async function loadWards() {
-    setLoadingWards(true);
+  async function loadShcs() {
+    setLoadingShcs(true);
     try {
       const res = await api.get(`/ward-issue/wards?facilityId=${facilityId}`);
-      setWards((res.data || []).map((w) =>
-        Array.isArray(w) ? { WARDID: w[0], WARDNAME: w[1] } : { WARDID: w.WARDID ?? w.WardID ?? w.wardId, WARDNAME: w.WARDNAME ?? w.WardName ?? w.wardName }
+      setShcs((res.data || []).map((w) =>
+        Array.isArray(w) ? { FacilityID: w[0], FacilityName: w[1] } : { FacilityID: w.FacilityID ?? w.FacilityID ?? w.wardId, FacilityName: w.FacilityName ?? w.FacilityName ?? w.wardName }
       ));
     } catch (e) { console.error(e); }
-    finally { setLoadingWards(false); }
+    finally { setLoadingShcs(false); }
   }
 
   async function loadItems() {
@@ -741,7 +741,7 @@ export default function AddWardIssuePage() {
     setForm((p) => {
       const u = { ...p, [name]: value };
       if (name === 'issueDate' && p.reqDate && p.reqDate > value) u.reqDate = value;
-      localStorage.setItem('currentIssueForm', JSON.stringify(u));
+      localStorage.setItem('currentShcOfflineForm', JSON.stringify(u));
       return u;
     });
     setErrors((p) => ({ ...p, [name]: undefined }));
@@ -749,7 +749,7 @@ export default function AddWardIssuePage() {
 
   const validate = () => {
     const e = {};
-    if (!form.ward) e.ward = 'Select a ward';
+    if (!form.targetShc) e.ward = 'Select a facility';
     if (!form.reqDate) e.reqDate = 'Required';
     if (!form.issueDate) e.issueDate = 'Required';
     if (form.reqDate && form.issueDate && form.reqDate > form.issueDate)
@@ -765,30 +765,30 @@ export default function AddWardIssuePage() {
     try {
       if (issueId) {
         // Update header info via PUT
-        await api.put(`/ward-issue/${issueId}`, {
-          facilityId, wardId: form.ward, issueNo,
+        await api.put(`/api/shc-inter-facility-transfers/offline/${issueId}`, {
+          facilityId, toFacilityId: form.targetShc, issueNo,
           issueDate: fmt(form.issueDate), requestDate: fmt(form.reqDate), requestBy: form.reqBy,
         });
         setHeaderSaved(true);
-        localStorage.setItem('currentIssueHeaderSaved', 'true');
-        localStorage.setItem('currentIssueForm', JSON.stringify(form));
+        localStorage.setItem('currentShcOfflineHeaderSaved', 'true');
+        localStorage.setItem('currentShcOfflineForm', JSON.stringify(form));
       } else {
         // Generate new issue no and insert
         const r = await api.get(`/ward-issue/generate-issue-no?facilityId=${facilityId}`);
         const no = r.data.issueNo;
         setIssueNo(no);
-        const s = await api.post('/ward-issue/', {
-          facilityId, wardId: form.ward, issueNo: no,
+        const s = await api.post('/api/shc-inter-facility-transfers/offline', {
+          facilityId, toFacilityId: form.targetShc, issueNo: no,
           issueDate: fmt(form.issueDate), requestDate: fmt(form.reqDate), requestBy: form.reqBy,
         });
         const generatedIssueId = s.data.issueId;
         setIssueId(generatedIssueId);
         setHeaderSaved(true);
 
-        localStorage.setItem('currentIssueNo', no);
-        localStorage.setItem('currentIssueId', String(generatedIssueId));
-        localStorage.setItem('currentIssueHeaderSaved', 'true');
-        localStorage.setItem('currentIssueForm', JSON.stringify(form));
+        localStorage.setItem('currentShcOfflineIssueNo', no);
+        localStorage.setItem('currentShcOfflineId', String(generatedIssueId));
+        localStorage.setItem('currentShcOfflineHeaderSaved', 'true');
+        localStorage.setItem('currentShcOfflineForm', JSON.stringify(form));
       }
     } catch (e) { console.error(e); alert('Failed to save header. Try again.'); }
     finally { setIsGenerating(false); }
@@ -798,19 +798,19 @@ export default function AddWardIssuePage() {
     if (!issueId) return;
     if (!window.confirm('Are you sure you want to delete this issue?')) return;
     try {
-      await api.delete(`/ward-issue/${issueId}`);
+      await api.delete(`/api/shc-inter-facility-transfers/offline/${issueId}`);
       // Reset state
       setIssueId(null);
       setIssueNo('');
       setHeaderSaved(false);
-      setForm({ ward: '', reqDate: '', issueDate: today, reqBy: '' });
+      setForm({ targetShc: '', reqDate: '', issueDate: today, reqBy: '' });
       setRows([emptyRow()]);
 
       // Clear localStorage
-      localStorage.removeItem('currentIssueId');
-      localStorage.removeItem('currentIssueNo');
-      localStorage.removeItem('currentIssueHeaderSaved');
-      localStorage.removeItem('currentIssueForm');
+      localStorage.removeItem('currentShcOfflineId');
+      localStorage.removeItem('currentShcOfflineIssueNo');
+      localStorage.removeItem('currentShcOfflineHeaderSaved');
+      localStorage.removeItem('currentShcOfflineForm');
       navigate('/ward-issue');
     } catch (e) {
       console.error(e);
@@ -846,18 +846,18 @@ export default function AddWardIssuePage() {
     if (!savedRows.length) { alert('Save at least one item row first.'); return; }
     setIsSubmitting(true);
     try {
-      await api.post(`/ward-issue/${issueId}/complete`);
+      await api.post(`/api/shc-inter-facility-transfers/issues/${issueId}/complete`);
 
       // Clear localStorage
-      localStorage.removeItem('currentIssueNo');
-      localStorage.removeItem('currentIssueId');
-      localStorage.removeItem('currentIssueHeaderSaved');
-      localStorage.removeItem('currentIssueForm');
+      localStorage.removeItem('currentShcOfflineIssueNo');
+      localStorage.removeItem('currentShcOfflineId');
+      localStorage.removeItem('currentShcOfflineHeaderSaved');
+      localStorage.removeItem('currentShcOfflineForm');
 
-      navigate('/ward-issues', {
+      navigate('/inter-facility-shc-transfer', {
         state: {
           newIssue: {
-            ward: wards.find((w) => String(w.WARDID) === String(form.ward))?.WARDNAME || form.ward,
+            ward: wards.find((w) => String(w.FacilityID) === String(form.targetShc))?.FacilityName || form.targetShc,
             issueDate: fmt(form.issueDate), reqDate: fmt(form.reqDate),
             reqBy: form.reqBy, issueNo,
           },
@@ -896,7 +896,7 @@ export default function AddWardIssuePage() {
             <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 px-8 py-5 flex items-center justify-between shadow-md border-b border-white/5">
               <div className="flex items-center gap-4">
                 <button
-                  onClick={() => navigate('/ward-issues')}
+                  onClick={() => navigate('/inter-facility-shc-transfer')}
                   className="flex items-center gap-1.5 text-slate-300 hover:text-white text-sm font-semibold transition-colors group px-3 py-1.5 rounded-lg hover:bg-white/10"
                 >
                   <ArrowLeftIcon className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
@@ -932,25 +932,25 @@ export default function AddWardIssuePage() {
                       <input
                         type="text"
                         disabled
-                        value={wards.find(w => String(w.WARDID) === String(form.ward))?.WARDNAME || form.wardName || form.reqBy || ''}
+                        value={wards.find(w => String(w.FacilityID) === String(form.targetShc))?.FacilityName || form.targetShcName || form.reqBy || ''}
                         className={inp(false, 'bg-slate-100 border-slate-200 text-slate-700 font-semibold cursor-not-allowed shadow-none')}
                       />
                     ) : (
                       <SearchDrop
                         options={wards}
-                        value={form.ward}
+                        value={form.targetShc}
                         onChange={(v) => {
                           setForm((p) => {
                             const u = { ...p, ward: v };
-                            localStorage.setItem('currentIssueForm', JSON.stringify(u));
+                            localStorage.setItem('currentShcOfflineForm', JSON.stringify(u));
                             return u;
                           });
                           setErrors((p) => ({ ...p, ward: undefined }));
                         }}
-                        placeholder={loadingWards ? 'Loading…' : 'Select a Ward'}
-                        labelKey="WARDNAME"
-                        valueKey="WARDID"
-                        disabled={loadingWards}
+                        placeholder={loadingShcs ? 'Loading…' : 'Select a Ward'}
+                        labelKey="FacilityName"
+                        valueKey="FacilityID"
+                        disabled={loadingShcs}
                       />
                     )}
                     {errors.ward && !headerSaved && <p className="text-red-500 text-xs font-medium mt-1">⚠ {errors.ward}</p>}
@@ -1009,7 +1009,7 @@ export default function AddWardIssuePage() {
                         <button
                           onClick={() => {
                             setHeaderSaved(false);
-                            localStorage.setItem('currentIssueHeaderSaved', 'false');
+                            localStorage.setItem('currentShcOfflineHeaderSaved', 'false');
                           }}
                           title="Edit Header"
                           className="h-10 w-10 flex items-center justify-center rounded-xl text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100/70 transition-all duration-200 shadow-sm hover:shadow"
@@ -1137,16 +1137,16 @@ export default function AddWardIssuePage() {
                         if (window.confirm('Delete this issue?')) {
                           if (issueId) {
                             try {
-                              await api.delete(`/ward-issue/${issueId}`);
+                              await api.delete(`/api/shc-inter-facility-transfers/offline/${issueId}`);
                             } catch (e) {
                               console.error('Failed to delete  issue:', e);
                             }
                           }
-                          localStorage.removeItem('currentIssueNo');
-                          localStorage.removeItem('currentIssueId');
-                          localStorage.removeItem('currentIssueHeaderSaved');
-                          localStorage.removeItem('currentIssueForm');
-                          navigate('/ward-issues');
+                          localStorage.removeItem('currentShcOfflineIssueNo');
+                          localStorage.removeItem('currentShcOfflineId');
+                          localStorage.removeItem('currentShcOfflineHeaderSaved');
+                          localStorage.removeItem('currentShcOfflineForm');
+                          navigate('/inter-facility-shc-transfer');
                         }
                       }}
                       className="px-6 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100/85 transition-all duration-200 shadow-sm"
@@ -1156,7 +1156,7 @@ export default function AddWardIssuePage() {
                   </div>
 
                   <button
-                    onClick={() => navigate('/ward-issues')}
+                    onClick={() => navigate('/inter-facility-shc-transfer')}
                     className="px-6 py-2 text-xs font-bold uppercase tracking-wider rounded-xl border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-all shadow-sm hover:shadow"
                   >
                     Cancel
@@ -1200,7 +1200,7 @@ export default function AddWardIssuePage() {
                 </div>
                 <div>
                   <span className="text-slate-400 block font-medium">Ward Name</span>
-                  <strong className="text-slate-800 text-sm">{wards.find((w) => String(w.WARDID) === String(form.ward))?.WARDNAME || form.ward || '—'}</strong>
+                  <strong className="text-slate-800 text-sm">{wards.find((w) => String(w.FacilityID) === String(form.targetShc))?.FacilityName || form.targetShc || '—'}</strong>
                 </div>
                 <div>
                   <span className="text-slate-400 block font-medium">Requested By</span>

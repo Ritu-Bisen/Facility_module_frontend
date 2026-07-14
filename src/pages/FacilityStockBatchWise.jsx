@@ -328,8 +328,8 @@ const FacilityStockBatchWise = () => {
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider sticky top-0 z-10">
                   <th className="px-4 py-3 text-center w-10">S.No</th>
                   <th className="px-4 py-3">Code</th>
-                  <th className="px-4 py-3">Item</th>
-                  <th className="px-4 py-3 text-center">Strength</th>
+                  <th className="px-4 py-3 min-w-[250px] whitespace-normal">Item</th>
+                  <th className="px-4 py-3 text-center min-w-[150px] whitespace-normal">Strength</th>
                   <th className="px-4 py-3 text-center">Dosage Form</th>
                   <th className="px-4 py-3 text-center">Packing</th>
                   <th className="px-4 py-3 text-center">Stock(in nos)</th>
@@ -348,8 +348,8 @@ const FacilityStockBatchWise = () => {
                   <tr key={index} className="hover:bg-slate-50/60 align-middle">
                     <td className="px-4 py-3 text-center font-bold text-slate-400 text-xs">{index + 1}</td>
                     <td className="px-4 py-3 font-mono text-xs font-bold text-slate-600">{row.UNIQUEITEMCODE || row.uniqueitemcode || '—'}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-800 text-xs">{row.ITEMNAME || row.itemname || '—'}</td>
-                    <td className="px-4 py-3 text-center text-xs text-slate-600">{row.STRENGTH1 || row.strength1 || '—'}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-800 text-xs min-w-[250px] whitespace-normal break-words">{row.ITEMNAME || row.itemname || '—'}</td>
+                    <td className="px-4 py-3 text-center text-xs text-slate-600 min-w-[150px] whitespace-normal break-words">{row.STRENGTH1 || row.strength1 || '—'}</td>
                     <td className="px-4 py-3 font-semibold text-slate-800 text-xs">{row.ITEMTYPENAME || row.itemtypename || '—'}</td>
                     <td className="px-4 py-3 text-center text-xs text-slate-600">{row.UNIT || row.unit || '—'}</td>
                     <td className="px-4 py-3 text-center">
