@@ -190,7 +190,7 @@ export default function IndentToOtherFacilityPage() {
                                   {indent.StatusCode === 'C' ? (
                                     <button 
                                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-bold transition-colors"
-                                      onClick={() => window.open(`/rptIndenttomainstore.aspx?FacReceiptID=${indent.NOCID}`, '_blank')}
+                                      onClick={() => window.open(`/indent-to-other-facility/print/${indent.NOCID}`, '_blank')}
                                     >
                                       <ArrowDownTrayIcon className="w-4 h-4" /> Download
                                     </button>

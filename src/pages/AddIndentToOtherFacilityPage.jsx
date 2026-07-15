@@ -12,7 +12,9 @@ import {
   getIndentDetail,
   deleteIndentItem,
   updateIndent,
-  deleteIndent
+  deleteIndent,
+  editIndentItem,
+  completeIndent
 } from '../api/indentToOtherFacilityApi';
 import { getInFacilityTransferFacilities } from '../api/inFacilityTransferApi';
 import { PlusCircleIcon, MagnifyingGlassIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -39,6 +41,7 @@ export default function AddIndentToOtherFacilityPage() {
   const [generatedIndentNo, setGeneratedIndentNo] = useState('');
   const [generatedIndentId, setGeneratedIndentId] = useState(null);
   const [error, setError]                         = useState(null);
+  const [isPageLoading, setIsPageLoading]         = useState(false);
 
   // Items state (after generation)
   const [availableItems, setAvailableItems] = useState([]);
@@ -76,6 +79,7 @@ export default function AddIndentToOtherFacilityPage() {
   }, [isEditMode, editIndentId]);
 
   const loadExistingIndent = async (id) => {
+    setIsPageLoading(true);
     try {
       const res = await getIndentDetail(id);
       if (res.success && res.data.header) {
@@ -106,13 +110,16 @@ export default function AddIndentToOtherFacilityPage() {
             reqQty:      String(item.requestedQty || ''),
             approvedQty: String(item.approvedQty || ''),
             saving:      false,
-            saved:       true  // already in DB
+            saved:       true,  // already in DB
+            existsInDb:  true
           })));
         }
       }
     } catch (e) {
       console.error('Failed to load existing indent:', e);
       setError('Failed to load indent details.');
+    } finally {
+      setIsPageLoading(false);
     }
   };
 
@@ -169,11 +176,28 @@ export default function AddIndentToOtherFacilityPage() {
     if (!row.reqQty || Number(row.reqQty) <= 0) { alert('Please enter a valid Requested Qty.'); return; }
     setRows(prev => prev.map(r => r.id === row.id ? { ...r, saving: true } : r));
     try {
-      const res = await saveIndentItem(
-        generatedIndentId, row.itemId, Number(row.reqQty), Number(row.approvedQty || row.reqQty), row.itemData?.facilityStock || 0
-      );
+      let res;
+      if (row.existsInDb) {
+        res = await editIndentItem(
+          generatedIndentId, 
+          row.itemId, 
+          Number(row.reqQty), 
+          Number(row.approvedQty || row.reqQty)
+        );
+      } else {
+        res = await saveIndentItem(
+          generatedIndentId, 
+          row.itemId, 
+          Number(row.reqQty), 
+          Number(row.approvedQty || row.reqQty), 
+          row.itemData?.facilityStock || 0,
+          0, 
+          'I'
+        );
+      }
+      
       if (res.success) {
-        setRows(prev => prev.map(r => r.id === row.id ? { ...r, saving: false, saved: true } : r));
+        setRows(prev => prev.map(r => r.id === row.id ? { ...r, saving: false, saved: true, existsInDb: true } : r));
       } else {
         alert(res.message || 'Failed to save item.');
         setRows(prev => prev.map(r => r.id === row.id ? { ...r, saving: false } : r));
@@ -237,6 +261,21 @@ export default function AddIndentToOtherFacilityPage() {
     }
   };
 
+  const handleComplete = async () => {
+    try {
+      const res = await completeIndent(generatedIndentId);
+      if (res.success) {
+        alert(res.message || 'Saved Successfully');
+        navigate('/indent-to-other-facility');
+      } else {
+        alert(res.message || 'Failed to complete indent.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert(e.response?.data?.message || 'Failed to complete indent.');
+    }
+  };
+
   const handleAddRow = () => {
     setRows(prev => [...prev, { id: Date.now(), itemId: '', itemData: null, reqQty: '', saving: false, saved: false }]);
   };
@@ -250,11 +289,21 @@ export default function AddIndentToOtherFacilityPage() {
           <main className="flex-1 overflow-y-auto p-6 md:p-8">
             <div className="max-w-7xl mx-auto space-y-4">
 
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded">
-                  {error}
+              {isPageLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <svg className="animate-spin w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  <p className="text-sm font-bold text-slate-600 tracking-wide">Loading Indent Details...</p>
                 </div>
-              )}
+              ) : (
+                <>
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded">
+                      {error}
+                    </div>
+                  )}
 
               {/* ── Header Card ─────────────────────────────────────────── */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -384,127 +433,112 @@ export default function AddIndentToOtherFacilityPage() {
                       </svg>
                       <p className="text-xs font-semibold text-slate-500">Loading items from facility...</p>
                     </div>
-                  ) : availableItems.length === 0 ? (
-                    <div className="p-8 text-center text-slate-500 text-sm font-semibold">
-                      No items available in stock at the selected facility.
-                    </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-600 font-bold">
-                            <th className="px-4 py-3 text-center w-12">S.No</th>
-                            <th className="px-4 py-3">Item Details</th>
-                            <th className="px-4 py-3">Strength/SKU/Type</th>
-                            <th className="px-4 py-3 text-right">PackQty</th>
-                            <th className="px-4 py-3 text-right">Facility Stock</th>
-                            <th className="px-4 py-3 text-center w-32">Req Qty in No.</th>
-                            <th className="px-4 py-3 text-center w-32">Approved Qty</th>
-                            <th className="px-4 py-3 text-center w-28">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {availableItems.map((item, idx) => {
-                            // Find if this item is in the "rows" state (our local state for edits/saves)
-                            const rowState = rows.find(r => r.itemId === String(item.itemId)) || {
-                              reqQty: '', approvedQty: '', saving: false, saved: false
-                            };
+                    <>
+                      <div className="overflow-auto max-h-[400px]">
+                        <table className="w-full text-left border-collapse relative">
+                          <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
+                            <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-600 font-bold">
+                              <th className="px-4 py-3 text-center w-12 bg-slate-50">S.No</th>
+                              <th className="px-4 py-3 bg-slate-50">Item Details</th>
+                              <th className="px-4 py-3 bg-slate-50">Strength/SKU/Type</th>
+                              <th className="px-4 py-3 text-right bg-slate-50">PackQty</th>
+                              <th className="px-4 py-3 text-right bg-slate-50">Facility Stock</th>
+                              <th className="px-4 py-3 text-center w-32 bg-slate-50">Req Qty in No.</th>
+                              <th className="px-4 py-3 text-center w-32 bg-slate-50">Approved Qty</th>
+                              <th className="px-4 py-3 text-center w-28 bg-slate-50">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                          {(() => {
+                            const savedRows = rows.filter(r => r.saved);
+                            const unsavedItems = availableItems.filter(item => !savedRows.find(r => r.itemId === String(item.itemId)));
+                            
+                            if (unsavedItems.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan="8" className="p-8 text-center text-slate-500 text-sm font-semibold">
+                                    No unsaved items available to add.
+                                  </td>
+                                </tr>
+                              );
+                            }
 
-                            return (
-                              <tr key={item.itemId} className="hover:bg-blue-50/50 transition-colors">
-                                <td className="px-4 py-3 text-center text-xs font-bold text-slate-400">
-                                  {idx + 1}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="text-xs font-bold text-slate-800">{item.itemName}</div>
-                                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">{item.itemCode}</div>
-                                  <div className="text-[10px] text-indigo-600 font-semibold mt-0.5">{item.edlType}</div>
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="text-[11px] text-slate-600">
-                                    <span className="font-semibold text-slate-700">Str:</span> {item.strength || '—'}
-                                  </div>
-                                  <div className="text-[11px] text-slate-600 mt-0.5">
-                                    <span className="font-semibold text-slate-700">SKU:</span> {item.sku || '—'}
-                                  </div>
-                                  <div className="text-[11px] text-slate-600 mt-0.5">
-                                    <span className="font-semibold text-slate-700">Type:</span> {item.itemType || '—'}
-                                  </div>
-                                </td>
-                                <td className="px-4 py-3 text-right text-xs font-bold text-slate-600">
-                                  {item.packQty || '—'}
-                                </td>
-                                <td className="px-4 py-3 text-right text-sm font-bold text-slate-800">
-                                  {item.facilityStock ?? '—'}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={rowState.reqQty}
-                                    onChange={e => {
-                                      const val = e.target.value;
-                                      // Update local row state
-                                      setRows(prev => {
-                                        const existing = prev.find(r => r.itemId === String(item.itemId));
-                                        if (existing) {
-                                          return prev.map(r => r.itemId === String(item.itemId) ? { ...r, reqQty: val, approvedQty: val, saved: false } : r);
-                                        }
-                                        return [...prev, { itemId: String(item.itemId), itemData: item, reqQty: val, approvedQty: val, saving: false, saved: false, id: item.itemId }];
-                                      });
-                                    }}
-                                    disabled={rowState.saved}
-                                    className={`w-full h-8 px-2 border border-slate-300 rounded text-xs text-center focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 ${rowState.saved ? 'opacity-60 cursor-not-allowed font-bold text-green-700 bg-green-50' : ''}`}
-                                    placeholder="0"
-                                  />
-                                </td>
-                                <td className="px-4 py-3">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={rowState.approvedQty}
-                                    onChange={e => {
-                                      const val = e.target.value;
-                                      setRows(prev => {
-                                        const existing = prev.find(r => r.itemId === String(item.itemId));
-                                        if (existing) {
-                                          return prev.map(r => r.itemId === String(item.itemId) ? { ...r, approvedQty: val, saved: false } : r);
-                                        }
-                                        return [...prev, { itemId: String(item.itemId), itemData: item, reqQty: '', approvedQty: val, saving: false, saved: false, id: item.itemId }];
-                                      });
-                                    }}
-                                    disabled={rowState.saved}
-                                    className={`w-full h-8 px-2 border border-slate-300 rounded text-xs text-center focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50 ${rowState.saved ? 'opacity-60 cursor-not-allowed font-bold text-green-700 bg-green-50' : ''}`}
-                                    placeholder="0"
-                                  />
-                                </td>
-                                <td className="px-4 py-3 text-center">
-                                  {rowState.saved ? (
-                                    <div className="flex items-center justify-center gap-2">
-                                      <div className="inline-flex h-8 px-2 items-center justify-center gap-1 bg-green-50 border border-green-300 rounded text-green-700 text-[10px] font-bold">
-                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        Saved
-                                      </div>
-                                      <button
-                                        onClick={() => handleEditRow(item.itemId)}
-                                        title="Edit Quantity"
-                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                                      >
-                                        <PencilIcon className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteRow(item.itemId)}
-                                        title="Delete Item"
-                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                                      >
-                                        <TrashIcon className="w-4 h-4" />
-                                      </button>
+                            return unsavedItems.map((item, idx) => {
+                              const rowState = rows.find(r => r.itemId === String(item.itemId)) || {
+                                reqQty: '', approvedQty: '', saving: false, saved: false, existsInDb: false
+                              };
+
+                              return (
+                                <tr key={item.itemId} className="hover:bg-blue-50/50 transition-colors">
+                                  <td className="px-4 py-3 text-center text-xs font-bold text-slate-400">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-xs font-bold text-slate-800">{item.itemName}</div>
+                                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">{item.itemCode}</div>
+                                    <div className="text-[10px] text-indigo-600 font-semibold mt-0.5">{item.edlType}</div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-[11px] text-slate-600">
+                                      <span className="font-semibold text-slate-700">Str:</span> {item.strength || '—'}
                                     </div>
-                                  ) : (
+                                    <div className="text-[11px] text-slate-600 mt-0.5">
+                                      <span className="font-semibold text-slate-700">SKU:</span> {item.sku || '—'}
+                                    </div>
+                                    <div className="text-[11px] text-slate-600 mt-0.5">
+                                      <span className="font-semibold text-slate-700">Type:</span> {item.itemType || '—'}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-xs font-bold text-slate-600">
+                                    {item.packQty || '—'}
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-sm font-bold text-slate-800">
+                                    {item.facilityStock ?? '—'}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={rowState.reqQty}
+                                      onChange={e => {
+                                        const val = e.target.value;
+                                        setRows(prev => {
+                                          const existing = prev.find(r => r.itemId === String(item.itemId));
+                                          if (existing) {
+                                            return prev.map(r => r.itemId === String(item.itemId) ? { ...r, reqQty: val, approvedQty: val, saved: false } : r);
+                                          }
+                                          return [...prev, { itemId: String(item.itemId), itemData: item, reqQty: val, approvedQty: val, saving: false, saved: false, existsInDb: false, id: item.itemId }];
+                                        });
+                                      }}
+                                      disabled={rowState.saved}
+                                      className="w-full h-8 px-2 border border-slate-300 rounded text-xs text-center focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50"
+                                      placeholder="0"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={rowState.approvedQty}
+                                      onChange={e => {
+                                        const val = e.target.value;
+                                        setRows(prev => {
+                                          const existing = prev.find(r => r.itemId === String(item.itemId));
+                                          if (existing) {
+                                            return prev.map(r => r.itemId === String(item.itemId) ? { ...r, approvedQty: val, saved: false } : r);
+                                          }
+                                          return [...prev, { itemId: String(item.itemId), itemData: item, reqQty: '', approvedQty: val, saving: false, saved: false, existsInDb: false, id: item.itemId }];
+                                        });
+                                      }}
+                                      disabled={rowState.saved}
+                                      className="w-full h-8 px-2 border border-slate-300 rounded text-xs text-center focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-slate-50"
+                                      placeholder="0"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
                                     <button
-                                      onClick={() => handleSaveRow({ id: item.itemId, itemId: String(item.itemId), itemData: item, reqQty: rowState.reqQty, approvedQty: rowState.approvedQty })}
+                                      onClick={() => handleSaveRow({ id: item.itemId, itemId: String(item.itemId), itemData: item, reqQty: rowState.reqQty, approvedQty: rowState.approvedQty, existsInDb: rowState.existsInDb })}
                                       disabled={rowState.saving || !rowState.reqQty}
                                       className="inline-flex h-8 px-4 w-full items-center justify-center bg-[#1e5f1e] hover:bg-[#155015] text-white text-[11px] font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed gap-1.5"
                                     >
@@ -516,16 +550,135 @@ export default function AddIndentToOtherFacilityPage() {
                                       ) : null}
                                       SAVE
                                     </button>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    <div className="bg-[#0f172a] px-4 py-2.5 mt-6">
+                      <h2 className="text-sm font-bold text-white tracking-wide">List of Saved Items</h2>
                     </div>
+                    <div className="overflow-auto max-h-[400px]">
+                        <table className="w-full text-left border-collapse relative">
+                          <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
+                            <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-600 font-bold">
+                              <th className="px-4 py-3 text-center w-12 bg-slate-50">S.No</th>
+                              <th className="px-4 py-3 bg-slate-50">Item Details</th>
+                              <th className="px-4 py-3 bg-slate-50">Strength/SKU/Type</th>
+                              <th className="px-4 py-3 text-right bg-slate-50">PackQty</th>
+                              <th className="px-4 py-3 text-right bg-slate-50">Facility Stock</th>
+                              <th className="px-4 py-3 text-center w-32 bg-slate-50">Req Qty in No.</th>
+                              <th className="px-4 py-3 text-center w-32 bg-slate-50">Approved Qty</th>
+                              <th className="px-4 py-3 text-center w-28 bg-slate-50">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                          {(() => {
+                            const savedRows = rows.filter(r => r.saved);
+                            if (savedRows.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan="8" className="p-8 text-center text-slate-500 text-sm font-semibold">
+                                    No items saved yet.
+                                  </td>
+                                </tr>
+                              );
+                            }
+
+                            return savedRows.map((rowState, idx) => {
+                              const item = rowState.itemData;
+                              if (!item) return null;
+
+                              return (
+                                <tr key={rowState.itemId} className="hover:bg-green-50/30 transition-colors">
+                                  <td className="px-4 py-3 text-center text-xs font-bold text-slate-400">
+                                    {idx + 1}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-xs font-bold text-slate-800">{item.itemName}</div>
+                                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">{item.itemCode}</div>
+                                    <div className="text-[10px] text-indigo-600 font-semibold mt-0.5">{item.edlType}</div>
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <div className="text-[11px] text-slate-600">
+                                      <span className="font-semibold text-slate-700">Str:</span> {item.strength || '—'}
+                                    </div>
+                                    <div className="text-[11px] text-slate-600 mt-0.5">
+                                      <span className="font-semibold text-slate-700">SKU:</span> {item.sku || '—'}
+                                    </div>
+                                    <div className="text-[11px] text-slate-600 mt-0.5">
+                                      <span className="font-semibold text-slate-700">Type:</span> {item.itemType || '—'}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-xs font-bold text-slate-600">
+                                    {item.packQty || '—'}
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-sm font-bold text-slate-800">
+                                    {item.facilityStock ?? '—'}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="number"
+                                      value={rowState.reqQty}
+                                      disabled
+                                      className="w-full h-8 px-2 border border-slate-300 rounded text-xs text-center font-bold text-green-700 bg-green-50 opacity-80 cursor-not-allowed"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="number"
+                                      value={rowState.approvedQty}
+                                      disabled
+                                      className="w-full h-8 px-2 border border-slate-300 rounded text-xs text-center font-bold text-green-700 bg-green-50 opacity-80 cursor-not-allowed"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <div className="flex items-center justify-center gap-2">
+                                      {/* <div className="inline-flex h-8 px-2 items-center justify-center gap-1 bg-green-50 border border-green-300 rounded text-green-700 text-[10px] font-bold">
+                                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Saved
+                                      </div> */}
+                                      <button
+                                        onClick={() => handleEditRow(rowState.itemId)}
+                                        title="Edit Quantity"
+                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                      >
+                                        <PencilIcon className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteRow(rowState.itemId)}
+                                        title="Delete Item"
+                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                      >
+                                        <TrashIcon className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+                      <button
+                        onClick={handleComplete}
+                        className="w-48 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded transition-colors shadow-sm"
+                      >
+                        Complete
+                      </button>
+                    </div>
+                  </>
                   )}
                 </div>
+              )}
+                </>
               )}
 
             </div>

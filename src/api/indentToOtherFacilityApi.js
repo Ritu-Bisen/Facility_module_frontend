@@ -21,10 +21,19 @@ export const getItemsForFacility = async (facilityId) => {
     } catch (error) { throw error; }
 };
 
-export const saveIndentItem = async (indentId, itemId, requestedQty, approvedQty, facStock) => {
+export const saveIndentItem = async (indentId, itemId, requestedQty, approvedQty, facStock, stockInHand, status) => {
     try {
         const response = await api.post(`/indent-to-other-facility/${indentId}/items`, {
-            itemId, requestedQty, approvedQty, facStock
+            itemId, requestedQty, approvedQty, facStock, stockInHand, status
+        });
+        return response.data;
+    } catch (error) { throw error; }
+};
+
+export const editIndentItem = async (indentId, itemId, requestedQty, approvedQty) => {
+    try {
+        const response = await api.put(`/indent-to-other-facility/${indentId}/items/${itemId}`, {
+            requestedQty, approvedQty
         });
         return response.data;
     } catch (error) { throw error; }
@@ -54,6 +63,13 @@ export const updateIndent = async (indentId, fromFacilityId, accYrSetId) => {
 export const deleteIndent = async (indentId) => {
     try {
         const response = await api.delete(`/indent-to-other-facility/${indentId}`);
+        return response.data;
+    } catch (error) { throw error; }
+};
+
+export const completeIndent = async (indentId) => {
+    try {
+        const response = await api.post(`/indent-to-other-facility/${indentId}/complete`);
         return response.data;
     } catch (error) { throw error; }
 };

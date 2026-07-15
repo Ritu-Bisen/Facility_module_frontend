@@ -37,6 +37,9 @@ import AddShcInterFacilityTransferPage from '../pages/AddShcInterFacilityTransfe
 import AddShcIssueDirectPage from '../pages/AddShcIssueDirectPage';
 import IndentToOtherFacilityPage from '../pages/IndentToOtherFacilityPage';
 import AddIndentToOtherFacilityPage from '../pages/AddIndentToOtherFacilityPage';
+import PrintIndentToOtherFacilityPage from '../pages/PrintIndentToOtherFacilityPage';
+import InterFacilityIssueAgainstOnlineIndentPage from '../pages/InterFacilityIssueAgainstOnlineIndentPage';
+import OnlineTransferItemsPage from '../pages/OnlineTransferItemsPage';
 
 function PlaceholderPage({ title, description, children }) {
   return (
@@ -265,6 +268,11 @@ export default function AppRoutes() {
           <AddIndentToOtherFacilityPage />
         </ProtectedRoute>
       } />
+      <Route path="/indent-to-other-facility/print/:id" element={
+        <ProtectedRoute>
+          <PrintIndentToOtherFacilityPage />
+        </ProtectedRoute>
+      } />
       <Route path="/indent-to-other-facility/edit/:indentId" element={
         <ProtectedRoute>
           <AddIndentToOtherFacilityPage />
@@ -272,7 +280,17 @@ export default function AppRoutes() {
       } />
       <Route path="/inter-facility-issue-against-online-indent" element={
         <ProtectedRoute>
-          <PlaceholderPage title="Inter Facility Issue Against Online Indent" description="Manage inter facility issues against online indents." />
+          <InterFacilityIssueAgainstOnlineIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/inter-facility-issue-online/items/add/:nocId" element={
+        <ProtectedRoute>
+          <OnlineTransferItemsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/inter-facility-issue-online/items/edit/:issueId" element={
+        <ProtectedRoute>
+          <OnlineTransferItemsPage />
         </ProtectedRoute>
       } />
       <Route path="/inter-facility-shc-transfer" element={
