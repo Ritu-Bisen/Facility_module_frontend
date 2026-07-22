@@ -1,124 +1,68 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchMyMenus } from '../../features/menu/menuSlice';
 import {
   HomeIcon,
-  UsersIcon,
   ClipboardDocumentListIcon,
   ArrowLeftStartOnRectangleIcon,
   ArrowRightStartOnRectangleIcon,
-  BuildingStorefrontIcon,
-  ChartBarIcon,
-  ShoppingCartIcon,
-  ClipboardDocumentCheckIcon,
-  DocumentMinusIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
-
-const NAV_ITEMS = [
-  { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
-  { path: '/stock-dashboard', label: 'Stock Dashboard', Icon: ChartBarIcon },
-  { path: '/users',     label: 'Users',     Icon: UsersIcon },
-  {
-    label: 'Masters',
-    Icon: ClipboardDocumentListIcon,
-    subItems: [
-      { path: '/masters/facility-wards', label: 'Facility Wards' },
-      { path: '/masters/facility-information', label: 'Facility Information' },
-      { path: '/masters/storage-location', label: 'Storage Location' },
-      { path: '/masters/special-receipt-location', label: 'Special Receipt Location' },
-      { path: '/masters/doctor-information', label: 'Doctor Information' }
-    ]
-  },
-  {
-    label: 'Issue',
-    Icon: ClipboardDocumentListIcon,
-    subItems: [
-      { path: '/ward-issues', label: 'Ward Issue' }
-    ]
-  },
-  { path: '/breakage-voucher', label: 'Breakage Voucher', Icon: DocumentMinusIcon },
-  {
-    label: 'Inter Facility',
-    Icon: ClipboardDocumentListIcon,
-    subItems: [
-      { path: '/inter-facility-issue', label: 'Inter Facility Issue' },
-      { path: '/inter-facility-receipt', label: 'Inter Facility Receipt' },
-      { path: '/inter-facility-shc-transfer', label: 'SHC Inter Facility Transfer' }
-    ]
-  },
-  {
-    label: 'Indent',
-    Icon: ShoppingCartIcon,
-    subItems: [
-      { path: '/indent/warehouse', label: 'Indent to Warehouse' },
-      { path: '/indent/warehouse-receipts', label: 'Receipts from Warehouse' }
-    ]
-  },
-  {
-    label: 'Store',
-    Icon: BuildingStorefrontIcon,
-    subItems: [
-      { path: '/store/facility-stock-item-wise', label: 'Facility Stock - Item Wise' },
-      { path: '/store/facility-stock-batch-wise', label: 'Facility Stock - Batch Wise' },
-      { path: '/store/warehouse-stock', label: 'Warehouse Stock' }
-    ]
-  },
-  { path: '/reports',   label: 'Reports',   Icon: ChartBarIcon },
-  { path: '/indent/shc-approval', label: 'SHC Indent Approval', Icon: ClipboardDocumentCheckIcon },
-  { path: '/indent-to-other-facility', label: 'Indent To Other Facility', Icon: ClipboardDocumentListIcon },
-  { path: '/inter-facility-issue-against-online-indent', label: 'Inter Facility Issue Against Online Indent', Icon: ClipboardDocumentListIcon },
-];
 
 export default function Sidebar() {
   const { user } = useAuth();
   const location = useLocation();
+  const dispatch = useDispatch();
+  const { menus, loading } = useSelector((state) => state.menu);
   const [collapsed, setCollapsed] = useState(false);
+  const [openMenus, setOpenMenus] = useState({});
 
-  // Build initial open state: any parent whose sub-item matches current route should be open
-  const getInitialOpenMenus = () => {
-    const menus = {};
-    NAV_ITEMS.forEach(item => {
-      if (item.subItems) {
-        const hasActive = item.subItems.some(sub =>
-          location.pathname === sub.path || location.pathname.startsWith(sub.path + '/')
-        );
-        if (hasActive) menus[item.label] = true;
-      }
-    });
-    return menus;
-  };
-
-  const [openMenus, setOpenMenus] = useState(getInitialOpenMenus);
-
-  // Keep parent menu open when navigating to one of its sub-items
   useEffect(() => {
-    NAV_ITEMS.forEach(item => {
-      if (item.subItems) {
-        const hasActive = item.subItems.some(sub =>
-          location.pathname === sub.path || location.pathname.startsWith(sub.path + '/')
+    if (user) {
+      dispatch(fetchMyMenus());
+    }
+  }, [user, dispatch]);
+
+  useEffect(() => {
+    // Keep parent menu open when navigating to one of its sub-items
+    if (menus && menus.length > 0) {
+      const activeParents = {};
+      menus.forEach(module => {
+        const hasActive = module.screens.some(sub => 
+          location.pathname === sub.screenUrl || location.pathname.startsWith(sub.screenUrl + '/')
         );
         if (hasActive) {
-          setOpenMenus(prev => ({ ...prev, [item.label]: true }));
+          activeParents[module.moduleName] = true;
         }
+      });
+      if (Object.keys(activeParents).length > 0) {
+        setOpenMenus(prev => ({ ...prev, ...activeParents }));
       }
-    });
-  }, [location.pathname]);
+    }
+  }, [location.pathname, menus]);
 
   const toggleMenu = (label) => {
     setOpenMenus(prev => ({ ...prev, [label]: !prev[label] }));
   };
 
-  const handleMainMenuClick = (item) => {
+  const handleMainMenuClick = (label) => {
     if (collapsed) {
       setCollapsed(false);
-      setOpenMenus(prev => ({ ...prev, [item.label]: true }));
+      setOpenMenus(prev => ({ ...prev, [label]: true }));
     } else {
-      toggleMenu(item.label);
+      toggleMenu(label);
     }
   };
 
   const active = (path) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
+
+  // Hardcoded essentials
+  const baseMenus = [
+    { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon }
+  ];
 
   return (
     <aside
@@ -166,75 +110,90 @@ export default function Sidebar() {
 
       {/* Nav links */}
       <nav className="flex flex-col gap-1 px-2 pt-3 pb-4 flex-1 overflow-y-auto">
-        {NAV_ITEMS.map((item) => {
-          if (item.subItems) {
-            const isOpen = openMenus[item.label];
-            const isSubActive = item.subItems.some(sub => active(sub.path));
-            const Icon = item.Icon;
-            return (
-              <div key={item.label} className="flex flex-col">
-                <button
-                  onClick={() => handleMainMenuClick(item)}
-                  title={collapsed ? item.label : undefined}
-                  className={`w-full flex items-center justify-between rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none
-                    ${isSubActive 
-                      ? 'text-white bg-white/5' 
-                      : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-5 h-5 flex-shrink-0" />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
-                  </div>
-                  {!collapsed && (
-                    <svg
-                      className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  )}
-                </button>
-                {/* Submenu items */}
-                {isOpen && !collapsed && (
-                  <div className="pl-6 flex flex-col gap-1 mt-1 mb-2 transition-all duration-300">
-                    {item.subItems.map((sub) => {
-                      const isActive = active(sub.path);
-                      return (
-                        <Link
-                          key={sub.path}
-                          to={sub.path}
-                          className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-semibold transition-all duration-150
-                            ${isActive
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
-                        >
-                          <span className="truncate">{sub.label}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          } else {
-            const Icon = item.Icon;
-            const isActive = active(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                title={collapsed ? item.label : undefined}
-                className={`flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all duration-150
-                  ${isActive
-                    ? 'bg-blue-600 text-white shadow-sm'
+        {/* Base Menus */}
+        {baseMenus.map((item) => {
+          const Icon = item.Icon;
+          const isActive = active(item.path);
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              title={collapsed ? item.label : undefined}
+              className={`flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all duration-150
+                ${isActive
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}
+            >
+              <Icon className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
+            </Link>
+          );
+        })}
+
+        {/* Loading State */}
+        {loading && !collapsed && (
+          <div className="px-3 py-4 text-xs text-gray-500 animate-pulse">Loading menus...</div>
+        )}
+
+        {/* Dynamic Menus from DB (Only showing those with 'View' permission) */}
+        {!loading && menus && menus.map((module) => {
+          // Filter screens that user can view
+          const viewableScreens = module.screens.filter(s => s.canView);
+          
+          // If no screens are viewable in this module, hide it
+          if (viewableScreens.length === 0) return null;
+
+          const isOpen = openMenus[module.moduleName];
+          const isSubActive = viewableScreens.some(sub => active(sub.screenUrl));
+          const Icon = ClipboardDocumentListIcon; // Default icon for dynamic modules
+          
+          return (
+            <div key={module.moduleId} className="flex flex-col mt-1">
+              <button
+                onClick={() => handleMainMenuClick(module.moduleName)}
+                title={collapsed ? module.moduleName : undefined}
+                className={`w-full flex items-center justify-between rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none
+                  ${isSubActive 
+                    ? 'text-white bg-white/5' 
                     : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </Link>
-            );
-          }
+                <div className="flex items-center gap-3">
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  {!collapsed && <span className="truncate">{module.moduleName}</span>}
+                </div>
+                {!collapsed && (
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                )}
+              </button>
+              {/* Submenu items */}
+              {isOpen && !collapsed && (
+                <div className="pl-6 flex flex-col gap-1 mt-1 mb-2 transition-all duration-300">
+                  {viewableScreens.map((sub) => {
+                    const isActive = active(sub.screenUrl);
+                    return (
+                      <Link
+                        key={sub.screenId}
+                        to={sub.screenUrl}
+                        className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-semibold transition-all duration-150
+                          ${isActive
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}
+                      >
+                        <span className="truncate">{sub.screenName}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
         })}
+
       </nav>
     </aside>
   );

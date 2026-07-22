@@ -66,7 +66,13 @@ const IssueDetailsCell = ({ indent }) => {
                             <td className="px-2 py-1.5 border-l border-slate-200 text-center">{issue.ISSUEDATE}</td>
                             <td className="px-2 py-1.5 border-l border-slate-200 text-center">
                                 {issue.Status === 'C' ? (
-                                    <span className="text-green-600 font-medium">Issued</span>
+                                    <button
+                                        onClick={() => window.open(`/ward-issues/print/${issue.IssueID}`, '_blank')}
+                                        className="text-emerald-600 hover:text-emerald-700 hover:underline font-bold transition-colors cursor-pointer"
+                                        title="Print Issue Details"
+                                    >
+                                        Issued
+                                    </button>
                                 ) : (
                                     <button
                                         onClick={() => navigate(`/inter-facility-issue-online/items/edit/${issue.IssueID}`)}

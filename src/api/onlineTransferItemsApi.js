@@ -45,3 +45,59 @@ export const getItemsForIssue = async (nocId, issueId) => {
         throw error;
     }
 };
+
+// --- Ward Issue mappings for identical logic ---
+
+export const getBatches = async (issueItemId, itemId) => {
+    try {
+        const response = await api.get(`/ward-issue/batches/${issueItemId}/${itemId}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const saveIssueItem = async (issueId, payload) => {
+    try {
+        const response = await api.post(`/ward-issue/${issueId}/items`, payload);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const updateIssueItem = async (issueItemId, payload) => {
+    try {
+        const response = await api.put(`/ward-issue/items/${issueItemId}`, payload);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const deleteIssueItem = async (issueItemId) => {
+    try {
+        const response = await api.delete(`/ward-issue/items/${issueItemId}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const completeIssue = async (issueId) => {
+    try {
+        const response = await api.post(`/ward-issue/${issueId}/complete`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const deleteIssue = async (issueId) => {
+    try {
+        const response = await api.delete(`/ward-issue/${issueId}`);
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

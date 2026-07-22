@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { setCredentials } from './authSlice';
+import { setCredentials, fetchUserMenus } from './authSlice';
 import { loginWithEmail, loginWithPhone } from './authAPI';
 import Header from '../../components/layout/Header';
 
@@ -52,6 +52,10 @@ export default function Login() {
           accessToken: response.accessToken,
           refreshToken: response.refreshToken,
         }));
+        
+        // Fetch menus right after login
+        await dispatch(fetchUserMenus()).unwrap();
+
         // Navigate to dashboard with welcome popup state
         navigate('/dashboard', { state: { showWelcome: true } });
       } else {

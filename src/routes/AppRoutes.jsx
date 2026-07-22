@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from '../pages/LoginPage';
 import DashboardPage from '../pages/DashboardPage';
 import NotFound from '../pages/NotFound';
+import UnauthorizedPage from '../pages/UnauthorizedPage';
 import ProtectedRoute from './ProtectedRoute';
 import WardIssuesPage from '../pages/WardIssuesPage';
 import AddWardIssuePage from '../pages/AddWardIssuePage';
@@ -17,6 +18,7 @@ import PrintMonthlyIndentPage from '../pages/PrintMonthlyIndentPage';
 import WarehouseStockPage from '../pages/WarehouseStockPage';
 import WarehouseReceiptFAC from '../pages/WarehouseReceiptFAC';
 import FacilityReceiptViewFAC from '../pages/FacilityReceiptViewFAC';
+import NocApprovalPage from '../pages/NocApprovalPage';
 import ShcIndentApprovalFAC from '../pages/ShcIndentApprovalFAC';
 import ShcIndentItemsFAC from '../pages/ShcIndentItemsFAC';
 import InterFacilityIssueFAC from '../pages/InterFacilityIssueFAC';
@@ -40,6 +42,9 @@ import AddIndentToOtherFacilityPage from '../pages/AddIndentToOtherFacilityPage'
 import PrintIndentToOtherFacilityPage from '../pages/PrintIndentToOtherFacilityPage';
 import InterFacilityIssueAgainstOnlineIndentPage from '../pages/InterFacilityIssueAgainstOnlineIndentPage';
 import OnlineTransferItemsPage from '../pages/OnlineTransferItemsPage';
+import StockRegisterPage from '../pages/StockRegisterPage';
+import AnnualIndentDistributionPage from '../pages/AnnualIndentDistributionPage';
+import RoleAccessManagementPage from '../pages/RoleAccessManagementPage';
 
 function PlaceholderPage({ title, description, children }) {
   return (
@@ -67,6 +72,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <DashboardPage />
@@ -97,6 +103,11 @@ export default function AppRoutes() {
           <DoctorInformationPage />
         </ProtectedRoute>
       } />
+      <Route path="/masters/role-access-management" element={
+        <ProtectedRoute>
+          <RoleAccessManagementPage />
+        </ProtectedRoute>
+      } />
       <Route path="/stock-dashboard" element={
         <ProtectedRoute>
           <StockDashboard />
@@ -110,6 +121,18 @@ export default function AppRoutes() {
       <Route path="/store/warehouse-stock" element={
         <ProtectedRoute>
           <WarehouseStockPage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/stock-register" element={
+        <ProtectedRoute>
+          <StockRegisterPage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/annual-indent-distribution" element={
+        <ProtectedRoute>
+          <AnnualIndentDistributionPage />
         </ProtectedRoute>
       } />
 
@@ -162,6 +185,11 @@ export default function AppRoutes() {
       <Route path="/indent/warehouse/print/:id" element={
         <ProtectedRoute>
           <PrintMonthlyIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/indent/cmho-approval" element={
+        <ProtectedRoute>
+          <NocApprovalPage />
         </ProtectedRoute>
       } />
       <Route path="/indent/warehouse-receipts" element={

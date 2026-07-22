@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAuth } from '../../hooks/useAuth';
 import { logout } from '../../features/auth/authSlice';
+import ChangePasswordModal from './ChangePasswordModal';
 
 export default function Header() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const { user } = useAuth();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -24,7 +26,8 @@ export default function Header() {
   };
 
   return (
-    <header className="relative z-50 flex-shrink-0 transition-colors duration-500">
+    <>
+      <header className="relative z-50 flex-shrink-0 transition-colors duration-500">
       <nav className="bg-[#0f172a] dark:bg-[#0b0f19] px-4 md:px-8 py-3 flex items-center justify-between shadow-lg">
         {/* Left: CG Govt Logo + Title */}
         <div className="flex items-center gap-3 md:gap-5 min-w-0">
@@ -44,17 +47,25 @@ export default function Header() {
         {/* Right: Logout, Dark Mode, CGMSC Logo */}
         <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
 
-          {/* Logout Button */}
+          {/* Logout & Change Password */}
           {user && (
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-red-300 hover:bg-white/10 hover:text-red-400 transition-colors duration-200"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              Logout
-            </button>
+            <div className="flex flex-col gap-1 items-end mr-2">
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-medium text-red-300 hover:bg-white/10 hover:text-red-400 transition-colors duration-200 w-full justify-end"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Logout
+              </button>
+              <button
+                onClick={() => setIsChangePasswordOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium text-blue-300 hover:bg-white/10 hover:text-blue-400 transition-colors duration-200"
+              >
+                Change Password
+              </button>
+            </div>
           )}
 
           {/* Dark Mode Toggle */}
@@ -79,5 +90,10 @@ export default function Header() {
         </div>
       </nav>
     </header>
+      <ChangePasswordModal 
+        isOpen={isChangePasswordOpen} 
+        onClose={() => setIsChangePasswordOpen(false)} 
+      />
+    </>
   );
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { useRef } from 'react';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
@@ -9,7 +10,86 @@ import api from '../api/axios';
 
 const today = new Date().toISOString().split('T')[0];
 
+function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey, disabled }) {
+  const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef();
 
+  const list = q.trim()
+    ? options.filter((o) => (o[labelKey] || '').toLowerCase().includes(q.toLowerCase()))
+    : options;
+
+  const selected = options.find((o) => String(o[valueKey]) === String(value));
+
+  useEffect(() => {
+    const h = (e) => { if (!boxRef.current?.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const openDrop = () => { if (disabled) return; setQ(''); setOpen(true); };
+  const pick = (o) => { onChange(o[valueKey]); setOpen(false); setQ(''); };
+  const clearSelection = (e) => { e.stopPropagation(); onChange(''); setOpen(false); setQ(''); };
+
+  return (
+    <div ref={boxRef} className="relative w-full">
+      <div
+        onClick={openDrop}
+        className={`flex items-center justify-between gap-2 w-full h-10 px-3 rounded-xl border text-sm cursor-pointer select-none transition
+          ${disabled ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+            : open     ? 'border-blue-500 ring-2 ring-blue-100 bg-white'
+            : 'bg-slate-50 border-slate-200 hover:border-blue-400'}`}
+      >
+        <span className={`truncate font-semibold ${selected ? 'text-slate-700' : 'text-slate-400'}`}>
+          {selected ? selected[labelKey] : placeholder}
+        </span>
+        <div className="flex items-center gap-1">
+          {selected && (
+             <button onClick={clearSelection} className="text-slate-400 hover:text-red-500 text-lg font-bold leading-none mr-1" title="Clear">&times;</button>
+          )}
+          <svg className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {open && (
+        <div className="absolute z-[200] top-full mt-1 w-full min-w-[220px] bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="p-2 border-b border-slate-100">
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+              <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <input
+                autoFocus
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Type to filter…"
+                className="flex-1 bg-transparent text-sm outline-none placeholder-slate-400 min-w-0"
+              />
+              {q && (
+                <button onClick={() => setQ('')} className="text-slate-400 hover:text-slate-600 flex-shrink-0 text-sm">✕</button>
+              )}
+            </div>
+          </div>
+          <ul className="max-h-52 overflow-y-auto">
+            {list.length === 0
+              ? <li className="px-4 py-3 text-sm text-slate-400 text-center">No results</li>
+              : list.map((o, i) => (
+                <li
+                  key={o[valueKey] ?? i}
+                  onClick={() => pick(o)}
+                  className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700 border-b border-slate-50 last:border-0
+                    ${String(o[valueKey]) === String(value) ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700'}`}
+                >
+                  {o[labelKey]}
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AddMonthlyIndentPage() {
   const navigate = useNavigate();
@@ -21,6 +101,8 @@ export default function AddMonthlyIndentPage() {
 
   const [accYears, setAccYears] = useState([]);
   const [programsList, setProgramsList] = useState([]);
+  const [itemCategories, setItemCategories] = useState([]);
+  const [itemTypesData, setItemTypesData] = useState([]);
   const [loadingFilters, setLoadingFilters] = useState(false);
 
   const [form, setForm] = useState({
@@ -29,8 +111,11 @@ export default function AddMonthlyIndentPage() {
     programId: '',
   });
 
+  const [itemCategory, setItemCategory] = useState('');
   const [itemType, setItemType] = useState('');
   const [fmItems, setFmItems] = useState([]);
+  const [allFacilityItems, setAllFacilityItems] = useState([]);
+  const [searchFilter, setSearchFilter] = useState('');
   const [loadingFmItems, setLoadingFmItems] = useState(false);
   const [selectedItems, setSelectedItems] = useState({});
   const [savingItems, setSavingItems] = useState(false);
@@ -54,12 +139,31 @@ export default function AddMonthlyIndentPage() {
   }, [facilityId]);
 
   useEffect(() => {
+    api.get('/monthly-indent/item-types').then(res => setItemCategories(res.data || [])).catch(e => console.error(e));
+  }, []);
+
+  useEffect(() => {
+    if (facilityId) {
+      api.get(`/facility/items/${facilityId}`)
+        .then(res => setAllFacilityItems(res.data || []))
+        .catch(err => console.error("Error fetching all facility items:", err));
+    }
+  }, [facilityId]);
+
+  useEffect(() => {
     if (itemType && facilityId) {
       fetchFmItems();
     } else {
       setFmItems([]);
     }
-  }, [itemType, facilityId]);
+  }, [itemType, facilityId, itemCategory]);
+
+  // Derived filtered items based on searchFilter
+  const filteredFmItems = fmItems.filter(item => {
+    // Check Search match (if searchFilter is set, it might be an ITEMID)
+    if (!searchFilter) return true;
+    return String(item.ITEMID) === String(searchFilter);
+  });
 
   useEffect(() => {
     if (editNocIdInternal) {
@@ -84,13 +188,16 @@ export default function AddMonthlyIndentPage() {
       let params = {};
       if (itemType === 'fm_item') {
         endpoint = '/monthly-indent/fm-items';
-        params = { itemType: 'FM-items' };
+        params = { itemType: 'FM-items', categoryId: itemCategory || 1 };
       } else if (itemType === 'STOCK_AND_AVAILABLE') {
         endpoint = '/monthly-indent/warehouse-items';
-        params = { itemType };
+        params = { itemType, categoryId: itemCategory || 1 };
       } else if (itemType === 'INDENT_DHS') {
         endpoint = '/monthly-indent/dhs-indent-items';
-        params = {};
+        params = { categoryId: itemCategory || 1 };
+      } else if (itemType === 'AGAINST_APPROVAL_INDENT') {
+        endpoint = '/monthly-indent/against-approval-indent';
+        params = { categoryId: itemCategory || 1 };
       }
       
       if (endpoint) {
@@ -158,9 +265,10 @@ export default function AddMonthlyIndentPage() {
   const loadFilters = async () => {
     setLoadingFilters(true);
     try {
-      const [resYears, resPrograms] = await Promise.all([
+      const [resYears, resPrograms, resItemTypes] = await Promise.all([
         api.get('/ward-issue/acc-years'),
-        api.get('/monthly-indent/programs')
+        api.get('/monthly-indent/programs'),
+        api.get('/monthly-indent/item-types')
       ]);
 
       const mappedYears = (resYears.data || []).map(y => 
@@ -172,6 +280,8 @@ export default function AddMonthlyIndentPage() {
         Array.isArray(p) ? { ProgramID: p[0], ProgramName: p[1] } : { ProgramID: p.PROGRAMID || p.programId, ProgramName: p.PROGRAMNAME || p.programName }
       );
       setProgramsList(mappedPrograms);
+
+      setItemTypesData(resItemTypes.data || []);
 
       if (mappedYears.length > 0) {
         // Find 'Regular supply' ignoring case and spaces
@@ -248,6 +358,7 @@ export default function AddMonthlyIndentPage() {
       setRequestNo(generatedNo);
       if (headerRes.data && headerRes.data.nocId) {
         setEditNocIdInternal(headerRes.data.nocId);
+        navigate(`?nocId=${headerRes.data.nocId}`, { replace: true });
       }
     } catch (error) {
       console.error("Failed to generate Request No", error);
@@ -293,6 +404,23 @@ export default function AddMonthlyIndentPage() {
       return;
     }
     
+    const now = new Date();
+    const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const dd = String(istTime.getDate()).padStart(2, '0');
+    const mm = String(istTime.getMonth() + 1).padStart(2, '0');
+    const yy = String(istTime.getFullYear()).slice(-2);
+    const yyyy = istTime.getFullYear();
+    
+    let hours = istTime.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    
+    const strMins = String(istTime.getMinutes()).padStart(2, '0');
+    const strSecs = String(istTime.getSeconds()).padStart(2, '0');
+    
+    const entryDate = `${yyyy}-${mm}-${dd}`;
+    const cmhoapplieddttime = `${dd}-${mm}-${yy} ${hours}:${strMins}:${strSecs}.000000000 ${ampm}`;
+
     // Gather all checked items that have a valid issue quantity
     const itemsToSave = [];
     const availableFmItems = fmItems.filter(item => {
@@ -303,23 +431,44 @@ export default function AddMonthlyIndentPage() {
     for (const item of availableFmItems) {
       const selection = selectedItems[item.ITEMID || item.itemId];
       if (selection && selection.checked && parseFloat(selection.issueQty) > 0) {
-        const readyStock = parseFloat(item.READYSTOCKWHNOS || item.ReadyStockWHNos || 0);
-        const uqcStock = parseFloat(item.UQCSTOCKWHNOS || item.UQCStockWHNos || 0);
+        const readyStock = parseFloat(item.READYSTOCKWHNOS || item.ReadyStockWHNos || item.READYWHNOS || 0);
+        const uqcStock = parseFloat(item.UQCSTOCKWHNOS || item.UQCStockWHNos || item.UQCNOS || 0);
         const maxAllowed = readyStock + uqcStock;
-        if (parseFloat(selection.issueQty) > maxAllowed) {
+        if (itemType === 'AGAINST_APPROVAL_INDENT') {
+          const balanceAiQty = parseFloat(item.BALANCEAIQTYNOS || 0);
+          if (parseFloat(selection.issueQty) > balanceAiQty) {
+            alert(`Quantity for ${item.ITEMNAME || item.itemName} cannot exceed Balance AI Qty (${balanceAiQty}).`);
+            return;
+          }
+
+        } else if (parseFloat(selection.issueQty) > maxAllowed) {
           alert(`Quantity for ${item.ITEMNAME || item.itemName} cannot exceed Ready Stock + UQC Stock (${maxAllowed}).`);
           return;
         }
+        const reqQty = parseFloat(selection.issueQty);
+        const toBeIndented = reqQty <= readyStock ? reqQty : readyStock;
+        const nocToBeGranted = reqQty > readyStock ? reqQty - readyStock : 0;
+        const currentDateFormatted = `${dd}/${mm}/${yyyy}`;
+        const cgmsclRemarks = itemType === 'AGAINST_APPROVAL_INDENT' 
+          ? `${toBeIndented} qty is booked in WH, and NOC Granted for ${nocToBeGranted} qty upto ${currentDateFormatted} ONLY.` 
+          : (reqQty > readyStock ? 'Noc Pending For Approval' : '');
+        const currentStatus = itemType === 'AGAINST_APPROVAL_INDENT' ? 'Y' : undefined;
+
         itemsToSave.push({
           itemId: item.ITEMID || item.itemId,
-          requestedqty: parseFloat(selection.issueQty),
+          requestedqty: reqQty,
           whStock: readyStock,
           whStockQcPending: uqcStock,
           otherWhStock: 0,
           stockInHand: 0,
           itemRemarks: '',
-          cgmsclRemarks: '',
-          itemType: itemType === 'fm_item' ? 'FM-items' : itemType
+          cgmsclRemarks: cgmsclRemarks,
+          itemType: itemType === 'fm_item' ? 'FM-items' : itemType,
+          approvedQty: nocToBeGranted,
+          bookedQty: toBeIndented,
+          bookedFlag: 'B',
+          status: currentStatus,
+          entry_date: entryDate
         });
       }
     }
@@ -503,22 +652,67 @@ export default function AddMonthlyIndentPage() {
               {requestNo && (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden p-3 md:p-4 space-y-4">
                   <div className="flex flex-col md:flex-row md:items-end gap-4 w-full">
-                    {/* Item Type Dropdown */}
+                    {/* Item Category Dropdown */}
                     <div className="w-full md:w-1/3 space-y-1.5">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Item Type <span className="text-rose-500">*</span>
+                        Item Category <span className="text-rose-500">*</span>
+                      </label>
+                      <select
+                          value={itemCategory}
+                          onChange={(e) => setItemCategory(e.target.value)}
+                          className="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all font-semibold text-slate-700"
+                        >
+                          <option value="">Select Item Category</option>
+                          {itemCategories.map(cat => (
+                            <option key={cat.ITEMTYPEID || cat.CATEGORYID} value={cat.ITEMTYPENAME || cat.CATEGORYNAME}>
+                              {cat.ITEMTYPENAME || cat.CATEGORYNAME}
+                            </option>
+                          ))}
+                        </select>
+                    </div>
+
+                    {/* Original Item Source Dropdown */}
+                    <div className="w-full md:w-1/3 space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Item Source <span className="text-rose-500">*</span>
                       </label>
                       <select
                           value={itemType}
                           onChange={(e) => setItemType(e.target.value)}
                           className="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all font-semibold text-slate-700"
                         >
-                          <option value="">Select Item Type</option>
+                          <option value="">Select Item Source</option>
                           <option value="fm_item">fm item</option>
                           <option value="STOCK_AND_AVAILABLE">stock out and available in warehouse</option>
                           <option value="INDENT_DHS">indent given by DHS</option>
+                          <option value="AGAINST_APPROVAL_INDENT">against approval indent</option>
                           <option value="OTHER">other</option>
                         </select>
+                    </div>
+
+                    {/* Search Filter (Searchable) */}
+                    <div className="w-full md:w-1/3 space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Search Item <span className="text-gray-400 font-normal">(Name, Code, or Type)</span>
+                      </label>
+                      <SearchDrop 
+                        options={[
+                          { value: '', label: 'All Items' },
+                          ...fmItems.map((item) => {
+                            const name = item.ITEMNAME || item.itemName || '';
+                            const code = item.ITEMCODE || item.itemCode || '';
+                            return {
+                              value: String(item.ITEMID || item.itemId),
+                              label: `${code} - ${name}`
+                            };
+                          })
+                        ]}
+                        value={searchFilter}
+                        onChange={(val) => setSearchFilter(val)}
+                        placeholder="Search Name, Code..."
+                        labelKey="label"
+                        valueKey="value"
+                      />
                     </div>
 
                     {itemType === 'OTHER' && (
@@ -586,34 +780,26 @@ export default function AddMonthlyIndentPage() {
                                   <th className="px-2 py-3 border-b border-slate-200">Strength</th>
                                   <th className="px-2 py-3 border-b border-slate-200">Unit</th>
 
-                                  {(itemType === 'STOCK_AND_AVAILABLE' || itemType === 'INDENT_DHS') && (
+                                  {itemType === 'AGAINST_APPROVAL_INDENT' ? (
                                     <>
-                                      {/* <th className="px-4 py-3 border-b border-slate-200 whitespace-nowrap">Warehouse Name</th>
-                                      <th className="px-4 py-3 border-b border-slate-200">Category</th>
-                                      <th className="px-4 py-3 border-b border-slate-200">EDL Type</th>
-                                      <th className="px-4 py-3 border-b border-slate-200">Program</th>
-                                      <th className="px-4 py-3 border-b border-slate-200 min-w-[150px]">Program Items</th>
-                                      <th className="px-4 py-3 border-b border-slate-200 min-w-[150px]">AI Status</th> */}
-                                      {/* <th className="px-4 py-3 border-b border-slate-200">EDL</th>
-                                      <th className="px-4 py-3 border-b border-slate-200 text-center">ABC</th>
-                                      <th className="px-4 py-3 border-b border-slate-200 text-center">VED</th> */}
+                                      <th className="px-4 py-3 border-b border-slate-200">Item Type Name</th>
+                                      <th className="px-4 py-3 border-b border-slate-200">Group Name</th>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">Fac AI Nos</th>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">AI Dist Nos</th>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">Fac Stock</th>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">WH Issued CFY</th>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">Balance AI Qty</th>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">Ready WH Nos</th>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">UQC Nos</th>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">Ready Stock</th>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">UQC Stock</th>
+                                      <th className="px-1 py-3 border-b border-slate-200 text-right">Pipeline Stock</th>
+                                      <th className="px-1 py-3 border-b border-slate-200 text-right">Facility Stock</th>
                                     </>
                                   )}
-
-                                  <th className="px-4 py-3 border-b border-slate-200 text-right">Ready Stock</th>
-                                  <th className="px-4 py-3 border-b border-slate-200 text-right">UQC Stock</th>
-                                  <th className="px-1 py-3 border-b border-slate-200 text-right">Pipeline Stock</th>
-                                  <th className="px-1 py-3 border-b border-slate-200 text-right">Facility Stock</th>
-                                  
-                                  {(itemType === 'STOCK_AND_AVAILABLE' || itemType === 'INDENT_DHS') && (
-                                    <>
-                                      {/* <th className="px-4 py-3 border-b border-slate-200 text-right">Near Exp (3M)</th> */}
-                                      {/* <th className="px-4 py-3 border-b border-slate-200 min-w-[120px]">Receipt Date WH</th>
-                                      <th className="px-4 py-3 border-b border-slate-200 min-w-[120px]">QC Passed DT</th> */}
-                                    </>
-                                  )}
-
-                                  {/* <th className="px-4 py-3 border-b border-slate-200">Group Name</th> */}
                                   <th className="px-4 py-3 border-b border-slate-200">Issue Qty</th>
                                 </tr>
                               </thead>
@@ -622,12 +808,12 @@ export default function AddMonthlyIndentPage() {
                                   const id = item.ITEMID || item.itemId;
                                   return !savedItems.some(saved => (saved.ITEMID || saved.itemId) === id);
                                 }).sort((a, b) => {
-                                  const aReadyStock = parseFloat(a.READYSTOCKWHNOS ?? a.ReadyStockWHNos ?? 0);
-                                  const aUqcStock = parseFloat(a.UQCSTOCKWHNOS ?? a.UQCStockWHNos ?? 0);
+                                  const aReadyStock = parseFloat(a.READYSTOCKWHNOS ?? a.ReadyStockWHNos ?? a.READYWHNOS ?? 0);
+                                  const aUqcStock = parseFloat(a.UQCSTOCKWHNOS ?? a.UQCStockWHNos ?? a.UQCNOS ?? 0);
                                   const aIsDisabled = aReadyStock === 0 && aUqcStock === 0;
 
-                                  const bReadyStock = parseFloat(b.READYSTOCKWHNOS ?? b.ReadyStockWHNos ?? 0);
-                                  const bUqcStock = parseFloat(b.UQCSTOCKWHNOS ?? b.UQCStockWHNos ?? 0);
+                                  const bReadyStock = parseFloat(b.READYSTOCKWHNOS ?? b.ReadyStockWHNos ?? b.READYWHNOS ?? 0);
+                                  const bUqcStock = parseFloat(b.UQCSTOCKWHNOS ?? b.UQCStockWHNos ?? b.UQCNOS ?? 0);
                                   const bIsDisabled = bReadyStock === 0 && bUqcStock === 0;
 
                                   if (aIsDisabled === bIsDisabled) return 0;
@@ -636,8 +822,8 @@ export default function AddMonthlyIndentPage() {
                                   const id = item.ITEMID || item.itemId;
                                   const selection = selectedItems[id] || { checked: false, issueQty: '' };
                                   
-                                  const readyStock = parseFloat(item.READYSTOCKWHNOS ?? item.ReadyStockWHNos ?? 0);
-                                  const uqcStock = parseFloat(item.UQCSTOCKWHNOS ?? item.UQCStockWHNos ?? 0);
+                                  const readyStock = parseFloat(item.READYSTOCKWHNOS ?? item.ReadyStockWHNos ?? item.READYWHNOS ?? 0);
+                                  const uqcStock = parseFloat(item.UQCSTOCKWHNOS ?? item.UQCStockWHNos ?? item.UQCNOS ?? 0);
                                   const isDisabled = readyStock === 0 && uqcStock === 0;
 
                                   return (
@@ -655,33 +841,27 @@ export default function AddMonthlyIndentPage() {
                                       </td>
                                       <td className={`px-3 py-3 font-mono font-bold ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.ITEMCODE || item.itemCode}</td>
                                       <td className={`px-3 py-3 max-w-xs break-words whitespace-normal ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.ITEMNAME || item.itemName}</td>
-                                      <td className={`px-3 py-3 max-w-xs break-words whitespace-normal ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.STRENGTH1 || item.strength1}</td>
+                                      <td className={`px-3 py-3 max-w-xs break-words whitespace-normal ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.STRENGTH1 || item.STRENGTH || item.strength1}</td>
                                       <td className={`px-3 py-3 max-w-xs break-words whitespace-normal ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.UNIT || item.unit}</td>
 
-                                      {(itemType === 'STOCK_AND_AVAILABLE' || itemType === 'INDENT_DHS') && (
+                                      {itemType === 'AGAINST_APPROVAL_INDENT' ? (
                                         <>
-                                          {/* <td className={`px-3 py-3 font-medium whitespace-nowrap ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.WAREHOUSENAME}</td>
-                                          <td className={`px-3 py-3 ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.MCATEGORY}</td>
-                                          <td className={`px-3 py-3 whitespace-nowrap ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.EDLTYPE}</td>
-                                          <td className={`px-3 py-3 ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.PROGRAM}</td>
-                                          <td className={`px-3 py-3 min-w-[150px] ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.PROGRAMITEMS}</td>
-                                          <td className={`px-3 py-3 min-w-[150px] ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.AISTATUS}</td>
-                                          <td className={`px-3 py-3 font-bold text-center ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.EDL}</td>
-                                          <td className={`px-3 py-3 font-bold text-center ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.ABCCATEGORY}</td>
-                                          <td className={`px-3 py-3 font-bold text-center ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.VEDCATEGORY}</td> */}
+                                          <td className={`px-3 py-3 ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.ITEMTYPENAME}</td>
+                                          <td className={`px-3 py-3 ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.GROUPNAME}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.FACAI_NOS}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.AIDIST_NOS}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-indigo-400' : 'text-indigo-600'}`}>{item.FACSTOCK}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.WHISSUEDCFY}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.BALANCEAIQTYNOS}</td>
+                                          <td className={`px-4 py-3 text-right font-bold ${isDisabled ? 'text-emerald-400 bg-emerald-50/30' : 'text-emerald-600 bg-emerald-50/50'}`}>{item.READYWHNOS || 0}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-amber-400 bg-amber-50/30' : 'text-amber-600 bg-amber-50/50'}`}>{item.UQCNOS || 0}</td>
                                         </>
-                                      )}
-
-                                      <td className={`px-4 py-3 text-right font-bold ${isDisabled ? 'text-emerald-400 bg-emerald-50/30' : 'text-emerald-600 bg-emerald-50/50'}`}>{readyStock}</td>
-                                      <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-amber-400 bg-amber-50/30' : 'text-amber-600 bg-amber-50/50'}`}>{uqcStock}</td>
-                                      <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-blue-400' : 'text-blue-600'}`}>{item.IWHPIPLINESTOCKNOS ?? item.IWHPiplineStockNos ?? 0}</td>
-                                      <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-indigo-400' : 'text-indigo-600'}`}>{item.FACILITYSTOCK || 0}</td>
-
-                                      {(itemType === 'STOCK_AND_AVAILABLE' || itemType === 'INDENT_DHS') && (
+                                      ) : (
                                         <>
-                                          {/* <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-rose-400' : 'text-rose-600'}`}>{item.NEAREXPQTY3MONTH || 0}</td> */}
-                                          {/* <td className="px-3 py-3 text-slate-500 whitespace-nowrap min-w-[120px]">{item.RECEIPTDATEWH || '-'}</td>
-                                          <td className="px-3 py-3 text-slate-500 whitespace-nowrap min-w-[120px]">{item.QCPASSEDDT || '-'}</td> */}
+                                          <td className={`px-4 py-3 text-right font-bold ${isDisabled ? 'text-emerald-400 bg-emerald-50/30' : 'text-emerald-600 bg-emerald-50/50'}`}>{readyStock}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-amber-400 bg-amber-50/30' : 'text-amber-600 bg-amber-50/50'}`}>{uqcStock}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-blue-400' : 'text-blue-600'}`}>{item.IWHPIPLINESTOCKNOS ?? item.IWHPiplineStockNos ?? 0}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-indigo-400' : 'text-indigo-600'}`}>{item.FACILITYSTOCK || 0}</td>
                                         </>
                                       )}
                                       <td className="px-3 py-3">
@@ -690,7 +870,16 @@ export default function AddMonthlyIndentPage() {
                                           min="1"
                                           placeholder="Qty"
                                           value={selection.issueQty}
-                                          onChange={(e) => updateItemIssueQty(id, e.target.value)}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (itemType === 'AGAINST_APPROVAL_INDENT' && val !== '') {
+                                              const balanceAiQty = parseFloat(item.BALANCEAIQTYNOS || 0);
+                                              if (parseFloat(val) > balanceAiQty) {
+                                                return;
+                                              }
+                                            }
+                                            updateItemIssueQty(id, val);
+                                          }}
                                           onBlur={(e) => {
                                             const val = e.target.value;
                                             if (!val) return;
@@ -750,12 +939,22 @@ export default function AddMonthlyIndentPage() {
                                   <th className="px-4 py-3 border-b border-slate-200 text-right">Requested Qty</th>
                                   <th className="px-4 py-3 border-b border-slate-200 text-right">WH Stock</th>
                                   <th className="px-4 py-3 border-b border-slate-200 text-center">Actions</th>
+                                  <th className="px-4 py-3 border-b border-slate-200 text-right">To be Indented Qty<br/>(in Nos)</th>
+                                  <th className="px-4 py-3 border-b border-slate-200 text-right">NOC to be Granted Qty<br/>(in Nos)</th>
+                                  <th className="px-4 py-3 border-b border-slate-200">CGMSCL Remarks</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100">
-                                {savedItems.map((item, index) => (
-                                  <tr key={item.NOCITEMID || index} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-4 py-3 text-slate-500 font-bold">{index + 1}</td>
+                                {savedItems.map((item, index) => {
+                                  const reqQty = Number(item.REQUESTEDQTY || 0);
+                                  const whStock = Number(item.WHSTOCK || 0);
+                                  const toBeIndented = reqQty <= whStock ? reqQty : whStock;
+                                  const nocToBeGranted = reqQty > whStock ? reqQty - whStock : 0;
+                                  const remarks = reqQty > whStock ? 'Noc Pending For Approval' : '';
+                                  
+                                  return (
+                                    <tr key={item.NOCITEMID || index} className="hover:bg-slate-50/50 transition-colors">
+                                      <td className="px-4 py-3 text-slate-500 font-bold">{index + 1}</td>
                                       <td className="px-4 py-3 font-mono font-bold text-slate-600">{item.ITEMCODE || item.ItemCode}</td>
                                       <td className="px-4 py-3 font-semibold text-slate-800 whitespace-normal min-w-[200px]">{item.ITEMNAME || item.ItemName}</td>
                                       <td className="px-4 py-3 text-slate-600">{item.STRENGTH1 || item.Strength1}</td>
@@ -768,7 +967,7 @@ export default function AddMonthlyIndentPage() {
                                           value={editingQty}
                                           onChange={(e) => setEditingQty(e.target.value)}
                                           min="1"
-                                          max={Number(item.WHSTOCK || 0) + Number(item.WHSTOCKQCPENDING || 0)}
+                                          max={itemType !== 'AGAINST_APPROVAL_INDENT' ? (Number(item.WHSTOCK || 0) + Number(item.WHSTOCKQCPENDING || 0)) : undefined}
                                         />
                                       ) : (
                                         item.REQUESTEDQTY
@@ -783,7 +982,7 @@ export default function AddMonthlyIndentPage() {
                                               const newQty = Number(editingQty);
                                               if (newQty > 0) {
                                                 const maxAllowed = Number(item.WHSTOCK || 0) + Number(item.WHSTOCKQCPENDING || 0);
-                                                if (newQty > maxAllowed) {
+                                                if (itemType !== 'AGAINST_APPROVAL_INDENT' && newQty > maxAllowed) {
                                                   alert(`Requested Qty cannot exceed Ready Stock + UQC Stock (${maxAllowed}).`);
                                                   return;
                                                 }
@@ -822,8 +1021,12 @@ export default function AddMonthlyIndentPage() {
                                         )}
                                       </div>
                                     </td>
+                                    <td className="px-4 py-3 text-right text-slate-600">{toBeIndented}</td>
+                                    <td className="px-4 py-3 text-right text-slate-600">{nocToBeGranted}</td>
+                                    <td className="px-4 py-3 text-slate-600">{remarks}</td>
                                   </tr>
-                                ))}
+                                );
+                                })}
                               </tbody>
                             </table>
                           </div>
