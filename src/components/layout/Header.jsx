@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAuth } from '../../hooks/useAuth';
 import { logout } from '../../features/auth/authSlice';
@@ -11,6 +11,7 @@ export default function Header() {
   const { user } = useAuth();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (isDarkMode) {
@@ -48,7 +49,7 @@ export default function Header() {
         <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
 
           {/* Logout & Change Password */}
-          {user && (
+          {user && location.pathname !== '/login' && location.pathname !== '/' && (
             <div className="flex flex-col gap-1 items-end mr-2">
               <button
                 onClick={handleLogout}
