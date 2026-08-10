@@ -1,11 +1,20 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { useEffect } from 'react';
+import { fetchMyMenus } from '../features/menu/menuSlice';
 
 export default function ProtectedRoute({ children }) {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
-  const { permissions, loading } = useSelector(state => state.menu);
+  const dispatch = useDispatch();
+  const { permissions, loading, isLoaded } = useSelector(state => state.menu);
+
+  useEffect(() => {
+    if (isAuthenticated && !isLoaded && !loading) {
+      dispatch(fetchMyMenus());
+    }
+  }, [isAuthenticated, isLoaded, loading, dispatch]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -16,14 +25,27 @@ export default function ProtectedRoute({ children }) {
     return children;
   }
 
-  // If menus are still loading, you could show a spinner here,
-  // but to keep it simple, we just allow render, or maybe show loading if needed.
-  // We'll trust the Sidebar loads the menus in the background.
+  // If menus are still loading, show a simple spinner
+  if (!isLoaded) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
-  // Normalize path to check against permissions
-  // e.g. /ward-issues/add might match /ward-issues if we strip the sub-routes, 
-  // but for exact match:
   const path = location.pathname;
+
+  // Always allow access to static base menus if authenticated
+  if (
+    path === '/dashboard' ||
+    path.startsWith('/Facility/ReturnToWarehouserMain.aspx') ||
+    path.startsWith('/Facility/Reports/FacHoldBatchReport.aspx') ||
+    path.startsWith('/Facility/Reports/WHBatchBlockRport.aspx') ||
+    path.startsWith('/local-purchase')
+  ) {
+    return children;
+  }
 
   const permKey = Object.keys(permissions).find(key => path === key || path.startsWith(key + '/'));
 
@@ -32,7 +54,9 @@ export default function ProtectedRoute({ children }) {
     if (screenPerm && !screenPerm.canView) {
       return <Navigate to="/unauthorized" replace />;
     }
+    return children;
   }
 
-  return children;
+  // Block access if no permission matches
+  return <Navigate to="/unauthorized" replace />;
 }

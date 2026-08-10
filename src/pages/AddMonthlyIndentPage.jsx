@@ -1,11 +1,11 @@
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ArrowLeftIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useRef } from 'react';
-import Header from '../components/layout/Header';
-import Sidebar from '../components/layout/Sidebar';
-import Footer from '../components/layout/Footer';
 import api from '../api/axios';
 
 const today = new Date().toISOString().split('T')[0];

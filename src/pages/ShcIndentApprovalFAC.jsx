@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
 import { useSelector } from 'react-redux';
 import { getShcIndents, getFinancialYears } from '../api/shcIndentApi';
 import { toast } from 'react-hot-toast';
@@ -174,7 +177,13 @@ export default function ShcIndentApprovalFAC() {
     }
 
     return (
-        <div className="p-6 space-y-6 max-w-7xl mx-auto bg-slate-50 min-h-screen">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="p-6 space-y-6 max-w-7xl mx-auto bg-slate-50 min-h-screen">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
@@ -285,5 +294,11 @@ export default function ShcIndentApprovalFAC() {
                 </div>
             </div>
         </div>
-    );
+    )
+          </main>
+          <Footer />
+        </div>
+      </div>
+    </div>
+  );
 }

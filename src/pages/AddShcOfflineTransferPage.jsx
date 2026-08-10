@@ -1,3 +1,6 @@
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -11,9 +14,6 @@ import {
   PencilIcon,
   CheckIcon,
 } from '@heroicons/react/24/outline';
-import Header from '../components/layout/Header';
-import Sidebar from '../components/layout/Sidebar';
-import Footer from '../components/layout/Footer';
 import api from '../api/axios';
 
 const today = new Date().toISOString().split('T')[0];

@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import Header from '../components/layout/Header';
-import Sidebar from '../components/layout/Sidebar';
-import Footer from '../components/layout/Footer';
 import { storeAPI } from '../features/store/storeAPI';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -10,6 +7,9 @@ import autoTable from 'jspdf-autotable';
 import {
   FolderOpenIcon,
 } from '@heroicons/react/24/outline';
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
 
 export default function FacilityStockItemWisePage() {
   const user = useSelector((s) => s.auth.user);
@@ -26,6 +26,7 @@ export default function FacilityStockItemWisePage() {
   const [selectedEdl, setSelectedEdl] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedItemType, setSelectedItemType] = useState('');
+  const [selectedMassCategory, setSelectedMassCategory] = useState('');
 
   useEffect(() => {
     if (facilityId) {
@@ -60,9 +61,12 @@ export default function FacilityStockItemWisePage() {
     return Array.from(map.values());
   }, [allData]);
 
-  const uniqueCgmsc = useMemo(() =>
-    [...new Set(allData.map(i => i.CGMSCFMFLAG || i.cgmscfmflag).filter(Boolean))],
-    [allData]);
+  const uniqueCgmsc = useMemo(() => {
+    const vals = [...new Set(allData.map(i => i.CGMSCFMFLAG || i.cgmscfmflag).filter(Boolean))];
+    const hasNull = allData.some(i => !(i.CGMSCFMFLAG || i.cgmscfmflag));
+    if (hasNull) vals.push('Non FM');
+    return vals;
+  }, [allData]);
 
   const uniqueEdl = useMemo(() =>
     [...new Set(allData.map(i => i.EDLTYPE2025 || i.edltype2025 || 'Non EDL'))],
@@ -74,6 +78,10 @@ export default function FacilityStockItemWisePage() {
 
   const uniqueItemType = useMemo(() =>
     [...new Set(allData.map(i => i.ITEMTYPENAME || i.itemtypename).filter(Boolean))],
+    [allData]);
+
+  const uniqueMassCategory = useMemo(() =>
+    [...new Set(allData.map(i => i.MCATEGORY || i.mcategory).filter(Boolean))],
     [allData]);
 
   // Apply filters
@@ -88,7 +96,11 @@ export default function FacilityStockItemWisePage() {
       });
     }
     if (selectedCgmsc) {
-      data = data.filter(item => (item.CGMSCFMFLAG || item.cgmscfmflag) === selectedCgmsc);
+      if (selectedCgmsc === 'Non FM') {
+        data = data.filter(item => !(item.CGMSCFMFLAG || item.cgmscfmflag));
+      } else {
+        data = data.filter(item => (item.CGMSCFMFLAG || item.cgmscfmflag) === selectedCgmsc);
+      }
     }
     if (selectedEdl) {
       data = data.filter(item => {
@@ -102,8 +114,11 @@ export default function FacilityStockItemWisePage() {
     if (selectedItemType) {
       data = data.filter(item => (item.ITEMTYPENAME || item.itemtypename) === selectedItemType);
     }
+    if (selectedMassCategory) {
+      data = data.filter(item => (item.MCATEGORY || item.mcategory) === selectedMassCategory);
+    }
     return data;
-  }, [allData, selectedDrug, selectedCgmsc, selectedEdl, selectedGroup, selectedItemType]);
+  }, [allData, selectedDrug, selectedCgmsc, selectedEdl, selectedGroup, selectedItemType, selectedMassCategory]);
 
   const getFormattedData = () => filteredData.map((row, idx) => ({
     'Sl. No': idx + 1,
@@ -175,7 +190,24 @@ export default function FacilityStockItemWisePage() {
 
               {/* Filters Section */}
               {!loading && dataLoaded && (
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6 bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6 bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Mass Category</label>
+                    <div className="relative">
+                      <select
+                        value={selectedMassCategory}
+                        onChange={(e) => setSelectedMassCategory(e.target.value)}
+                        className="w-full h-9 px-3 pr-8 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                      >
+                        <option value="">All</option>
+                        {uniqueMassCategory.map((val, i) => <option key={i} value={val}>{val}</option>)}
+                      </select>
+                      {selectedMassCategory && (
+                        <button onClick={() => setSelectedMassCategory('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 text-lg font-bold leading-none" title="Clear">&times;</button>
+                      )}
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">EDL Type</label>
                     <div className="relative">
@@ -327,7 +359,7 @@ export default function FacilityStockItemWisePage() {
                                 {item.EDLTYPE2025 || item.edltype2025 || 'Non EDL'}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-xs text-slate-600">{item.CGMSCFMFLAG || item.cgmscfmflag || '—'}</td>
+                            <td className="px-4 py-3 text-xs text-slate-600">{item.CGMSCFMFLAG || item.cgmscfmflag || 'Non FM Item'}</td>
                           </tr>
                         ))}
                         {filteredData.length === 0 && (

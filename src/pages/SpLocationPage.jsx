@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { toast } from 'react-hot-toast';
-import { PencilIcon, TrashIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
+import { PencilIcon, TrashIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 export default function SpLocationPage() {
   const [locations, setLocations] = useState([]);
@@ -135,12 +135,13 @@ export default function SpLocationPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <>
             <div className="max-w-4xl mx-auto space-y-6">
               
               {/* Header section with title and search */}
@@ -294,6 +295,8 @@ export default function SpLocationPage() {
               </div>
 
             </div>
+          </>
+  
           </main>
           <Footer />
         </div>

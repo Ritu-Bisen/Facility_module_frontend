@@ -1,15 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getFinancialYears, getWarehouseIndents, getReceiptsByIndent } from '../api/warehouseReceiptApi';
 import { ChevronDownIcon, ChevronUpIcon, PlusCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
 export default function WarehouseReceiptFAC() {
     const navigate = useNavigate();
+    const location = useLocation();
+    
     const [finYears, setFinYears] = useState([]);
     const [selectedYear, setSelectedYear] = useState('');
     const [indents, setIndents] = useState([]);
     const [loading, setLoading] = useState(false);
+    
+    const [filterPending, setFilterPending] = useState(location.state?.filterPending || false);
 
     useEffect(() => {
         fetchFinYears();
@@ -89,13 +96,32 @@ export default function WarehouseReceiptFAC() {
         }
     };
 
+    const displayedIndents = useMemo(() => {
+        if (!filterPending) return indents;
+        return indents.filter(i => i.receiptStatus === 'Yet to be Received' || i.receiptStatus === 'Partial Receipt' || i.receiptStatus === 'Incomplete');
+    }, [indents, filterPending]);
+
     return (
-        <div className="p-6 space-y-6 max-w-7xl mx-auto bg-slate-50 min-h-screen">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="p-6 space-y-6 max-w-7xl mx-auto bg-slate-50 min-h-screen">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">Receipts From Warehouse</h1>
-                    <p className="mt-1 text-sm text-slate-500 font-medium">Manage warehouse receipts received against facility indents</p>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-sm text-slate-500 font-medium">Manage warehouse receipts received against facility indents</p>
+                        {filterPending && (
+                            <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800 ring-1 ring-inset ring-orange-600/20">
+                                Pending Filter Active
+                                <button onClick={() => setFilterPending(false)} className="ml-1.5 text-orange-600 hover:text-orange-900 font-bold">&times;</button>
+                            </span>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-3">
                     <label htmlFor="finYear" className="text-sm font-semibold text-slate-700 whitespace-nowrap">Fin. Year</label>
@@ -147,14 +173,14 @@ export default function WarehouseReceiptFAC() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 bg-white">
-                                {indents.length === 0 ? (
+                                {displayedIndents.length === 0 ? (
                                     <tr>
                                         <td colSpan="10" className="px-4 py-8 text-center text-sm text-slate-500">
                                             No indents found for the selected financial year.
                                         </td>
                                     </tr>
                                 ) : (
-                                    indents.map((indent, index) => (
+                                    displayedIndents.map((indent, index) => (
                                         <React.Fragment key={index}>
                                             <tr className="transition-colors hover:bg-slate-50 bg-white">
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs font-medium text-slate-900 text-center">{index + 1}</td>
@@ -197,5 +223,11 @@ export default function WarehouseReceiptFAC() {
                 </div>
             </div>
         </div>
-    );
+  
+          </main>
+          <Footer />
+        </div>
+      </div>
+    </div>
+  );
 }

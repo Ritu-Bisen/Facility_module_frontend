@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { getIndentHeader, getIndentItems, approveItem, completeIndent } from '../api/shcIndentItemApi';
@@ -121,7 +124,13 @@ export default function ShcIndentItemsFAC() {
     const isCompleted = header.STATUS === 'C' || header.ISPFACAPPROVAL === 'Y';
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="p-6 bg-gray-50 min-h-screen">
             {/* Top Navigation & Actions */}
             <div className="mb-6 flex items-center justify-between">
                 <button 
@@ -259,5 +268,11 @@ export default function ShcIndentItemsFAC() {
                     </table>
                 </div>
         </div>
-    );
+    )
+          </main>
+          <Footer />
+        </div>
+      </div>
+    </div>
+  );
 }

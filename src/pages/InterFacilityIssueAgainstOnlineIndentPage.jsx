@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
-import { getIndentsForIssue, getIssuesForIndent } from '../api/interFacilityIssueOnlineApi';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import { getIndentsForIssue, getIssuesForIndent } from '../api/interFacilityIssueOnlineApi';
 import { PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
 
 const IssueDetailsCell = ({ indent }) => {
@@ -100,7 +100,7 @@ export default function InterFacilityIssueAgainstOnlineIndentPage() {
     useEffect(() => {
         const fetchYears = async () => {
             try {
-                const res = await api.get('/shc-inter-facility-transfers/fin-years');
+                const res = await api.get('/warehouse-receipt/fin-years');
                 const mappedYears = (res.data.data || []).map(y => 
                     Array.isArray(y) ? { id: y[0], year: y[1] } : { id: y.id || y.ACCYRSETID || y.accYrSetId, year: y.year || y.AccYear || y.SHACCYEAR || y.shAccYear }
                 );
@@ -139,12 +139,13 @@ export default function InterFacilityIssueAgainstOnlineIndentPage() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-                <Sidebar />
-                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <>
                         <div className="max-w-7xl mx-auto space-y-6">
                             
                             {/* Page Header */}
@@ -254,10 +255,12 @@ export default function InterFacilityIssueAgainstOnlineIndentPage() {
                             </div>
 
                         </div>
-                    </main>
-                    <Footer />
-                </div>
-            </div>
+                    </>
+  
+          </main>
+          <Footer />
         </div>
-    );
+      </div>
+    </div>
+  );
 }

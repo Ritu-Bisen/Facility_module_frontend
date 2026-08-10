@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import Header from '../components/layout/Header';
-import Sidebar from '../components/layout/Sidebar';
-import Footer from '../components/layout/Footer';
 import api from '../api/axios';
 import { getIndentsToOtherFacility } from '../api/indentToOtherFacilityApi';
 import {
@@ -11,15 +8,19 @@ import {
   FolderOpenIcon,
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
 
 export default function IndentToOtherFacilityPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useSelector((s) => s.auth.user);
   const facilityId = user?.facilityId;
 
   const [accYears, setAccYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All'); 
+  const [statusFilter, setStatusFilter] = useState(location.state?.statusFilter || 'All'); 
 
   const [indents, setIndents] = useState([]);
   const [loadingFilters, setLoadingFilters] = useState(false);
@@ -71,12 +72,12 @@ export default function IndentToOtherFacilityPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-[#121418] transition-colors duration-500">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-[#121418] p-6 transition-colors duration-500">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
             <div className="max-w-7xl mx-auto space-y-6 pb-12">
               
               {/* Header Card */}

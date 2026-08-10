@@ -25,11 +25,29 @@ export default function Sidebar() {
     }
   }, [user, dispatch]);
 
+  const hardcodedModules = [
+    {
+      moduleId: 'local_purchase_module',
+      moduleName: 'Local Purchase',
+      screens: [
+        { screenId: 'lp_mas_budget', screenUrl: '/local-purchase/mas-budget', screenName: 'LP Fund Receipt', canView: true },
+        { screenId: 'lp_supplier_master', screenUrl: '/local-purchase/supplier-master', screenName: 'Local Supplier Master', canView: true },
+        { screenId: 'lp_contracts', screenUrl: '/local-purchase/contracts', screenName: 'Contracts', canView: true },
+        { screenId: 'lp_supply_orders', screenUrl: '/local-purchase/supply-orders', screenName: 'Supply Orders', canView: true },
+        { screenId: 'lp_receipts_from_supplier', screenUrl: '/local-purchase/receipts-from-supplier', screenName: 'Receipts from Supplier', canView: true },
+        { screenId: 'lp_tender_entry', screenUrl: '/local-purchase/tenders', screenName: 'Tender/Quotation Entry', canView: true },
+        { screenId: 'lp_local_items', screenUrl: '/local-purchase/local-items', screenName: 'Local Items Master', canView: true },
+        { screenId: 'lp_noc_cancellation', screenUrl: '/local-purchase/noc-cancellation', screenName: 'NOC Cancellation', canView: true }
+      ]
+    }
+  ];
+
   useEffect(() => {
     // Keep parent menu open when navigating to one of its sub-items
-    if (menus && menus.length > 0) {
+    const allModules = [...(menus || []), ...hardcodedModules];
+    if (allModules.length > 0) {
       const activeParents = {};
-      menus.forEach(module => {
+      allModules.forEach(module => {
         const hasActive = module.screens.some(sub => 
           location.pathname === sub.screenUrl || location.pathname.startsWith(sub.screenUrl + '/')
         );
@@ -61,7 +79,9 @@ export default function Sidebar() {
 
   // Hardcoded essentials
   const baseMenus = [
-    { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon }
+    { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
+    { path: '/Facility/ReturnToWarehouserMain.aspx', label: 'Return to Warehouse', Icon: ClipboardDocumentListIcon },
+    { path: '/Facility/Reports/FacHoldBatchReport.aspx', label: 'Hold Batches Report', Icon: ClipboardDocumentListIcon }
   ];
 
   return (
@@ -135,10 +155,10 @@ export default function Sidebar() {
           <div className="px-3 py-4 text-xs text-gray-500 animate-pulse">Loading menus...</div>
         )}
 
-        {/* Dynamic Menus from DB (Only showing those with 'View' permission) */}
-        {!loading && menus && menus.map((module) => {
-          // Filter screens that user can view
-          const viewableScreens = module.screens.filter(s => s.canView);
+        {/* Dynamic Menus from DB & Hardcoded Modules (Only showing those with 'View' permission) */}
+        {!loading && [...(menus || []), ...hardcodedModules].map((module) => {
+          // Filter screens that user can view, or show all if user is admink@gnail.com
+          const viewableScreens = module.screens.filter(s => s.canView || user?.emailId === 'admink@gnail.com');
           
           // If no screens are viewable in this module, hide it
           if (viewableScreens.length === 0) return null;

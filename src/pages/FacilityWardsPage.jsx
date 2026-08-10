@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import { toast } from 'react-hot-toast';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
+import React, { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
 import { PencilIcon, TrashIcon, PlusIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
 export default function FacilityWardsPage() {

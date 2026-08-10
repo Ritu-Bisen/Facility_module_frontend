@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { toast } from 'react-hot-toast';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
+import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 
 
@@ -92,12 +92,13 @@ export default function RoleAccessManagementPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <>
             <div className="max-w-7xl mx-auto space-y-6">
               
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 gap-4">
@@ -193,6 +194,8 @@ export default function RoleAccessManagementPage() {
                 </div>
               )}
             </div>
+          </>
+  
           </main>
           <Footer />
         </div>

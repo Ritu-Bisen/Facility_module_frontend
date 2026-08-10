@@ -16,6 +16,17 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
       toast.error('New passwords do not match');
       return;
     }
+
+    if (oldPassword === newPassword) {
+      toast.error('New password cannot be the same as the old password');
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      toast.error('Password must be at least 8 characters long and contain uppercase, lowercase, numbers, and special characters.');
+      return;
+    }
     
     setLoading(true);
     try {

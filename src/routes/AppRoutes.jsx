@@ -46,6 +46,20 @@ import StockRegisterPage from '../pages/StockRegisterPage';
 import AnnualIndentDistributionPage from '../pages/AnnualIndentDistributionPage';
 import RoleAccessManagementPage from '../pages/RoleAccessManagementPage';
 
+import FacHoldBatchReport from '../pages/FacHoldBatchReport';
+import MasBudget from '../pages/local-purchase/MasBudget';
+import LocalSupplierMaster from '../pages/local-purchase/LocalSupplierMaster';
+import ContractsPage from '../pages/local-purchase/ContractsPage';
+import AddContractPage from '../pages/local-purchase/AddContractPage';
+import TenderEntryPage from '../pages/local-purchase/TenderEntryPage';
+import SupplyOrdersPage from '../pages/local-purchase/SupplyOrdersPage';
+import AddSupplyOrderPage from '../pages/local-purchase/AddSupplyOrderPage';
+import ReceiptsFromSupplierPage from '../pages/local-purchase/ReceiptsFromSupplierPage';
+import ReceiptPage from '../pages/local-purchase/ReceiptPage';
+import LocalItemsPage from '../pages/local-purchase/LocalItemsPage';
+import NocCancellationPage from '../pages/local-purchase/NocCancellationPage';
+import NocCancellationItemsPage from '../pages/local-purchase/NocCancellationItemsPage';
+
 function PlaceholderPage({ title, description, children }) {
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -138,18 +152,7 @@ export default function AppRoutes() {
 
       <Route path="/store/facility-stock-batch-wise" element={
         <ProtectedRoute>
-          <div className="flex flex-col h-screen bg-gray-50">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar />
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-8">
-                  <FacilityStockBatchWise />
-                </main>
-                <Footer />
-              </div>
-            </div>
-          </div>
+          <FacilityStockBatchWise />
         </ProtectedRoute>
       } />
       <Route path="/reports" element={
@@ -192,68 +195,29 @@ export default function AppRoutes() {
           <NocApprovalPage />
         </ProtectedRoute>
       } />
+      <Route path="/noc-approval/send-cmho" element={
+        <ProtectedRoute>
+          <NocApprovalPage />
+        </ProtectedRoute>
+      } />
       <Route path="/indent/warehouse-receipts" element={
         <ProtectedRoute>
-          <div className="flex flex-col h-screen bg-gray-50">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar />
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
-                  <WarehouseReceiptFAC />
-                </main>
-                <Footer />
-              </div>
-            </div>
-          </div>
+          <WarehouseReceiptFAC />
         </ProtectedRoute>
       } />
       <Route path="/indent/warehouse-receipts/view/:receiptId" element={
         <ProtectedRoute>
-          <div className="flex flex-col h-screen bg-gray-50">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar />
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
-                  <FacilityReceiptViewFAC />
-                </main>
-                <Footer />
-              </div>
-            </div>
-          </div>
+          <FacilityReceiptViewFAC />
         </ProtectedRoute>
       } />
       <Route path="/indent/shc-approval" element={
         <ProtectedRoute>
-          <div className="flex flex-col h-screen bg-gray-50">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar />
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
-                  <ShcIndentApprovalFAC />
-                </main>
-                <Footer />
-              </div>
-            </div>
-          </div>
+          <ShcIndentApprovalFAC />
         </ProtectedRoute>
       } />
       <Route path="/indent/shc-approval/:nocId" element={
         <ProtectedRoute>
-          <div className="flex flex-col h-screen bg-gray-50">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar />
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50">
-                  <ShcIndentItemsFAC />
-                </main>
-                <Footer />
-              </div>
-            </div>
-          </div>
+          <ShcIndentItemsFAC />
         </ProtectedRoute>
       } />
       <Route path="/inter-facility-issue" element={
@@ -364,6 +328,91 @@ export default function AppRoutes() {
       <Route path="/breakage-voucher/print/:id" element={
         <ProtectedRoute>
           <PrintBreakageVoucherPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/ReturnToWarehouserMain.aspx" element={
+        <ProtectedRoute>
+          <PlaceholderPage title="Return To Warehouse" description="This module is currently under development." />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/Reports/FacHoldBatchReport.aspx" element={
+        <ProtectedRoute>
+          <FacHoldBatchReport />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/mas-budget" element={
+        <ProtectedRoute>
+          <MasBudget />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/receipts-from-supplier" element={
+        <ProtectedRoute>
+          <ReceiptsFromSupplierPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/receipts/:mode/:id" element={
+        <ProtectedRoute>
+          <ReceiptPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/supplier-master" element={
+        <ProtectedRoute>
+          <LocalSupplierMaster />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/contracts" element={
+        <ProtectedRoute>
+          <ContractsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/contracts/add" element={
+        <ProtectedRoute>
+          <AddContractPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/contracts/edit/:id" element={
+        <ProtectedRoute>
+          <AddContractPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/tenders" element={
+        <ProtectedRoute>
+          <TenderEntryPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/supply-orders" element={
+        <ProtectedRoute>
+          <SupplyOrdersPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/supply-orders/new" element={
+        <ProtectedRoute>
+          <AddSupplyOrderPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/supply-orders/:id/edit" element={
+        <ProtectedRoute>
+          <AddSupplyOrderPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/local-items" element={
+        <ProtectedRoute>
+          <LocalItemsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/noc-cancellation" element={
+        <ProtectedRoute>
+          <NocCancellationPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/noc-cancellation/:id" element={
+        <ProtectedRoute>
+          <NocCancellationItemsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/Reports/WHBatchBlockRport.aspx" element={
+        <ProtectedRoute>
+          <FacHoldBatchReport />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />

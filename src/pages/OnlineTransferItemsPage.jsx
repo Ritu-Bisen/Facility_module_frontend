@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getIndentHeader, getIssueHeader, createIssueHeader, updateIssueHeader, getItemsForIssue, saveIssueItem, updateIssueItem, deleteIssueItem, completeIssue, deleteIssue, getBatches } from '../api/onlineTransferItemsApi';
 import { PencilSquareIcon, CheckCircleIcon, XCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
 
@@ -292,12 +292,13 @@ export default function OnlineTransferItemsPage() {
 
 
     return (
-        <div className="flex flex-col h-screen bg-slate-50">
-            <Header />
-            <div className="flex flex-1 overflow-hidden">
-                <Sidebar />
-                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <>
                         <div className="max-w-7xl mx-auto space-y-6">
                             
                             {/* Top Bar */}
@@ -558,10 +559,12 @@ export default function OnlineTransferItemsPage() {
                             )}
 
                         </div>
-                    </main>
-                    <Footer />
-                </div>
-            </div>
+                    </>
+  
+          </main>
+          <Footer />
         </div>
-    );
+      </div>
+    </div>
+  );
 }

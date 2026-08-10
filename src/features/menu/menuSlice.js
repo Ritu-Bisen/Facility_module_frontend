@@ -18,11 +18,15 @@ export const fetchMyMenus = createAsyncThunk(
   }
 );
 
+const savedMenuData = localStorage.getItem('userMenuData');
+const parsedMenuData = savedMenuData ? JSON.parse(savedMenuData) : null;
+
 const initialState = {
-  menus: [],
-  permissions: {}, // flat map of screenPath -> permissions object
-  facilityType: null,
+  menus: parsedMenuData?.menus || [],
+  permissions: parsedMenuData?.permissions || {}, // flat map of screenPath -> permissions object
+  facilityType: parsedMenuData?.facilityType || null,
   loading: false,
+  isLoaded: !!parsedMenuData,
   error: null,
 };
 
@@ -34,6 +38,8 @@ const menuSlice = createSlice({
       state.menus = [];
       state.permissions = {};
       state.facilityType = null;
+      state.isLoaded = false;
+      localStorage.removeItem('userMenuData');
     }
   },
   extraReducers: (builder) => {
@@ -44,6 +50,7 @@ const menuSlice = createSlice({
       })
       .addCase(fetchMyMenus.fulfilled, (state, action) => {
         state.loading = false;
+        state.isLoaded = true;
         state.menus = action.payload.menus || [];
         state.facilityType = action.payload.facilityType;
         
@@ -61,9 +68,16 @@ const menuSlice = createSlice({
           });
         });
         state.permissions = pMap;
+
+        localStorage.setItem('userMenuData', JSON.stringify({
+          menus: state.menus,
+          permissions: state.permissions,
+          facilityType: state.facilityType
+        }));
       })
       .addCase(fetchMyMenus.rejected, (state, action) => {
         state.loading = false;
+        state.isLoaded = true;
         state.error = action.payload;
       });
   },

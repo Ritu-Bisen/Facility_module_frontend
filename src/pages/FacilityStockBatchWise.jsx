@@ -4,6 +4,9 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useSelector } from 'react-redux';
 import { storeAPI } from '../features/store/storeAPI';
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
 
 const FacilityStockBatchWise = () => {
   const user = useSelector((s) => s.auth.user);
@@ -23,6 +26,7 @@ const FacilityStockBatchWise = () => {
   const [selectedEdl, setSelectedEdl] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedItemType, setSelectedItemType] = useState('');
+  const [selectedMassCategory, setSelectedMassCategory] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -70,6 +74,7 @@ const FacilityStockBatchWise = () => {
   const uniqueEdl = useMemo(() => [...new Set(data.map(item => item.EDLTYPE2025 || item.edltype2025 || 'Non EDL'))], [data]);
   const uniqueGroup = useMemo(() => [...new Set(data.map(item => item.GROUPNAME || item.groupname).filter(Boolean))], [data]);
   const uniqueItemType = useMemo(() => [...new Set(data.map(item => item.ITEMTYPENAME || item.itemtypename).filter(Boolean))], [data]);
+  const uniqueMassCategory = useMemo(() => [...new Set(data.map(item => item.MCATEGORY || item.mcategory).filter(Boolean))], [data]);
 
   // Apply filters
   useEffect(() => {
@@ -110,8 +115,12 @@ const FacilityStockBatchWise = () => {
       filtered = filtered.filter(item => (item.ITEMTYPENAME || item.itemtypename) === selectedItemType);
     }
     
+    if (selectedMassCategory) {
+      filtered = filtered.filter(item => (item.MCATEGORY || item.mcategory) === selectedMassCategory);
+    }
+
     setFilteredData(filtered);
-  }, [data, selectedDrug, selectedExpDays, selectedCgmsc, selectedEdl, selectedGroup, selectedItemType]);
+  }, [data, selectedDrug, selectedExpDays, selectedCgmsc, selectedEdl, selectedGroup, selectedItemType, selectedMassCategory]);
 
   const getFormattedData = () => {
     return filteredData.map((row, index) => ({
@@ -160,6 +169,12 @@ const FacilityStockBatchWise = () => {
   };
 
   return (
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
     <div className="max-w-full mx-auto space-y-5">
       {/* Page Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
@@ -201,7 +216,24 @@ const FacilityStockBatchWise = () => {
       {!loading && dataLoaded && (
         <>
           {/* Filters Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6 bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
+      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6 bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200">
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Mass Category</label>
+          <div className="relative">
+            <select
+              value={selectedMassCategory}
+              onChange={(e) => setSelectedMassCategory(e.target.value)}
+              className="w-full h-9 px-3 pr-8 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+            >
+              <option value="">All</option>
+              {uniqueMassCategory.map((val, i) => <option key={i} value={val}>{val}</option>)}
+            </select>
+            {selectedMassCategory && (
+              <button onClick={() => setSelectedMassCategory('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 text-lg font-bold leading-none" title="Clear">&times;</button>
+            )}
+          </div>
+        </div>
+
         <div>
           <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">EDL Type</label>
           <div className="relative">
@@ -292,7 +324,7 @@ const FacilityStockBatchWise = () => {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Near Expery Days</label>
+          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Near Expiry Days</label>
           <div className="relative">
             <select
               value={selectedExpDays}
@@ -390,6 +422,11 @@ const FacilityStockBatchWise = () => {
       </div>
       </>
       )}
+          </div>
+          </main>
+          <Footer />
+        </div>
+      </div>
     </div>
   );
 };

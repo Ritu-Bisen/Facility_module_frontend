@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
+import { useNavigate } from 'react-router-dom';
 import { getIncomingReceiptsList } from '../api/inFacilityTransferApi';
 import api from '../api/axios';
 import { PlusIcon, FolderOpenIcon, CheckCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
@@ -58,12 +58,13 @@ export default function InterFacilityReceiptsFAC() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-6 relative">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <>
             <div className="max-w-7xl mx-auto space-y-6">
 
               {/* Page Title & Controls */}
@@ -94,12 +95,7 @@ export default function InterFacilityReceiptsFAC() {
                 </div>
               </div>
 
-              {/* Tabs */}
-              <div className="flex border-b border-slate-200">
-                <div className="border-b-2 border-indigo-500 py-2 px-4 bg-white rounded-t-lg shadow-sm">
-                  <span className="text-sm font-bold text-indigo-600">Receipts from Facility</span>
-                </div>
-              </div>
+
 
               {/* Data Table */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -226,6 +222,8 @@ export default function InterFacilityReceiptsFAC() {
               </div>
 
             </div>
+          </>
+  
           </main>
           <Footer />
         </div>

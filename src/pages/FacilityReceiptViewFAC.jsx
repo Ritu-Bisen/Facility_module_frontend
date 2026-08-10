@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import Header from '../components/layout/Header';
+import Sidebar from '../components/layout/Sidebar';
+import Footer from '../components/layout/Footer';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getReceiptDetails, getStockLocations, saveReceiptItem, getReceiptBatches, completeReceipt } from '../api/warehouseReceiptApi';
 import { 
@@ -206,7 +209,13 @@ export default function FacilityReceiptViewFAC() {
     const { header, items } = details;
 
     return (
-        <div className="p-6 space-y-6 max-w-7xl mx-auto bg-slate-50 min-h-screen">
+    <div className="flex flex-col h-screen bg-slate-50 font-sans">
+      <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="p-6 space-y-6 max-w-7xl mx-auto bg-slate-50 min-h-screen">
 
             {/* Header */}
             <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
@@ -442,5 +451,11 @@ export default function FacilityReceiptViewFAC() {
                 </div>
             </div>
         </div>
-    );
+    )
+          </main>
+          <Footer />
+        </div>
+      </div>
+    </div>
+  );
 }

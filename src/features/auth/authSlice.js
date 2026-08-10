@@ -56,6 +56,7 @@ export const authSlice = createSlice({
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('roleName');
       localStorage.removeItem('menus');
+      localStorage.removeItem('userMenuData');
     },
   },
   extraReducers: (builder) => {
