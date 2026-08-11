@@ -52,7 +52,8 @@ export default function ReturnToWarehousePage() {
   };
 
   const handleAddNew = () => {
-    navigate('/return-to-warehouse/add');
+    // navigate('/return-to-warehouse/create');
+    toast.error('Create page not implemented yet');
   };
 
   return (
@@ -159,7 +160,7 @@ export default function ReturnToWarehousePage() {
                             ) : (
                               <button 
                                 className="text-red-600 font-medium hover:underline"
-                                onClick={() => navigate(`/return-to-warehouse/edit/${item.issueId}`)}
+                                onClick={() => toast('Edit functionality not implemented yet')}
                               >
                                 Incomplete
                               </button>

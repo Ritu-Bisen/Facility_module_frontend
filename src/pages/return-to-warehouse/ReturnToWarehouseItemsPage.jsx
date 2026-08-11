@@ -649,12 +649,48 @@ export default function ReturnToWarehouseItemsPage() {
     }
   };
 
-
+  const checkForIncompleteIssue = async () => {
+    if (!facilityId) return;
+    setIsLoadingData(true);
+    try {
+      const res = await api.get('/return-to-warehouse/incomplete');
+      if (res.data) {
+        const incId = res.data.IssueID;
+        const incNo = res.data.IssueNo;
+        const incForm = {
+          warehouse: String(res.data.WarehouseID),
+          warehouseName: res.data.WarehouseName || '',
+          issueDate: parseToIsoDate(res.data.WRequestDate),
+          issueDate: parseToIsoDate(res.data.IssueDate),
+          remarks: res.data.WRequestBy || ''
+        };
+        
+        setIssueId(incId);
+        setIssueNo(incNo);
+        setHeaderSaved(true);
+        setForm(incForm);
+        
+        localStorage.setItem('currentIssueId', String(incId));
+        localStorage.setItem('currentIssueNo', incNo);
+        localStorage.setItem('currentIssueHeaderSaved', 'true');
+        localStorage.setItem('currentIssueForm', JSON.stringify(incForm));
+        
+        alert("An incomplete warehouse issue already exists for this facility. Please complete or cancel it before creating a new issue.");
+      }
+    } catch (e) {
+      console.error("Failed to check/load incomplete issue:", e);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
   useEffect(() => {
     if (facilityId) {
       loadWarehouses();
       loadItems();
+      if (!issueId) {
+        checkForIncompleteIssue();
+      }
     }
   }, [facilityId]);
 

@@ -60,7 +60,6 @@ import LocalItemsPage from '../pages/local-purchase/LocalItemsPage';
 import NocCancellationPage from '../pages/local-purchase/NocCancellationPage';
 import NocCancellationItemsPage from '../pages/local-purchase/NocCancellationItemsPage';
 import ReturnToWarehousePage from '../pages/return-to-warehouse/ReturnToWarehousePage';
-import ReturnToWarehouseItemsPage from '../pages/return-to-warehouse/ReturnToWarehouseItemsPage';
 
 function PlaceholderPage({ title, description, children }) {
   return (
@@ -170,16 +169,6 @@ export default function AppRoutes() {
       <Route path="/return-to-warehouse" element={
         <ProtectedRoute>
           <ReturnToWarehousePage />
-        </ProtectedRoute>
-      } />
-      <Route path="/return-to-warehouse/add" element={
-        <ProtectedRoute>
-          <ReturnToWarehouseItemsPage mode="Create" />
-        </ProtectedRoute>
-      } />
-      <Route path="/return-to-warehouse/edit/:id" element={
-        <ProtectedRoute>
-          <ReturnToWarehouseItemsPage mode="Edit" />
         </ProtectedRoute>
       } />
       <Route path="/ward-issues/add" element={
