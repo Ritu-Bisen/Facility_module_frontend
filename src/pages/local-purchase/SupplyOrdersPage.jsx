@@ -80,7 +80,7 @@ const SupplyOrdersPage = () => {
 
   const handleDownloadPO = async (so) => {
     try {
-      const response = await getSupplyOrderDetails(so.poNoId);
+      const response = await getSupplyOrderDetails(so.id);
       if (response && response.success && response.data) {
         generateSupplyOrderPDF(response.data, user);
       } else {
@@ -225,7 +225,11 @@ const SupplyOrdersPage = () => {
                       </tr>
                     ) : (
                       supplyOrders.map((so, index) => (
-                        <tr key={so.id} className="hover:bg-green-50/40 transition-colors group">
+                        <tr 
+                          key={so.id} 
+                          className={`hover:bg-green-50/40 transition-colors group ${so.status === 'Incomplete' ? 'cursor-pointer' : ''}`}
+                          onClick={() => { if(so.status === 'Incomplete') navigate(`/local-purchase/supply-orders/edit/${so.id}`) }}
+                        >
                           <td className="px-3 py-3 text-center font-medium text-slate-400 border-r border-slate-100">{index + 1}</td>
                           <td className="px-4 py-3 font-semibold text-slate-700 border-r border-slate-100">{so.poNo}</td>
                           <td className="px-4 py-3 text-center border-r border-slate-100">{so.poDate}</td>
@@ -234,7 +238,7 @@ const SupplyOrdersPage = () => {
                           <td className="px-4 py-3 text-center border-r border-slate-100">
                             {so.status === 'Incomplete' ? (
                               <button 
-                                onClick={() => navigate(`/local-purchase/supply-orders/${so.poNoId}/edit`)}
+                                onClick={() => navigate(`/local-purchase/supply-orders/edit/${so.id}`)}
                                 className="focus:outline-none hover:scale-105 transition-transform"
                                 title="Edit Supply Order"
                               >

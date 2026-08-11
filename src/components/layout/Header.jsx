@@ -33,7 +33,8 @@ export default function Header() {
         {/* Left: CG Govt Logo + Title */}
         <div className="flex items-center gap-3 md:gap-5 min-w-0">
           <div className="flex-shrink-0 bg-white/10 rounded-xl p-1.5 border border-white/15 backdrop-blur-sm">
-            <img src="/cg-govt.png" alt="Chhattisgarh Government Logo" className="h-10 md:h-12 w-auto object-contain drop-shadow-md" />
+           <img src={`${import.meta.env.BASE_URL}cg-govt.png`} alt="Chhattisgarh Government Logo" className="h-10 md:h-12 w-auto object-contain drop-shadow-md" />
+
           </div>
           <div className="min-w-0">
             <h1 className="text-base md:text-xl lg:text-2xl font-bold text-white leading-tight tracking-wide">
@@ -86,7 +87,7 @@ export default function Header() {
           <div className="hidden md:block w-px h-10 bg-white/15"></div>
 
           <div className="flex-shrink-0 bg-white rounded-xl p-1.5 shadow-md">
-            <img src="/cgmsc-logo.png" alt="CGMSC Logo" className="h-10 md:h-12 w-auto object-contain" />
+           <img src={`${import.meta.env.BASE_URL}cgmsc-logo.png`}  alt="CGMSC Logo" className="h-10 md:h-12 w-auto object-contain" />
           </div>
         </div>
       </nav>

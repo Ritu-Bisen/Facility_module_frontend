@@ -80,7 +80,7 @@ export default function Sidebar() {
   // Hardcoded essentials
   const baseMenus = [
     { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
-    { path: '/Facility/ReturnToWarehouserMain.aspx', label: 'Return to Warehouse', Icon: ClipboardDocumentListIcon },
+    { path: '/return-to-warehouse', label: 'Return to Warehouse', Icon: ClipboardDocumentListIcon },
     { path: '/Facility/Reports/FacHoldBatchReport.aspx', label: 'Hold Batches Report', Icon: ClipboardDocumentListIcon }
   ];
 

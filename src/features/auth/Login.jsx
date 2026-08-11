@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials, fetchUserMenus } from './authSlice';
-import { loginWithEmail, loginWithPhone } from './authAPI';
+import { loginWithEmail, loginWithPhone, fetchCaptcha } from './authAPI';
 import Header from '../../components/layout/Header';
 
 export default function Login() {
@@ -12,15 +12,28 @@ export default function Login() {
   // Form state
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [captchaValue, setCaptchaValue] = useState('');
+  const [captchaData, setCaptchaData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const loadCaptcha = async () => {
+    try {
+      const res = await fetchCaptcha();
+      if (res.success) {
+        setCaptchaData(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load captcha', err);
+    }
+  };
 
-
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    loadCaptcha();
+  }, []);  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -33,6 +46,10 @@ export default function Login() {
       setError('Please enter your password or OTP.');
       return;
     }
+    if (!captchaValue.trim()) {
+      setError('Please enter the CAPTCHA code.');
+      return;
+    }
 
     setIsLoading(true);
 
@@ -40,9 +57,9 @@ export default function Login() {
       let response;
       const isPhone = /^\d+$/.test(identifier.trim());
       if (isPhone) {
-        response = await loginWithPhone(identifier.trim(), password);
+        response = await loginWithPhone(identifier.trim(), password, captchaValue, captchaData?.token);
       } else {
-        response = await loginWithEmail(identifier.trim(), password);
+        response = await loginWithEmail(identifier.trim(), password, captchaValue, captchaData?.token);
       }
 
       if (response.success) {
@@ -70,6 +87,9 @@ export default function Login() {
       } else {
         setError('Something went wrong. Please try again.');
       }
+      // Refresh captcha on failure
+      setCaptchaValue('');
+      loadCaptcha();
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +108,7 @@ export default function Login() {
         <div className="relative lg:flex-1 h-[180px] md:h-[220px] lg:h-full flex-shrink-0 overflow-hidden">
           {/* Hero Image */}
           <img 
-            src="/drug-hero.png" 
+          src={`${import.meta.env.BASE_URL}drug-hero.png`}           
             alt="Pharmaceutical medicines and drugs" 
             className="absolute inset-0 w-full h-full object-cover"
           />
@@ -159,7 +179,7 @@ export default function Login() {
                 
                 <div className="relative z-10">
                   <div className=" mx-auto mb-3   flex items-center justify-center ">
-                                 <img src="/cgmsc-logo.png" alt="CGMSC Logo" className="h-14 md:h-16 w-auto object-contain" />
+                                <img src={`${import.meta.env.BASE_URL}cgmsc-logo.png`} alt="CGMSC Logo" className="h-14 md:h-16 w-auto object-contain" />
             
                       {/* <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg> */}
@@ -205,12 +225,6 @@ export default function Login() {
                         className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm"
                       />
                     </div>
-                    {/* OTP Button below identifier input */}
-                    <div className="text-right mt-2">
-                      <button type="button" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-200">
-                        Generate OTP
-                      </button>
-                    </div>
                   </div>
 
                   {/* Password Input */}
@@ -247,8 +261,39 @@ export default function Login() {
                     </div>
                   </div>
 
-                  {/* Forgot Password */}
-                  <div className="text-right -mt-1">
+                  {/* CAPTCHA */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                      Security Code <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex gap-3">
+                      <div className="relative flex-1">
+                        <input 
+                          type="text" 
+                          value={captchaValue}
+                          onChange={(e) => setCaptchaValue(e.target.value)}
+                          placeholder="Enter code" 
+                          className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm"
+                        />
+                      </div>
+                      <div className="flex-shrink-0 h-[48px] bg-white rounded-xl border-2 border-gray-200 dark:border-[#333640] overflow-hidden flex items-center justify-center relative cursor-pointer" onClick={loadCaptcha} title="Click to refresh CAPTCHA">
+                        {captchaData ? (
+                          <div dangerouslySetInnerHTML={{ __html: captchaData.image }} className="h-full scale-90" />
+                        ) : (
+                          <div className="w-[120px] flex items-center justify-center text-xs text-gray-400">Loading...</div>
+                        )}
+                        <div className="absolute top-0 right-0 bottom-0 px-2 bg-gray-50/80 flex items-center justify-center border-l border-gray-100 opacity-0 hover:opacity-100 transition-opacity">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Links */}
+                  <div className="flex items-center justify-between -mt-1">
+                    <button type="button" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-200">
+                      Generate OTP
+                    </button>
                     <a href="#" className="text-xs font-medium text-[#1e3a6a] dark:text-blue-400 hover:text-[#2d5299] dark:hover:text-blue-300 hover:underline transition-colors duration-200">
                       Forgot your password?
                     </a>

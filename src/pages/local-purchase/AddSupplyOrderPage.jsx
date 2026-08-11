@@ -5,7 +5,7 @@ import Footer from '../../components/layout/Footer';
 import { toast } from 'react-hot-toast';
 import { CalendarIcon, CurrencyRupeeIcon, DocumentTextIcon, BuildingOffice2Icon, PaperAirplaneIcon, ArrowPathIcon, PlusIcon, TrashIcon, ArrowLeftIcon, PencilSquareIcon, DocumentArrowDownIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getSuppliers, getBudgets, getSupplyOrderDetails, generateSupplyOrderNo, saveSupplyOrderHeader, getSupplyOrderItems, deleteSupplyOrderItem, addSupplyOrderItem } from '../../api/localPurchaseApi';
+import { getSuppliers, getBudgets, getSupplyOrderDetails, getSupplyOrderEditDetails, generateSupplyOrderNo, saveSupplyOrderHeader, getSupplyOrderItems, deleteSupplyOrderItem, addSupplyOrderItem, completeSupplyOrderApi, deleteSupplyOrderApi, amendSupplyOrderApi, getNocDetailsApi, getNocBalanceApi, updateSupplyOrderItemApi } from '../../api/localPurchaseApi';
 import { getFinYears, getContractsForSO, getContractItems } from '../../api/contractApi';
 import Select from 'react-select';
 
@@ -19,10 +19,16 @@ export default function AddSupplyOrderPage() {
   const [contract, setContract] = useState('');
   const [fund, setFund] = useState('1'); 
   const [fundValue, setFundValue] = useState('');
+  const [itemCount, setItemCount] = useState('');
   
   // Generated fields
   const [soNoData, setSoNoData] = useState(null);
   const [soDate, setSoDate] = useState('System Generated');
+
+  // Dispatch State
+  const [dispatchNo, setDispatchNo] = useState('');
+  const [dispatchDate, setDispatchDate] = useState('');
+  const [isCompleting, setIsCompleting] = useState(false);
 
   // UI State
   const [isSaved, setIsSaved] = useState(false);
@@ -38,7 +44,11 @@ export default function AddSupplyOrderPage() {
   const [newItemQty, setNewItemQty] = useState('');
   const [newItemNoc, setNewItemNoc] = useState('');
   const [isSavingItem, setIsSavingItem] = useState(false);
-  const [isLocalItem, setIsLocalItem] = useState(true); // For the visual checkbox
+  const [isLocalItem, setIsLocalItem] = useState(true);
+  const [nocList, setNocList] = useState([]);
+  const [nocBalance, setNocBalance] = useState(null);
+  
+  const [editingItemId, setEditingItemId] = useState(null);
 
   // Dropdown Lists
   const [finYearsList, setFinYearsList] = useState([]);
@@ -53,12 +63,12 @@ export default function AddSupplyOrderPage() {
 
   // Fetch contracts when finYear or supplier changes
   useEffect(() => {
-    if (finYear && supplier) {
+    if (finYear && supplier && !id) {
       fetchContracts(finYear, supplier);
-    } else {
+    } else if (!id) {
       setContractsList([]);
     }
-  }, [finYear, supplier]);
+  }, [finYear, supplier, id]);
 
   const fetchBaseData = async () => {
     setIsLoading(true);
@@ -103,28 +113,35 @@ export default function AddSupplyOrderPage() {
 
   const loadSupplyOrder = async (poNoId) => {
     try {
-      const res = await getSupplyOrderDetails(poNoId);
-      const data = res.data;
+      const data = await getSupplyOrderEditDetails(poNoId);
       if (data && data.header) {
         if (data.header.accYrSetId) setFinYear(data.header.accYrSetId.toString());
         setSupplier(data.header.lpSupplierId || '');
         if (data.header.categoryId) setFund(data.header.categoryId.toString());
-        if (data.header.contractId) setContract(data.header.contractId.toString());
+        if (data.header.contractId) {
+          setContractsList([{ id: data.header.contractId, name: data.header.contractNo }]);
+          setContract(data.header.contractId.toString());
+        }
         
-        setSoNoData({ soNo: data.header.poNo });
-        if (data.header.soValue) {
+        setSoNoData({ soNo: data.header.poNo, contractNo: data.header.contractNo });
+        if (data.header.soValue !== undefined) {
           setFundValue(data.header.soValue.toString());
+        }
+        if (data.header.itemCnt !== undefined) {
+          setItemCount(data.header.itemCnt.toString());
         }
         if (data.header.poDate) {
           setSoDate(data.header.poDate);
         }
+        
         if (data.items) {
           setOrderItems(data.items);
         }
+        
         setIsSaved(true);
       }
     } catch (err) {
-      toast.error('Failed to load supply order details');
+      toast.error('Failed to load supply order edit details');
       console.error(err);
     }
   };
@@ -157,10 +174,32 @@ export default function AddSupplyOrderPage() {
 
   const handleAddNewItemClick = async () => {
     setIsAddingItem(true);
+    setEditingItemId(null);
     setNewItemId('');
     setNewItemQty('');
     setNewItemNoc('');
     setIsLocalItem(true);
+    setNocBalance(null);
+    if (!contractItems.length && contract) {
+      try {
+        const data = await getContractItems(contract);
+        setContractItems(data || []);
+      } catch (err) {
+        toast.error('Failed to load contract items');
+      }
+    }
+  };
+
+  const handleEditItemClick = async (item) => {
+    setIsAddingItem(false);
+    setEditingItemId(item.orderItemId);
+    const val = item.itemId != null ? item.itemId.toString() : (item.lpItemId != null ? item.lpItemId.toString() : '');
+    setNewItemId(val);
+    setNewItemQty(item.orderQty?.toString() || '');
+    setNewItemNoc(item.nocDetail?.toString() || '');
+    setIsLocalItem(item.itemId == null);
+    setNocBalance(null);
+    
     if (!contractItems.length && contract) {
       try {
         const data = await getContractItems(contract);
@@ -176,11 +215,24 @@ export default function AddSupplyOrderPage() {
       toast.error('Please fill required fields');
       return;
     }
-    const selectedItemData = contractItems.find(i => i.itemId?.toString() === newItemId || i.lpItemId?.toString() === newItemId);
-    if (!selectedItemData) return;
+    if (nocBalance && parseFloat(newItemQty) > (nocBalance.balQyy || 0)) {
+      toast.error(`Order quantity cannot exceed Balance Qty (${nocBalance.balQyy})`);
+      return;
+    }
+
+    const selectedItemData = contractItems.find(i => 
+      (i.itemId != null && i.itemId.toString() === newItemId.toString()) || 
+      (i.lpItemId != null && i.lpItemId.toString() === newItemId.toString())
+    );
+    if (!selectedItemData) {
+      toast.error('Selected item not found in contract items list.');
+      return;
+    }
 
     setIsSavingItem(true);
     try {
+      const selectedNoc = nocList.find(n => n.nocId?.toString() === newItemNoc?.toString());
+
       const payload = {
         itemId: selectedItemData.itemId,
         lpItemId: selectedItemData.lpItemId,
@@ -188,16 +240,23 @@ export default function AddSupplyOrderPage() {
         orderQty: parseFloat(newItemQty),
         unitPrice: selectedItemData.unitPrice || 0,
         amount: (parseFloat(newItemQty) || 0) * (selectedItemData.unitPrice || 0),
-        nocDetail: newItemNoc
+        nocDetail: selectedNoc ? selectedNoc.nocId : newItemNoc
       };
       
-      await addSupplyOrderItem(id, payload);
-      toast.success('Item added successfully');
-      setIsAddingItem(false);
+      if (editingItemId) {
+        await updateSupplyOrderItemApi(id, editingItemId, payload);
+        toast.success('Item updated successfully');
+        setEditingItemId(null);
+      } else {
+        await addSupplyOrderItem(id, payload);
+        toast.success('Item added successfully');
+        setIsAddingItem(false);
+      }
+      
       loadOrderItems();
     } catch (error) {
       console.error('Failed to save item', error);
-      toast.error('Failed to add item');
+      toast.error(editingItemId ? 'Failed to update item' : 'Failed to add item');
     } finally {
       setIsSavingItem(false);
     }
@@ -238,6 +297,91 @@ export default function AddSupplyOrderPage() {
     }
   };
 
+  const handleCompletePO = async () => {
+    if (!id) return;
+    setIsCompleting(true);
+    try {
+      await completeSupplyOrderApi(id, {
+        dispatchNo,
+        dispatchDate
+      });
+      toast.success('Supply Order completed successfully');
+      navigate('/local-purchase/supply-orders');
+    } catch (error) {
+      toast.error('Failed to complete Supply Order');
+      console.error(error);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  // Fetch NOC details when item changes
+  useEffect(() => {
+    if (newItemId && isAddingItem) {
+      const fetchNocs = async () => {
+        try {
+          const res = await getNocDetailsApi(newItemId);
+          setNocList(res || []);
+        } catch (err) {
+          console.error('Failed to load NOCs', err);
+          setNocList([]);
+        }
+      };
+      fetchNocs();
+    } else {
+      setNocList([]);
+    }
+    setNewItemNoc('');
+    setNocBalance(null);
+  }, [newItemId, isAddingItem]);
+
+  // Fetch NOC balance when noc changes
+  useEffect(() => {
+    if (newItemNoc && newItemId && isAddingItem) {
+      const fetchBalance = async () => {
+        try {
+          const res = await getNocBalanceApi(newItemNoc, newItemId);
+          setNocBalance(res);
+        } catch (err) {
+          console.error('Failed to load NOC balance', err);
+          setNocBalance(null);
+        }
+      };
+      fetchBalance();
+    } else {
+      setNocBalance(null);
+    }
+  }, [newItemNoc, newItemId, isAddingItem]);
+
+  const handleDeletePO = async () => {
+    if (!id) return;
+    if (!window.confirm('Are you sure you want to delete this supply order?')) return;
+    
+    try {
+      await deleteSupplyOrderApi(id);
+      toast.success('Supply order deleted successfully');
+      navigate('/local-purchase/supply-orders');
+    } catch (error) {
+      toast.error('Failed to delete supply order');
+      console.error(error);
+    }
+  };
+
+  const handleAmendPO = async () => {
+    if (!id) return;
+    if (!window.confirm('Are you sure you want to amend this supply order?')) return;
+    
+    try {
+      await amendSupplyOrderApi(id);
+      toast.success('Supply order amended successfully');
+      // Refresh the page
+      window.location.reload();
+    } catch (error) {
+      toast.error('Failed to amend supply order');
+      console.error(error);
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!finYear || !supplier || !contract || !soNoData) {
@@ -265,7 +409,7 @@ export default function AddSupplyOrderPage() {
         toast.success('Header saved successfully');
         setIsSaved(true);
         if (!id) {
-          navigate(`/local-purchase/supply-orders/${res.poNoId}/edit`, { replace: true });
+          navigate(`/local-purchase/supply-orders/edit/${res.poNoId}`, { replace: true });
         }
       }
     } catch (err) {
@@ -278,6 +422,143 @@ export default function AddSupplyOrderPage() {
     { id: 'items', label: 'Items' },
     { id: 'general', label: 'General' },
   ];
+
+  const renderInlineForm = (isEdit = false, index = null) => {
+    return (
+      <tr className="bg-blue-50/30" key={isEdit ? `edit-${editingItemId}` : 'add-new'}>
+        <td className="px-4 py-4 text-slate-500 font-medium">{isEdit ? index + 1 : 'New'}</td>
+        <td className="px-4 py-4 space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <label className="text-xs text-slate-600 font-medium">Local Item</label>
+            <input 
+              type="checkbox" 
+              checked={isLocalItem} 
+              onChange={(e) => setIsLocalItem(e.target.checked)} 
+              className="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+              disabled={isEdit}
+            />
+          </div>
+          <Select
+            options={contractItems.map(item => {
+              const val = item.itemId != null ? item.itemId : item.lpItemId;
+              return {
+                value: val,
+                label: `${item.itemCode || item.lpItemCode || ''} - ${item.itemName || ''}`.replace(/^- | -$/, '').trim() || `Item ${val}`
+              };
+            })}
+            value={newItemId ? {
+              value: newItemId, 
+              label: (() => {
+                const i = contractItems.find(x => 
+                  (x.itemId != null && x.itemId.toString() === newItemId.toString()) || 
+                  (x.lpItemId != null && x.lpItemId.toString() === newItemId.toString())
+                );
+                const val = i ? (i.itemId != null ? i.itemId : i.lpItemId) : newItemId;
+                return i ? `${i.itemCode || i.lpItemCode || ''} - ${i.itemName || ''}`.replace(/^- | -$/, '').trim() || `Item ${val}` : newItemId;
+              })()
+            } : null}
+            onChange={(selectedOption) => setNewItemId(selectedOption ? selectedOption.value : '')}
+            placeholder="Select Item..."
+            isClearable
+            isSearchable
+            className="w-full text-sm"
+            menuPosition="fixed"
+            isDisabled={isEdit}
+          />
+        </td>
+        <td className="px-4 py-4">
+          <input 
+            type="number"
+            min="1"
+            value={newItemQty}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val && nocBalance && parseFloat(val) > (nocBalance.balQyy || 0)) {
+                window.alert(`Order quantity cannot exceed Balance Qty (${nocBalance.balQyy})`);
+                setNewItemQty(nocBalance.balQyy.toString());
+              } else {
+                setNewItemQty(val);
+              }
+            }}
+            placeholder="Qty"
+            className="w-full text-sm border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500 p-1.5 text-right"
+          />
+        </td>
+        <td className="px-4 py-4">
+          {nocList.length > 0 ? (
+            <Select
+              options={nocList.map(noc => ({
+                value: noc.nocId,
+                label: noc.nocNumberStr
+              }))}
+              value={newItemNoc ? {
+                value: newItemNoc,
+                label: nocList.find(n => n.nocId?.toString() === newItemNoc?.toString())?.nocNumberStr || newItemNoc
+              } : null}
+              onChange={(selectedOption) => setNewItemNoc(selectedOption ? selectedOption.value : '')}
+              placeholder="Select NOC..."
+              isClearable
+              className="w-full text-sm min-w-[200px]"
+              menuPosition="fixed"
+            />
+          ) : (
+            <input 
+              type="text"
+              value={newItemNoc}
+              onChange={(e) => setNewItemNoc(e.target.value)}
+              placeholder="NOC No."
+              className="w-full text-sm border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500 p-1.5"
+            />
+          )}
+          {nocBalance && (
+            <div className="mt-1 text-xs text-blue-700 bg-blue-50 p-1 rounded font-medium">
+              Appr: {nocBalance.approvedqty} | PO: {nocBalance.poqty} | Bal: <span className={nocBalance.balQyy < parseFloat(newItemQty || 0) ? "text-red-600 font-bold" : "text-green-600"}>{nocBalance.balQyy}</span>
+            </div>
+          )}
+        </td>
+        <td className="px-4 py-4 text-right text-slate-700 font-medium bg-slate-50/50">
+          ₹ {(()=>{
+              const sel = contractItems.find(i => 
+                (i.itemId != null && i.itemId.toString() === newItemId?.toString()) || 
+                (i.lpItemId != null && i.lpItemId.toString() === newItemId?.toString())
+              );
+              return sel ? (sel.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00';
+          })()}
+        </td>
+        <td className="px-4 py-4 text-right font-bold text-slate-800 bg-slate-50/50">
+          ₹ {(()=>{
+              const sel = contractItems.find(i => 
+                (i.itemId != null && i.itemId.toString() === newItemId?.toString()) || 
+                (i.lpItemId != null && i.lpItemId.toString() === newItemId?.toString())
+              );
+              const price = sel ? (sel.unitPrice || 0) : 0;
+              const qty = parseFloat(newItemQty) || 0;
+              return (price * qty).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+          })()}
+        </td>
+        <td className="px-4 py-4 text-center">
+          <div className="flex justify-center gap-2">
+            <button 
+              onClick={handleSaveInlineItem}
+              disabled={isSavingItem || !newItemId || !newItemQty}
+              className="text-green-600 hover:text-green-700 disabled:opacity-50 p-1.5 hover:bg-green-50 rounded-md transition-colors"
+              title="Save Item"
+            >
+              <CheckCircleIcon className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => isEdit ? setEditingItemId(null) : setIsAddingItem(false)}
+              disabled={isSavingItem}
+              className="text-red-500 hover:text-red-700 disabled:opacity-50 p-1.5 hover:bg-red-50 rounded-md transition-colors"
+              title="Cancel"
+            >
+              <XCircleIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 font-sans">
@@ -420,6 +701,28 @@ export default function AddSupplyOrderPage() {
                         </div>
                       </div>
                     </div>
+                    {isSaved && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end mt-6">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-slate-700">Order Value (INR)</label>
+                          <input 
+                            readOnly
+                            type="text" 
+                            className="w-full bg-slate-100 border-slate-200 rounded-lg text-sm text-slate-600 font-semibold"
+                            value={fundValue ? `₹ ${parseFloat(fundValue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '₹ 0.00'}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-slate-700">Item Count</label>
+                          <input 
+                            readOnly
+                            type="text" 
+                            className="w-full bg-slate-100 border-slate-200 rounded-lg text-sm text-slate-600 font-semibold"
+                            value={itemCount || '0'}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
@@ -512,28 +815,48 @@ export default function AddSupplyOrderPage() {
                                     </td>
                                   </tr>
                                 ) : orderItems.length > 0 ? (
-                                  orderItems.map((item, index) => (
-                                    <tr key={item.orderItemId} className="hover:bg-slate-50 transition-colors">
-                                      <td className="px-4 py-3 font-medium text-slate-600">{index + 1}</td>
-                                      <td className="px-4 py-3">
-                                        <div className="font-medium text-slate-800">{item.itemName}</div>
-                                        <div className="text-xs text-slate-500 mt-0.5">Code: {item.drugCode || item.itemId || item.lpItemId}</div>
-                                      </td>
-                                      <td className="px-4 py-3 text-right font-medium text-slate-700">{item.orderQty || item.orderQuantity}</td>
-                                      <td className="px-4 py-3 text-slate-600">{item.nocDetail || '-'}</td>
-                                      <td className="px-4 py-3 text-right text-slate-700">₹ {(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                      <td className="px-4 py-3 text-right font-semibold text-slate-800">₹ {(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                                      <td className="px-4 py-3 text-center">
-                                        <button 
-                                          onClick={() => handleDeleteItem(item.orderItemId)}
-                                          className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-md transition-colors"
-                                          title="Delete Item"
-                                        >
-                                          <TrashIcon className="w-4 h-4" />
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))
+                                  orderItems.map((item, index) => 
+                                    item.orderItemId === editingItemId ? (
+                                      renderInlineForm(true, index)
+                                    ) : (
+                                      <tr key={item.orderItemId} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-4 py-3 font-medium text-slate-600">{index + 1}</td>
+                                        <td className="px-4 py-3">
+                                          <div className="font-semibold text-slate-800">
+                                            {item.drugCode || item.itemId || item.lpItemId} - {item.itemName}
+                                          </div>
+                                          <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                                            <span><span className="font-medium">Strength:</span> {item.strength || 'N/A'}</span>
+                                            <span><span className="font-medium">SKU:</span> {item.sku || 'N/A'}</span>
+                                            <span><span className="font-medium">Type:</span> {item.itemType || 'N/A'}</span>
+                                            <span><span className="font-medium">Pack Qty:</span> {item.packQty || 'N/A'}</span>
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-medium text-slate-700">{item.orderQty || item.orderQuantity}</td>
+                                        <td className="px-4 py-3 text-slate-600">{item.nocDetail || '-'}</td>
+                                        <td className="px-4 py-3 text-right text-slate-700">₹ {(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        <td className="px-4 py-3 text-right font-semibold text-slate-800">₹ {(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                                        <td className="px-4 py-3 text-center">
+                                          <div className="flex justify-center items-center gap-2">
+                                            <button 
+                                              onClick={() => handleEditItemClick(item)}
+                                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 p-1.5 rounded-md transition-colors"
+                                              title="Edit Item"
+                                            >
+                                              <PencilSquareIcon className="w-4 h-4" />
+                                            </button>
+                                            <button 
+                                              onClick={() => handleDeleteItem(item.orderItemId)}
+                                              className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-md transition-colors"
+                                              title="Delete Item"
+                                            >
+                                              <TrashIcon className="w-4 h-4" />
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )
+                                  )
                                 ) : !isAddingItem ? (
                                   <tr className="hover:bg-slate-50 transition-colors">
                                     <td colSpan="7" className="px-4 py-12 text-center text-slate-500">
@@ -544,94 +867,7 @@ export default function AddSupplyOrderPage() {
                                 ) : null}
 
                                 {/* Inline Add Row */}
-                                {isAddingItem && (
-                                  <tr className="bg-blue-50/30">
-                                    <td className="px-4 py-4 text-slate-500 font-medium">New</td>
-                                    <td className="px-4 py-4 space-y-2">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <label className="text-xs text-slate-600 font-medium">Local Item</label>
-                                        <input 
-                                          type="checkbox" 
-                                          checked={isLocalItem} 
-                                          onChange={(e) => setIsLocalItem(e.target.checked)} 
-                                          className="rounded text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
-                                        />
-                                      </div>
-                                      <Select
-                                        options={contractItems.map(item => ({
-                                          value: item.itemId || item.lpItemId,
-                                          label: `${item.itemCode || item.lpItemCode || ''} - ${item.itemName || ''}`.replace(/^- | -$/, '').trim() || `Item ${item.itemId || item.lpItemId}`
-                                        }))}
-                                        value={newItemId ? {
-                                          value: newItemId, 
-                                          label: (() => {
-                                            const i = contractItems.find(x => (x.itemId || x.lpItemId)?.toString() === newItemId?.toString());
-                                            return i ? `${i.itemCode || i.lpItemCode || ''} - ${i.itemName || ''}`.replace(/^- | -$/, '').trim() || `Item ${i.itemId || i.lpItemId}` : newItemId;
-                                          })()
-                                        } : null}
-                                        onChange={(selectedOption) => setNewItemId(selectedOption ? selectedOption.value : '')}
-                                        placeholder="Select Item..."
-                                        isClearable
-                                        isSearchable
-                                        className="w-full text-sm"
-                                        menuPosition="fixed"
-                                      />
-                                    </td>
-                                    <td className="px-4 py-4">
-                                      <input 
-                                        type="number"
-                                        min="1"
-                                        value={newItemQty}
-                                        onChange={(e) => setNewItemQty(e.target.value)}
-                                        placeholder="Qty"
-                                        className="w-full text-sm border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500 p-1.5 text-right"
-                                      />
-                                    </td>
-                                    <td className="px-4 py-4">
-                                      <input 
-                                        type="text"
-                                        value={newItemNoc}
-                                        onChange={(e) => setNewItemNoc(e.target.value)}
-                                        placeholder="NOC No."
-                                        className="w-full text-sm border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500 p-1.5"
-                                      />
-                                    </td>
-                                    <td className="px-4 py-4 text-right text-slate-700 font-medium bg-slate-50/50">
-                                      ₹ {(()=>{
-                                          const sel = contractItems.find(i => i.itemId?.toString() === newItemId || i.lpItemId?.toString() === newItemId);
-                                          return sel ? (sel.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) : '0.00';
-                                      })()}
-                                    </td>
-                                    <td className="px-4 py-4 text-right font-bold text-slate-800 bg-slate-50/50">
-                                      ₹ {(()=>{
-                                          const sel = contractItems.find(i => i.itemId?.toString() === newItemId || i.lpItemId?.toString() === newItemId);
-                                          const price = sel ? (sel.unitPrice || 0) : 0;
-                                          const qty = parseFloat(newItemQty) || 0;
-                                          return (price * qty).toLocaleString('en-IN', { minimumFractionDigits: 2 });
-                                      })()}
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                      <div className="flex justify-center gap-2">
-                                        <button 
-                                          onClick={handleSaveInlineItem}
-                                          disabled={isSavingItem || !newItemId || !newItemQty}
-                                          className="text-green-600 hover:text-green-700 disabled:opacity-50"
-                                          title="Save Item"
-                                        >
-                                          <CheckCircleIcon className="w-6 h-6" />
-                                        </button>
-                                        <button 
-                                          onClick={() => setIsAddingItem(false)}
-                                          disabled={isSavingItem}
-                                          className="text-red-500 hover:text-red-700 disabled:opacity-50"
-                                          title="Cancel"
-                                        >
-                                          <XCircleIcon className="w-6 h-6" />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )}
+                                {isAddingItem && renderInlineForm(false)}
                               </tbody>
                             </table>
                           </div>
@@ -650,6 +886,8 @@ export default function AddSupplyOrderPage() {
                               <label className="text-sm font-medium text-slate-700">Dispatch No</label>
                               <input 
                                 type="text" 
+                                value={dispatchNo}
+                                onChange={(e) => setDispatchNo(e.target.value)}
                                 className="w-full border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                                 placeholder="Enter Dispatch No"
                               />
@@ -659,15 +897,21 @@ export default function AddSupplyOrderPage() {
                               <div className="relative">
                                 <input 
                                   type="date" 
+                                  value={dispatchDate}
+                                  onChange={(e) => setDispatchDate(e.target.value)}
                                   className="w-full border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 pl-10"
                                 />
                                 <CalendarIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                               </div>
                             </div>
                             <div>
-                              <button className="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm flex items-center justify-center gap-2">
+                              <button 
+                                onClick={handleCompletePO}
+                                disabled={isCompleting || !dispatchNo || !dispatchDate}
+                                className="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors shadow-sm flex items-center justify-center gap-2"
+                              >
                                 <PaperAirplaneIcon className="w-4 h-4" />
-                                Complete PO
+                                {isCompleting ? 'Completing...' : 'Complete PO'}
                               </button>
                             </div>
                           </div>
@@ -679,11 +923,17 @@ export default function AddSupplyOrderPage() {
                             <DocumentArrowDownIcon className="w-5 h-5 text-slate-400" />
                             Download PO
                           </button>
-                          <button className="px-6 py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors shadow-sm flex items-center gap-2">
+                          <button 
+                            onClick={handleDeletePO}
+                            className="px-6 py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors shadow-sm flex items-center gap-2"
+                          >
                             <TrashIcon className="w-5 h-5 text-red-500" />
                             Delete
                           </button>
-                          <button className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
+                          <button 
+                            onClick={handleAmendPO}
+                            className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2"
+                          >
                             <PencilSquareIcon className="w-5 h-5 text-slate-400" />
                             Amend
                           </button>

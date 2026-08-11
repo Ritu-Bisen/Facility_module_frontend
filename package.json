@@ -2,6 +2,7 @@
   "name": "frontend",
   "version": "1.0.0",
   "type": "module",
+   "homepage": "/ReactFac/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

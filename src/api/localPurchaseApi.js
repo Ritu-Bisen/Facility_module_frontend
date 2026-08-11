@@ -94,10 +94,68 @@ export const getSupplyOrderDetails = async (poNoId) => {
   }
 };
 
+export const getSupplyOrderEditDetails = async (poNoId) => {
+  try {
+    const response = await axios.get(`/local-purchase/supply-orders/edit-details/${poNoId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const generateSupplyOrderNo = async (finYearId) => {
   try {
     const response = await axios.get('/local-purchase/supply-orders/auto-number', {
       params: { finYearId }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const completeSupplyOrderApi = async (poNoId, data) => {
+  try {
+    const response = await axios.post(`/local-purchase/supply-orders/${poNoId}/complete`, data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteSupplyOrderApi = async (poNoId) => {
+  try {
+    const response = await axios.delete(`/local-purchase/supply-orders/${poNoId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const amendSupplyOrderApi = async (poNoId) => {
+  try {
+    const response = await axios.post(`/local-purchase/supply-orders/${poNoId}/amend`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getNocDetailsApi = async (itemId) => {
+  try {
+    const response = await axios.get('/local-purchase/noc-details', {
+      params: { itemId }
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const getNocBalanceApi = async (nocId, itemId) => {
+  try {
+    const response = await axios.get('/local-purchase/noc-balance', {
+      params: { nocId, itemId }
     });
     return response.data;
   } catch (error) {
@@ -135,6 +193,15 @@ export const addSupplyOrderItem = async (poNoId, data) => {
 export const deleteSupplyOrderItem = async (poNoId, itemId) => {
   try {
     const response = await axios.delete(`/local-purchase/supply-orders/${poNoId}/items/${itemId}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateSupplyOrderItemApi = async (poNoId, itemId, data) => {
+  try {
+    const response = await axios.put(`/local-purchase/supply-orders/${poNoId}/items/${itemId}`, data);
     return response.data;
   } catch (error) {
     throw error;

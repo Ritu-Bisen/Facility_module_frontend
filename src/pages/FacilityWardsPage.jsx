@@ -173,7 +173,7 @@ export default function FacilityWardsPage() {
               </div>
 
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-                <div className="overflow-x-auto overflow-y-auto flex-1" onScroll={handleScroll}>
+                <div className="overflow-x-auto overflow-y-auto flex-1" onScroll={handleScroll} style={{ overflowAnchor: 'none' }}>
                   <table className="w-full text-left border-collapse">
                     <thead className="sticky top-0 z-10 bg-slate-50 shadow-sm">
                       <tr className="border-b border-slate-200 text-slate-600 text-sm uppercase tracking-wider">

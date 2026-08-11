@@ -39,7 +39,7 @@ export default function ProtectedRoute({ children }) {
   // Always allow access to static base menus if authenticated
   if (
     path === '/dashboard' ||
-    path.startsWith('/Facility/ReturnToWarehouserMain.aspx') ||
+    path.startsWith('/return-to-warehouse') ||
     path.startsWith('/Facility/Reports/FacHoldBatchReport.aspx') ||
     path.startsWith('/Facility/Reports/WHBatchBlockRport.aspx') ||
     path.startsWith('/local-purchase')

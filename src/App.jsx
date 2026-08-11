@@ -4,7 +4,7 @@ import SessionToast from './components/common/SessionToast';
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/ReactFac">
       <AppRoutes />
       <SessionToast />
     </BrowserRouter>
