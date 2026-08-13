@@ -150,11 +150,9 @@ export default function AddSupplyOrderPage() {
     if (!id) return;
     setIsLoadingItems(true);
     try {
-      const res = await getSupplyOrderItems(id);
-      setOrderItems(res.data || []);
+      await loadSupplyOrder(id);
     } catch (err) {
-      toast.error('Failed to load items');
-      console.error('Failed to load items:', err);
+      console.error('Failed to reload supply order details:', err);
     } finally {
       setIsLoadingItems(false);
     }
@@ -516,6 +514,11 @@ export default function AddSupplyOrderPage() {
             </div>
           )}
         </td>
+        <td className="px-4 py-4 text-slate-600 text-center font-medium">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${newItemNoc ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+            {newItemNoc ? 'Item with NOC' : 'Item without NOC'}
+          </span>
+        </td>
         <td className="px-4 py-4 text-right text-slate-700 font-medium bg-slate-50/50">
           ₹ {(()=>{
               const sel = contractItems.find(i => 
@@ -801,6 +804,7 @@ export default function AddSupplyOrderPage() {
                                   <th className="px-4 py-3">Item Code & Description</th>
                                   <th className="px-4 py-3 text-right">Order Qty</th>
                                   <th className="px-4 py-3">NOC Detail</th>
+                                  <th className="px-4 py-3">NOC Status</th>
                                   <th className="px-4 py-3 text-right">Price (INR)</th>
                                   <th className="px-4 py-3 text-right">Item Value (INR)</th>
                                   <th className="px-4 py-3 text-center">Actions</th>
@@ -809,7 +813,7 @@ export default function AddSupplyOrderPage() {
                               <tbody className="divide-y divide-slate-100 bg-white">
                                 {isLoadingItems ? (
                                   <tr>
-                                    <td colSpan="7" className="px-4 py-8 text-center text-slate-500">
+                                    <td colSpan="8" className="px-4 py-8 text-center text-slate-500">
                                       <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
                                       <p>Loading items...</p>
                                     </td>
@@ -834,6 +838,11 @@ export default function AddSupplyOrderPage() {
                                         </td>
                                         <td className="px-4 py-3 text-right font-medium text-slate-700">{item.orderQty || item.orderQuantity}</td>
                                         <td className="px-4 py-3 text-slate-600">{item.nocDetail || '-'}</td>
+                                        <td className="px-4 py-3">
+                                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${item.nocDetail ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                                            {item.nocDetail ? 'Item with NOC' : 'Item without NOC'}
+                                          </span>
+                                        </td>
                                         <td className="px-4 py-3 text-right text-slate-700">₹ {(item.unitPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                         <td className="px-4 py-3 text-right font-semibold text-slate-800">₹ {(item.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                                         <td className="px-4 py-3 text-center">
@@ -859,7 +868,7 @@ export default function AddSupplyOrderPage() {
                                   )
                                 ) : !isAddingItem ? (
                                   <tr className="hover:bg-slate-50 transition-colors">
-                                    <td colSpan="7" className="px-4 py-12 text-center text-slate-500">
+                                    <td colSpan="8" className="px-4 py-12 text-center text-slate-500">
                                       <DocumentTextIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                                       <p>No items added yet. Click "Add New Item" to begin.</p>
                                     </td>

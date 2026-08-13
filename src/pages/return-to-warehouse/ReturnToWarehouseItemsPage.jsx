@@ -1,9 +1,9 @@
-import Header from '../components/layout/Header';
-import Sidebar from '../components/layout/Sidebar';
-import Footer from '../components/layout/Footer';
+import Header from '../../components/layout/Header';
+import Sidebar from '../../components/layout/Sidebar';
+import Footer from '../../components/layout/Footer';
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   ArrowLeftIcon,
@@ -14,7 +14,8 @@ import {
   PencilIcon,
   CheckIcon,
 } from '@heroicons/react/24/outline';
-import api from '../api/axios';
+import api from '../../api/axios';
+
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -122,7 +123,7 @@ function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey,
 /* ─────────────────────────────────────────────────────────────
    Item row in the Items table
 ───────────────────────────────────────────────────────────── */
-function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, onDelete }) {
+function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, onDelete, isViewOnly }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [loadingStock, setLoadingStock] = useState(false);
@@ -132,11 +133,16 @@ function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, on
   const [isSaving, setIsSaving] = useState(false);
   const [batches, setBatches] = useState([]);
   const [showBatches, setShowBatches] = useState(false);
-  const [isEditing, setIsEditing] = useState(!row.issueItemId);
+  const [isEditing, setIsEditing] = useState(!row.issueItemId && !isViewOnly);
 
   useEffect(() => {
-    setIsEditing(!row.issueItemId);
-  }, [row.issueItemId]);
+    if (isViewOnly) {
+      setIsEditing(false);
+    } else {
+      setIsEditing(!row.issueItemId);
+    }
+  }, [row.issueItemId, isViewOnly]);
+
 
   useEffect(() => {
     if (row.issueItemId && row.itemId) {
@@ -151,8 +157,8 @@ function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, on
   }, [row.issueItemId, row.itemId]);
 
   const handleSaveRow = async () => {
-    if (!issueId) {
-      alert('Please generate the Issue No first.');
+    if (!issueId || issueId === 'undefined' || issueId === 'null') {
+      alert('Please click "Generate Issue No" or save the Header section first.');
       return;
     }
     const isDup = rows.some((r, rIdx) => r.itemId === row.itemId && rIdx !== index);
@@ -496,42 +502,48 @@ function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, on
 
       {/* Actions */}
       <td className="px-4 py-3 text-center w-36 align-middle">
-        <div className="flex items-center justify-center gap-2">
-          {isEditing ? (
-            <button
-              disabled={!row.itemId || !row.issueQty || isSaving}
-              onClick={handleSaveRow}
-              className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1
-                ${row.itemId && row.issueQty && !isSaving
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow hover:shadow-md focus:ring-emerald-500'
-                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+        {isViewOnly ? (
+          <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
+            View Only
+          </span>
+        ) : (
+          <div className="flex items-center justify-center gap-2">
+            {isEditing ? (
+              <button
+                disabled={!row.itemId || !row.issueQty || isSaving}
+                onClick={handleSaveRow}
+                className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1
+                  ${row.itemId && row.issueQty && !isSaving
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow hover:shadow-md focus:ring-emerald-500'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+              >
+                {isSaving ? (
+                  <span className="flex items-center gap-1.5 justify-center">
+                    <svg className="animate-spin h-3.5 w-3.5 text-current" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Saving
+                  </span>
+                ) : row.issueItemId ? 'Update' : 'Save'}
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow hover:shadow-md focus:ring-blue-500 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1"
+              >
+                Edit
+              </button>
+            )}
+            <button 
+              onClick={onDelete} 
+              title="Delete Line Item"
+              className="text-red-600 bg-red-50 border border-red-200 p-1.5 rounded-lg hover:bg-red-100/70 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500"
             >
-              {isSaving ? (
-                <span className="flex items-center gap-1.5 justify-center">
-                  <svg className="animate-spin h-3.5 w-3.5 text-current" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Saving
-                </span>
-              ) : row.issueItemId ? 'Update' : 'Save'}
+              <TrashIcon className="w-4 h-4" />
             </button>
-          ) : (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow hover:shadow-md focus:ring-blue-500 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1"
-            >
-              Edit
-            </button>
-          )}
-          <button 
-            onClick={onDelete} 
-            title="Delete Line Item"
-            className="text-red-600 bg-red-50 border border-red-200 p-1.5 rounded-lg hover:bg-red-100/70 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500"
-          >
-            <TrashIcon className="w-4 h-4" />
-          </button>
-        </div>
+          </div>
+        )}
       </td>
 
       {/* Batch Details column */}
@@ -572,22 +584,24 @@ function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, on
 /* ─────────────────────────────────────────────────────────────
    Main Page
 ───────────────────────────────────────────────────────────── */
-export default function ReturnToWarehouseItemsPage() {
+export default function ReturnToWarehouseItemsPage({ mode }) {
   const navigate = useNavigate();
+  const { id } = useParams();
   const user = useSelector((s) => s.auth.user);
   const facilityId = user?.facilityId;
+  const isViewOnly = mode === 'View' || window.location.pathname.includes('/view/');
 
   const [form, setForm] = useState(() => {
     const savedForm = localStorage.getItem('currentIssueForm');
-    return savedForm ? JSON.parse(savedForm) : { warehouse: '', issueDate: '', issueDate: today, remarks: '' };
+    return savedForm ? JSON.parse(savedForm) : { warehouse: '', issueDate: today, remarks: '' };
   });
   const [warehouses, setWarehouses] = useState([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
   const [errors, setErrors] = useState({});
-  const [issueNo, setIssueNo] = useState(() => localStorage.getItem('currentIssueNo') || '');
+  const [issueNo, setIssueNo] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [headerSaved, setHeaderSaved] = useState(() => localStorage.getItem('currentIssueHeaderSaved') === 'true');
-  const [issueId, setIssueId] = useState(() => localStorage.getItem('currentIssueId') || null);
+  const [headerSaved, setHeaderSaved] = useState(false);
+  const [issueId, setIssueId] = useState(id || null);
 
   const [allItems, setAllItems] = useState([]);
   const [rows, setRows] = useState([emptyRow()]);
@@ -599,6 +613,47 @@ export default function ReturnToWarehouseItemsPage() {
   function emptyRow() {
     return { itemId: null, itemCode: '', itemName: '', strength: '', sku: '', type: '', packQty: '', edlType: '', facilityStock: '', requestedQty: '', issueQty: '' };
   }
+
+  const parseToIsoDate = (dStr) => {
+    if (!dStr) return '';
+    try {
+      const d = new Date(dStr);
+      if (isNaN(d.getTime())) {
+        const parts = dStr.split(' ')[0].split('-');
+        if (parts.length === 3) {
+          if (parts[0].length === 4) return `${parts[0]}-${parts[1]}-${parts[2]}`;
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+        return '';
+      }
+      return d.toISOString().split('T')[0];
+    } catch (e) {
+      return '';
+    }
+  };
+
+  useEffect(() => {
+    if (id && facilityId) {
+      setIsLoadingData(true);
+      api.get(`/return-to-warehouse/header/${id}`)
+        .then((res) => {
+          if (res.data && res.data.data) {
+            const h = res.data.data;
+            setIssueId(h.issueId);
+            setIssueNo(h.issueNo);
+            setHeaderSaved(true);
+            setForm({
+              warehouse: String(h.warehouseId || ''),
+              warehouseName: h.warehouseName || '',
+              issueDate: parseToIsoDate(h.issueDate) || today,
+              remarks: h.wRequestBy || ''
+            });
+          }
+        })
+        .catch((err) => console.error("Failed to load issue header:", err))
+        .finally(() => setIsLoadingData(false));
+    }
+  }, [id, facilityId]);
 
   const loadSavedItems = async (activeId) => {
     if (!activeId || !facilityId) return;
@@ -631,26 +686,8 @@ export default function ReturnToWarehouseItemsPage() {
     }
   };
 
-  const parseToIsoDate = (dStr) => {
-    if (!dStr) return '';
-    try {
-      const d = new Date(dStr);
-      if (isNaN(d.getTime())) {
-        const parts = dStr.split(' ')[0].split('-');
-        if (parts.length === 3) {
-          if (parts[0].length === 4) return `${parts[0]}-${parts[1]}-${parts[2]}`;
-          return `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-        return '';
-      }
-      return d.toISOString().split('T')[0];
-    } catch (e) {
-      return '';
-    }
-  };
-
   const checkForIncompleteIssue = async () => {
-    if (!facilityId) return;
+    if (!facilityId || id) return;
     setIsLoadingData(true);
     try {
       const res = await api.get('/return-to-warehouse/incomplete');
@@ -660,7 +697,7 @@ export default function ReturnToWarehouseItemsPage() {
         const incForm = {
           warehouse: String(res.data.WarehouseID),
           warehouseName: res.data.WarehouseName || '',
-          issueDate: parseToIsoDate(res.data.WRequestDate),
+          requestDate: parseToIsoDate(res.data.WRequestDate),
           issueDate: parseToIsoDate(res.data.IssueDate),
           remarks: res.data.WRequestBy || ''
         };
@@ -688,17 +725,18 @@ export default function ReturnToWarehouseItemsPage() {
     if (facilityId) {
       loadWarehouses();
       loadItems();
-      if (!issueId) {
+      if (!issueId && !id) {
         checkForIncompleteIssue();
       }
     }
-  }, [facilityId]);
+  }, [facilityId, id]);
 
   useEffect(() => {
-    if (issueId && facilityId) {
-      loadSavedItems(issueId);
+    const activeId = id || issueId;
+    if (activeId && facilityId) {
+      loadSavedItems(activeId);
     }
-  }, [issueId, facilityId]);
+  }, [id, issueId, facilityId]);
 
   // Fallback for old data: If warehouse is missing but remarks matches a warehouse name, preselect it and clear remarks
   useEffect(() => {
@@ -803,7 +841,7 @@ export default function ReturnToWarehouseItemsPage() {
       setIssueId(null);
       setIssueNo('');
       setHeaderSaved(false);
-      setForm({ warehouse: '', issueDate: '', issueDate: today, remarks: '' });
+      setForm({ warehouse: '', issueDate: today, remarks: '' });
       setRows([emptyRow()]);
 
       // Clear localStorage
@@ -858,7 +896,7 @@ export default function ReturnToWarehouseItemsPage() {
         state: {
           newIssue: {
             warehouse: warehouses.find((w) => String(w.WAREHOUSEID) === String(form.warehouse))?.WAREHOUSENAME || form.warehouse,
-            issueDate: fmt(form.issueDate), issueDate: fmt(form.issueDate),
+            issueDate: fmt(form.issueDate),
             remarks: form.remarks, issueNo,
           },
         },
@@ -1104,6 +1142,7 @@ export default function ReturnToWarehouseItemsPage() {
                               rows={rows}
                               onUpdate={updateRow}
                               onDelete={() => deleteRow(i)}
+                              isViewOnly={isViewOnly}
                             />
                           ))
                         )}
@@ -1112,54 +1151,58 @@ export default function ReturnToWarehouseItemsPage() {
                 </div>
 
                 {/* Add row strip */}
-                <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-                  <button onClick={addRow}
-                    className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 hover:text-indigo-800 transition-colors duration-200 hover:-translate-y-0.5 transform">
-                    <PlusCircleIcon className="w-5 h-5 flex-shrink-0" /> Add New Item 
-                  </button>
-                </div>
+                {!isViewOnly && (
+                  <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+                    <button onClick={addRow}
+                      className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600 hover:text-indigo-800 transition-colors duration-200 hover:-translate-y-0.5 transform">
+                      <PlusCircleIcon className="w-5 h-5 flex-shrink-0" /> Add New Item 
+                    </button>
+                  </div>
+                )}
 
                 {/* Bottom Action Footer */}
                 <div className="bg-slate-100 border-t border-slate-200/80 px-6 py-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setShowFreezeModal(true)}
-                      disabled={isSubmitting || !headerSaved}
-                      className={`px-8 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 shadow
-                        ${headerSaved && !isSubmitting
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5'
-                          : 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed'}`}
-                    >
-                      {isSubmitting ? 'Issuing…' : 'Freeze'}
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (window.confirm('Delete this issue?')) {
-                          if (issueId) {
-                            try {
-                              await api.delete(`/return-to-warehouse/${issueId}`);
-                            } catch (e) {
-                              console.error('Failed to delete  issue:', e);
+                  {!isViewOnly ? (
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setShowFreezeModal(true)}
+                        disabled={isSubmitting || !headerSaved}
+                        className={`px-8 py-2 text-xs font-bold uppercase tracking-wider rounded-xl transition-all duration-200 shadow
+                          ${headerSaved && !isSubmitting
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-lg hover:-translate-y-0.5'
+                            : 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed'}`}
+                      >
+                        {isSubmitting ? 'Issuing…' : 'Issue / Freeze'}
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (window.confirm('Delete this issue?')) {
+                            if (issueId) {
+                              try {
+                                await api.delete(`/return-to-warehouse/${issueId}`);
+                              } catch (e) {
+                                console.error('Failed to delete issue:', e);
+                              }
                             }
+                            localStorage.removeItem('currentIssueNo');
+                            localStorage.removeItem('currentIssueId');
+                            localStorage.removeItem('currentIssueHeaderSaved');
+                            localStorage.removeItem('currentIssueForm');
+                            navigate('/return-to-warehouse');
                           }
-                          localStorage.removeItem('currentIssueNo');
-                          localStorage.removeItem('currentIssueId');
-                          localStorage.removeItem('currentIssueHeaderSaved');
-                          localStorage.removeItem('currentIssueForm');
-                          navigate('/return-to-warehouse');
-                        }
-                      }}
-                      className="px-6 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100/85 transition-all duration-200 shadow-sm"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                        }}
+                        className="px-6 py-2 text-xs font-bold uppercase tracking-wider rounded-xl bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100/85 transition-all duration-200 shadow-sm"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ) : <div />}
 
                   <button
                     onClick={() => navigate('/return-to-warehouse')}
                     className="px-6 py-2 text-xs font-bold uppercase tracking-wider rounded-xl border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-all shadow-sm hover:shadow"
                   >
-                    Cancel
+                    {isViewOnly ? 'Back to List' : 'Cancel'}
                   </button>
                 </div>
 

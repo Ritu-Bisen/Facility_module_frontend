@@ -37,7 +37,8 @@ const TenderEntryPage = () => {
     tenderDetails: '',
     tenderDate: '',
     accyrsetid: '',
-    termCondition: ''
+    termCondition: '',
+    type: 'T'
   });
 
   useEffect(() => {
@@ -57,7 +58,23 @@ const TenderEntryPage = () => {
       const data = await getFinYears();
       setFinYears(data);
       if (data.length > 0) {
-        setSelectedFinYear(data[0].id.toString());
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        
+        let currentFinYearStr;
+        if (month >= 4) {
+          currentFinYearStr = `${year}-${year + 1}`;
+        } else {
+          currentFinYearStr = `${year - 1}-${year}`;
+        }
+        
+        const currentYearObj = data.find(fy => fy.name === currentFinYearStr);
+        if (currentYearObj) {
+          setSelectedFinYear(currentYearObj.id.toString());
+        } else {
+          setSelectedFinYear(data[0].id.toString());
+        }
       } else {
         setIsLoading(false);
       }
@@ -87,7 +104,8 @@ const TenderEntryPage = () => {
       tenderDetails: '',
       tenderDate: '',
       accyrsetid: selectedFinYear,
-      termCondition: ''
+      termCondition: '',
+      type: 'T'
     });
   };
 
@@ -99,7 +117,8 @@ const TenderEntryPage = () => {
       tenderDetails: tender.tenderDetails || '',
       tenderDate: tender.tenderDate ? tender.tenderDate.substring(0, 10) : '',
       accyrsetid: tender.accyrsetid || selectedFinYear,
-      termCondition: tender.termCondition || ''
+      termCondition: tender.termCondition || '',
+      type: tender.type || 'T'
     });
   };
 
@@ -183,7 +202,7 @@ const TenderEntryPage = () => {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm hover:shadow active:scale-95"
                   >
                     <PlusIcon className="w-4 h-4" />
-                    Add Tender
+                    Add new
                   </button>
                 )}
               </div>
@@ -200,6 +219,7 @@ const TenderEntryPage = () => {
                     <tr>
                       <th className="px-2 py-3 font-semibold w-12 text-center tracking-wide text-[11px] uppercase">Sl.No</th>
                       <th className="px-2 py-3 font-semibold tracking-wide text-[11px] uppercase">Tender/Quotation No</th>
+                      <th className="px-2 py-3 font-semibold tracking-wide text-[11px] uppercase w-28">Type</th>
                       <th className="px-2 py-3 font-semibold tracking-wide text-[11px] uppercase">Tender/Quotation Details</th>
                       <th className="px-2 py-3 font-semibold tracking-wide text-[11px] uppercase w-36">Tender Date</th>
                       <th className="px-2 py-3 font-semibold tracking-wide text-[11px] uppercase w-28">Fin Year</th>
@@ -227,7 +247,48 @@ const TenderEntryPage = () => {
                         </td>
                       </tr>
                     ) : (
-                      tenders.map((tender, index) => {
+                      <>
+                        {/* Add Row (Moved to Top) */}
+                        {isAdding && (
+                          <tr className="bg-blue-50/30">
+                            <td className="px-2 py-2 text-center text-slate-400 font-medium">-</td>
+                            <td className="px-2 py-2">
+                              <input type="text" name="tenderNo" value={editFormData.tenderNo} onChange={handleInputChange} autoComplete="off" className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Tender No" />
+                            </td>
+                            <td className="px-2 py-2">
+                              <select name="type" value={editFormData.type} onChange={handleInputChange} className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm">
+                                <option value="T">Tender</option>
+                                <option value="Q">Quotation</option>
+                              </select>
+                            </td>
+                            <td className="px-2 py-2">
+                              <input type="text" name="tenderDetails" value={editFormData.tenderDetails} onChange={handleInputChange} autoComplete="off" className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Details" />
+                            </td>
+                            <td className="px-2 py-2">
+                              <input type="date" name="tenderDate" value={editFormData.tenderDate} onChange={handleInputChange} className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
+                            </td>
+                            <td className="px-2 py-2">
+                              <select name="accyrsetid" value={editFormData.accyrsetid} onChange={handleInputChange} className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm">
+                                {finYears.map(fy => <option key={fy.id} value={fy.id}>{fy.name}</option>)}
+                              </select>
+                            </td>
+                            <td className="px-2 py-2">
+                              <input type="text" name="termCondition" value={editFormData.termCondition} onChange={handleInputChange} autoComplete="off" className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Terms" />
+                            </td>
+                            <td className="px-2 py-2 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button onClick={handleSave} className="flex items-center gap-1 text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded shadow-sm transition-colors active:scale-95 text-[11px] font-semibold" title="Save">
+                                  <CheckIcon className="w-3.5 h-3.5 stroke-2" /> Save
+                                </button>
+                                <button onClick={handleCancel} className="flex items-center gap-1 text-slate-500 hover:text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-1 rounded shadow-sm transition-colors active:scale-95 text-[11px] font-semibold" title="Cancel">
+                                  <XMarkIcon className="w-3.5 h-3.5 stroke-2" /> Cancel
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        
+                        {tenders.map((tender, index) => {
                         const isEditing = editingId === tender.id;
                         
                         return (
@@ -237,6 +298,12 @@ const TenderEntryPage = () => {
                             {isEditing ? (
                               <>
                                 <td className="px-2 py-2"><input type="text" name="tenderNo" value={editFormData.tenderNo} onChange={handleInputChange} autoComplete="off" className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" /></td>
+                                <td className="px-2 py-2">
+                                  <select name="type" value={editFormData.type} onChange={handleInputChange} className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm">
+                                    <option value="T">Tender</option>
+                                    <option value="Q">Quotation</option>
+                                  </select>
+                                </td>
                                 <td className="px-2 py-2"><input type="text" name="tenderDetails" value={editFormData.tenderDetails} onChange={handleInputChange} autoComplete="off" className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" /></td>
                                 <td className="px-2 py-2"><input type="date" name="tenderDate" value={editFormData.tenderDate} onChange={handleInputChange} className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" /></td>
                                 <td className="px-2 py-2">
@@ -259,6 +326,11 @@ const TenderEntryPage = () => {
                             ) : (
                               <>
                                 <td className="px-2 py-2.5 font-semibold text-slate-700">{tender.tenderNo}</td>
+                                <td className="px-2 py-2.5 text-center">
+                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${tender.type === 'T' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                                    {tender.type === 'T' ? 'Tender' : 'Quotation'}
+                                  </span>
+                                </td>
                                 <td className="px-2 py-2.5">{tender.tenderDetails}</td>
                                 <td className="px-2 py-2.5">{tender.tenderDate}</td>
                                 <td className="px-2 py-2.5">
@@ -281,41 +353,8 @@ const TenderEntryPage = () => {
                             )}
                           </tr>
                         );
-                      })
-                    )}
-
-                    {/* Add Row (Moved to Bottom) */}
-                    {isAdding && (
-                      <tr className="bg-blue-50/30">
-                        <td className="px-2 py-2 text-center text-slate-400 font-medium">-</td>
-                        <td className="px-2 py-2">
-                          <input type="text" name="tenderNo" value={editFormData.tenderNo} onChange={handleInputChange} autoComplete="off" className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Tender No" />
-                        </td>
-                        <td className="px-2 py-2">
-                          <input type="text" name="tenderDetails" value={editFormData.tenderDetails} onChange={handleInputChange} autoComplete="off" className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Details" />
-                        </td>
-                        <td className="px-2 py-2">
-                          <input type="date" name="tenderDate" value={editFormData.tenderDate} onChange={handleInputChange} className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" />
-                        </td>
-                        <td className="px-2 py-2">
-                          <select name="accyrsetid" value={editFormData.accyrsetid} onChange={handleInputChange} className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm">
-                            {finYears.map(fy => <option key={fy.id} value={fy.id}>{fy.name}</option>)}
-                          </select>
-                        </td>
-                        <td className="px-2 py-2">
-                          <input type="text" name="termCondition" value={editFormData.termCondition} onChange={handleInputChange} autoComplete="off" className="w-full text-xs border-slate-300 rounded-md py-1.5 px-2 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm" placeholder="Terms" />
-                        </td>
-                        <td className="px-2 py-2 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button onClick={handleSave} className="flex items-center gap-1 text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded shadow-sm transition-colors active:scale-95 text-[11px] font-semibold" title="Save">
-                              <CheckIcon className="w-3.5 h-3.5 stroke-2" /> Save
-                            </button>
-                            <button onClick={handleCancel} className="flex items-center gap-1 text-slate-500 hover:text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 px-2 py-1 rounded shadow-sm transition-colors active:scale-95 text-[11px] font-semibold" title="Cancel">
-                              <XMarkIcon className="w-3.5 h-3.5 stroke-2" /> Cancel
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                      })}
+                      </>
                     )}
                   </tbody>
                 </table>

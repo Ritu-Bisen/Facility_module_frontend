@@ -130,6 +130,15 @@ export const completeContract = async (contractId) => {
   }
 };
 
+export const initiateAmendment = async (contractId) => {
+  try {
+    const response = await axios.put(`/contracts/${contractId}/amend`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const getContractItems = async (contractId) => {
   try {
     const response = await axios.get(`/contracts/${contractId}/items`);
@@ -142,6 +151,15 @@ export const getContractItems = async (contractId) => {
 export const addContractItem = async (contractId, data) => {
   try {
     const response = await axios.post(`/contracts/${contractId}/items`, data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updateContractItem = async (itemId, data) => {
+  try {
+    const response = await axios.put(`/contracts/items/${itemId}`, data);
     return response.data;
   } catch (error) {
     throw error;

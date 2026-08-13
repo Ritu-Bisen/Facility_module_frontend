@@ -1,22 +1,59 @@
-import { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useEffect, useState, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../../features/auth/authSlice';
 
 export default function SessionToast() {
+  const user = useSelector(state => state.auth.user);
   const [visible, setVisible] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const timerRef = useRef(null);
 
   useEffect(() => {
-    const handler = () => setVisible(true);
-    window.addEventListener('session-expired', handler);
-    return () => window.removeEventListener('session-expired', handler);
-  }, []);
+    const sessionExpiredHandler = () => {
+      dispatch(logout());
+      setVisible(true);
+    };
+    window.addEventListener('session-expired', sessionExpiredHandler);
+    return () => window.removeEventListener('session-expired', sessionExpiredHandler);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!user) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      return;
+    }
+
+    const resetTimer = () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        dispatch(logout());
+        setVisible(true);
+      }, 20 * 60 * 1000); // 20 minutes
+    };
+
+    // Initialize timer
+    resetTimer();
+
+    const activityEvents = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'];
+    activityEvents.forEach(event => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [user, dispatch]);
 
   const handleLogin = () => {
     setVisible(false);
-    dispatch(logout());
     navigate('/login', { replace: true });
   };
 

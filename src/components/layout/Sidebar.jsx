@@ -24,7 +24,6 @@ export default function Sidebar() {
       dispatch(fetchMyMenus());
     }
   }, [user, dispatch]);
-
   const hardcodedModules = [
     {
       moduleId: 'local_purchase_module',
@@ -32,10 +31,10 @@ export default function Sidebar() {
       screens: [
         { screenId: 'lp_mas_budget', screenUrl: '/local-purchase/mas-budget', screenName: 'LP Fund Receipt', canView: true },
         { screenId: 'lp_supplier_master', screenUrl: '/local-purchase/supplier-master', screenName: 'Local Supplier Master', canView: true },
+        { screenId: 'lp_tender_entry', screenUrl: '/local-purchase/tenders', screenName: 'Tender/Quotation Entry', canView: true },
         { screenId: 'lp_contracts', screenUrl: '/local-purchase/contracts', screenName: 'Contracts', canView: true },
         { screenId: 'lp_supply_orders', screenUrl: '/local-purchase/supply-orders', screenName: 'Supply Orders', canView: true },
         { screenId: 'lp_receipts_from_supplier', screenUrl: '/local-purchase/receipts-from-supplier', screenName: 'Receipts from Supplier', canView: true },
-        { screenId: 'lp_tender_entry', screenUrl: '/local-purchase/tenders', screenName: 'Tender/Quotation Entry', canView: true },
         { screenId: 'lp_local_items', screenUrl: '/local-purchase/local-items', screenName: 'Local Items Master', canView: true },
         { screenId: 'lp_noc_cancellation', screenUrl: '/local-purchase/noc-cancellation', screenName: 'NOC Cancellation', canView: true }
       ]

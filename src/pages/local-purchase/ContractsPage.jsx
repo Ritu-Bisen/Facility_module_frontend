@@ -180,7 +180,7 @@ export default function ContractsPage() {
                               <td className="px-4 py-1 whitespace-nowrap text-center text-sm font-medium">
                                 <button
                                   className={`hover:underline focus:outline-none ${
-                                    item.status === 'Incomplete' ? 'text-red-600' : 'text-green-600'
+                                    item.status === 'Incomplete' || item.status === 'Amend Incomplete' ? 'text-red-600' : 'text-green-600'
                                   }`}
                                   onClick={() => navigate(`/local-purchase/contracts/edit/${item.id}`)}
                                 >

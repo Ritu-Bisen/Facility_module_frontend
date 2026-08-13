@@ -139,7 +139,7 @@ export default function AddMonthlyIndentPage() {
   }, [facilityId]);
 
   useEffect(() => {
-    api.get('/monthly-indent/item-types').then(res => setItemCategories(res.data || [])).catch(e => console.error(e));
+    api.get('/monthly-indent/item-categories').then(res => setItemCategories(res.data || [])).catch(e => console.error(e));
   }, []);
 
   useEffect(() => {
@@ -664,8 +664,8 @@ export default function AddMonthlyIndentPage() {
                         >
                           <option value="">Select Item Category</option>
                           {itemCategories.map(cat => (
-                            <option key={cat.ITEMTYPEID || cat.CATEGORYID} value={cat.ITEMTYPENAME || cat.CATEGORYNAME}>
-                              {cat.ITEMTYPENAME || cat.CATEGORYNAME}
+                            <option key={cat.MCID} value={cat.MCID}>
+                              {cat.MCATEGORY}
                             </option>
                           ))}
                         </select>
@@ -690,30 +690,32 @@ export default function AddMonthlyIndentPage() {
                         </select>
                     </div>
 
-                    {/* Search Filter (Searchable) */}
-                    <div className="w-full md:w-1/3 space-y-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Search Item <span className="text-gray-400 font-normal">(Name, Code, or Type)</span>
-                      </label>
-                      <SearchDrop 
-                        options={[
-                          { value: '', label: 'All Items' },
-                          ...fmItems.map((item) => {
-                            const name = item.ITEMNAME || item.itemName || '';
-                            const code = item.ITEMCODE || item.itemCode || '';
-                            return {
-                              value: String(item.ITEMID || item.itemId),
-                              label: `${code} - ${name}`
-                            };
-                          })
-                        ]}
-                        value={searchFilter}
-                        onChange={(val) => setSearchFilter(val)}
-                        placeholder="Search Name, Code..."
-                        labelKey="label"
-                        valueKey="value"
-                      />
-                    </div>
+                    {/* Search Filter (Searchable for normal sources) */}
+                    {itemType !== 'OTHER' && (
+                      <div className="w-full md:w-1/3 space-y-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                          Search Item <span className="text-gray-400 font-normal">(Name, Code, or Type)</span>
+                        </label>
+                        <SearchDrop 
+                          options={[
+                            { value: '', label: 'All Items' },
+                            ...fmItems.map((item) => {
+                              const name = item.ITEMNAME || item.itemName || '';
+                              const code = item.ITEMCODE || item.itemCode || '';
+                              return {
+                                value: String(item.ITEMID || item.itemId),
+                                label: `${code} - ${name}`
+                              };
+                            })
+                          ]}
+                          value={searchFilter}
+                          onChange={(val) => setSearchFilter(val)}
+                          placeholder="Search Name, Code..."
+                          labelKey="label"
+                          valueKey="value"
+                        />
+                      </div>
+                    )}
 
                     {itemType === 'OTHER' && (
                       <div className="w-full md:w-2/3 flex items-end gap-2">
