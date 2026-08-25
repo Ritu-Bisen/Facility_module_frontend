@@ -15,3 +15,13 @@ export async function fetchCaptcha() {
   const response = await api.get('/auth/captcha');
   return response.data;
 }
+
+export async function logoutApi() {
+  const response = await api.post('/auth/logout');
+  return response.data;
+}
+
+export async function verifyMfaApi(tempToken, otp) {
+  const response = await api.post('/auth/login/mfa', { tempToken, otp });
+  return response.data;
+}

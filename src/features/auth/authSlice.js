@@ -22,6 +22,24 @@ export const fetchUserMenus = createAsyncThunk(
   }
 );
 
+export const logoutUser = createAsyncThunk(
+  'auth/logoutUser',
+  async (_, { dispatch, getState }) => {
+    try {
+      const token = getState().auth.accessToken || localStorage.getItem('accessToken');
+      if (token) {
+        await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+    } catch (error) {
+      // Ignore API errors during logout so client cleanup always succeeds
+    } finally {
+      dispatch(logout());
+    }
+  }
+);
+
 const initialState = {
   user: storedUser ? JSON.parse(storedUser) : null,
   accessToken: storedAccessToken || null,

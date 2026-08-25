@@ -14,6 +14,7 @@ import FacilityStockItemWisePage from '../pages/FacilityStockItemWisePage';
 import FacilityStockBatchWise from '../pages/FacilityStockBatchWise';
 import MonthlyIndentPage from '../pages/MonthlyIndentPage';
 import AddMonthlyIndentPage from '../pages/AddMonthlyIndentPage';
+import AddMonthlyIndentMCPage from '../pages/AddMonthlyIndentMCPage';
 import PrintMonthlyIndentPage from '../pages/PrintMonthlyIndentPage';
 import WarehouseStockPage from '../pages/WarehouseStockPage';
 import WarehouseReceiptFAC from '../pages/WarehouseReceiptFAC';
@@ -54,13 +55,28 @@ import AddContractPage from '../pages/local-purchase/AddContractPage';
 import TenderEntryPage from '../pages/local-purchase/TenderEntryPage';
 import SupplyOrdersPage from '../pages/local-purchase/SupplyOrdersPage';
 import AddSupplyOrderPage from '../pages/local-purchase/AddSupplyOrderPage';
+import AyushLocalPurchasePage from '../pages/local-purchase/AyushLocalPurchasePage';
+import AddAyushLocalPurchasePage from '../pages/local-purchase/AddAyushLocalPurchasePage';
 import ReceiptsFromSupplierPage from '../pages/local-purchase/ReceiptsFromSupplierPage';
 import ReceiptPage from '../pages/local-purchase/ReceiptPage';
 import LocalItemsPage from '../pages/local-purchase/LocalItemsPage';
 import NocCancellationPage from '../pages/local-purchase/NocCancellationPage';
 import NocCancellationItemsPage from '../pages/local-purchase/NocCancellationItemsPage';
+import NocLpDetailsPage from '../pages/local-purchase/NocLpDetailsPage';
+import PoAgainstNocPage from '../pages/local-purchase/PoAgainstNocPage';
+import McHospitalAiVsIssuancePage from '../pages/annual-indent/McHospitalAiVsIssuancePage';
+import MedicalCollegeAiPage from '../pages/annual-indent/MedicalCollegeAiPage';
+import DownloadAiFormatPage from '../pages/annual-indent/DownloadAiFormatPage';
+import UploadForwardIndentPage from '../pages/annual-indent/UploadForwardIndentPage';
+import CreateAnnualIndentPage from '../pages/annual-indent/CreateAnnualIndentPage';
+import CgmscReceiptDrugWisePage from '../pages/reports/CgmscReceiptDrugWisePage';
+import CgmscReceiptBatchWisePage from '../pages/reports/CgmscReceiptBatchWisePage';
+import DateWiseFacilityIssuePage from '../pages/reports/DateWiseFacilityIssuePage';
 import ReturnToWarehousePage from '../pages/return-to-warehouse/ReturnToWarehousePage';
 import ReturnToWarehouseItemsPage from '../pages/return-to-warehouse/ReturnToWarehouseItemsPage';
+import FreezRcDetailsPage from '../pages/reagent-indent/FreezRcDetailsPage';
+import ReagentIndentWarehousePage from '../pages/reagent-indent/ReagentIndentWarehousePage';
+import AddReagentIndentPage from '../pages/reagent-indent/AddReagentIndentPage';
 
 function PlaceholderPage({ title, description, children }) {
   return (
@@ -206,6 +222,11 @@ export default function AppRoutes() {
       <Route path="/indent/warehouse/add" element={
         <ProtectedRoute>
           <AddMonthlyIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/indent/warehouse/add-mc" element={
+        <ProtectedRoute>
+          <AddMonthlyIndentMCPage />
         </ProtectedRoute>
       } />
       <Route path="/indent/warehouse/print/:id" element={
@@ -418,6 +439,21 @@ export default function AppRoutes() {
           <AddSupplyOrderPage />
         </ProtectedRoute>
       } />
+      <Route path="/local-purchase/ayush-local-purchase" element={
+        <ProtectedRoute>
+          <AyushLocalPurchasePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/ayush-local-purchase/new" element={
+        <ProtectedRoute>
+          <AddAyushLocalPurchasePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/ayush-local-purchase/edit/:id" element={
+        <ProtectedRoute>
+          <AddAyushLocalPurchasePage />
+        </ProtectedRoute>
+      } />
       <Route path="/local-purchase/local-items" element={
         <ProtectedRoute>
           <LocalItemsPage />
@@ -433,9 +469,79 @@ export default function AppRoutes() {
           <NocCancellationItemsPage />
         </ProtectedRoute>
       } />
+      <Route path="/local-purchase/noc-lp-details" element={
+        <ProtectedRoute>
+          <NocLpDetailsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/local-purchase/po-against-noc" element={
+        <ProtectedRoute>
+          <PoAgainstNocPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/mc-hospital-ai-vs-issuance" element={
+        <ProtectedRoute>
+          <McHospitalAiVsIssuancePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/medical-college-ai" element={
+        <ProtectedRoute>
+          <MedicalCollegeAiPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/download-format" element={
+        <ProtectedRoute>
+          <DownloadAiFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/upload-forward" element={
+        <ProtectedRoute>
+          <UploadForwardIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/create" element={
+        <ProtectedRoute>
+          <CreateAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/item-indent" element={
+        <ProtectedRoute>
+          <CreateAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/reports/cgmsc-receipt-drug-wise" element={
+        <ProtectedRoute>
+          <CgmscReceiptDrugWisePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/reports/cgmsc-receipt-batch-wise" element={
+        <ProtectedRoute>
+          <CgmscReceiptBatchWisePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/reports/date-wise-facility-issue" element={
+        <ProtectedRoute>
+          <DateWiseFacilityIssuePage />
+        </ProtectedRoute>
+      } />
       <Route path="/Facility/Reports/WHBatchBlockRport.aspx" element={
         <ProtectedRoute>
           <FacHoldBatchReport />
+        </ProtectedRoute>
+      } />
+      <Route path="/reagent-indent/freez-rc-details" element={
+        <ProtectedRoute>
+          <FreezRcDetailsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/reagent-indent/warehouse-indent" element={
+        <ProtectedRoute>
+          <ReagentIndentWarehousePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/reagent-indent/warehouse-indent/add" element={
+        <ProtectedRoute>
+          <AddReagentIndentPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />

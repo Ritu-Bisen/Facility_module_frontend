@@ -258,3 +258,32 @@ export const completeReceipt = async (receiptId) => {
   const response = await axios.post(`/local-purchase/receipts/${receiptId}/complete`);
   return response.data;
 };
+
+export const getNocSummaryFinYears = async () => {
+  const response = await axios.get('/local-purchase/noc-summary/financial-years');
+  return response.data;
+};
+
+export const getNocSummaryMedicalColleges = async () => {
+  const response = await axios.get('/local-purchase/noc-summary/medical-colleges');
+  return response.data;
+};
+
+export const getNocSummaryReport = async (accyrsetid, facilityId) => {
+  const response = await axios.get('/local-purchase/noc-summary/report', {
+    params: { accyrsetid, facilityId }
+  });
+  return response.data;
+};
+
+export const getPoAgainstNocCategories = async () => {
+  const response = await axios.get('/local-purchase/po-against-noc/categories');
+  return response.data;
+};
+
+export const getPoAgainstNocReport = async ({ categoryId, fromDate, toDate }) => {
+  const response = await axios.get('/local-purchase/po-against-noc/report', {
+    params: { categoryId, fromDate, toDate }
+  });
+  return response.data;
+};

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../../features/auth/authSlice';
+import { logoutUser } from '../../features/auth/authSlice';
 
 export default function SessionToast() {
   const user = useSelector(state => state.auth.user);
@@ -12,7 +12,7 @@ export default function SessionToast() {
 
   useEffect(() => {
     const sessionExpiredHandler = () => {
-      dispatch(logout());
+      dispatch(logoutUser());
       setVisible(true);
     };
     window.addEventListener('session-expired', sessionExpiredHandler);
@@ -31,9 +31,9 @@ export default function SessionToast() {
     const resetTimer = () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
-        dispatch(logout());
+        dispatch(logoutUser());
         setVisible(true);
-      }, 20 * 60 * 1000); // 20 minutes
+      }, 15 * 60 * 1000); // Enforce 15 minutes idle session timeout
     };
 
     // Initialize timer

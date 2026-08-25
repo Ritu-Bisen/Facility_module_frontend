@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../api/axios';
 import { getBreakageVoucherList } from '../api/breakageVoucherApi';
+import { generateBreakageVoucherPDF } from '../utils/breakageVoucherPdfGenerator';
 import {
   PlusIcon,
   CheckCircleIcon,
@@ -238,7 +239,7 @@ export default function BreakageVoucherMain() {
                               </button>
                             ) : (
                               <button 
-                                onClick={() => window.open(`/breakage-voucher/print/${item.IssueID}`, '_blank')}
+                                onClick={() => generateBreakageVoucherPDF(item.IssueID)}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors font-semibold"
                               >
                                 <PrinterIcon className="w-4 h-4" />

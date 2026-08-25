@@ -42,7 +42,10 @@ export default function ProtectedRoute({ children }) {
     path.startsWith('/return-to-warehouse') ||
     path.startsWith('/Facility/Reports/FacHoldBatchReport.aspx') ||
     path.startsWith('/Facility/Reports/WHBatchBlockRport.aspx') ||
-    path.startsWith('/local-purchase')
+    path.startsWith('/local-purchase') ||
+    path.startsWith('/reagent-indent') ||
+    path.startsWith('/annual-indent') ||
+    path.startsWith('/reports')
   ) {
     return children;
   }

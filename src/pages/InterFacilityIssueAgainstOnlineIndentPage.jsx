@@ -5,6 +5,7 @@ import Footer from '../components/layout/Footer';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { getIndentsForIssue, getIssuesForIndent } from '../api/interFacilityIssueOnlineApi';
+import { generateWardIssuePDF } from '../utils/wardIssuePdfGenerator';
 import { PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
 
 const IssueDetailsCell = ({ indent }) => {
@@ -67,7 +68,7 @@ const IssueDetailsCell = ({ indent }) => {
                             <td className="px-2 py-1.5 border-l border-slate-200 text-center">
                                 {issue.Status === 'C' ? (
                                     <button
-                                        onClick={() => window.open(`/ward-issues/print/${issue.IssueID}`, '_blank')}
+                                        onClick={() => generateWardIssuePDF(issue.IssueID, 'ward')}
                                         className="text-emerald-600 hover:text-emerald-700 hover:underline font-bold transition-colors cursor-pointer"
                                         title="Print Issue Details"
                                     >

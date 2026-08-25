@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
+import { generateBreakageVoucherPDF } from '../utils/breakageVoucherPdfGenerator';
 import { ArrowLeftIcon, PrinterIcon } from '@heroicons/react/24/outline';
 
 export default function PrintBreakageVoucherPage() {
@@ -19,10 +20,6 @@ export default function PrintBreakageVoucherPage() {
     try {
       const res = await api.get(`/ward-issue/${id}/print`);
       setData(res.data);
-      // Wait for rendering to settle then open print dialog
-      setTimeout(() => {
-        window.print();
-      }, 800);
     } catch (e) {
       console.error(e);
       setError(e.response?.data?.error || 'Failed to load voucher details');
@@ -85,7 +82,7 @@ export default function PrintBreakageVoucherPage() {
           <ArrowLeftIcon className="w-4 h-4" /> Back to List
         </button>
         <button
-          onClick={() => window.print()}
+          onClick={() => generateBreakageVoucherPDF(data)}
           className="flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl transition shadow-sm"
         >
           <PrinterIcon className="w-4.5 h-4.5" /> Save / Download PDF

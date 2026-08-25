@@ -5,13 +5,16 @@ import Footer from '../../components/layout/Footer';
 import { toast } from 'react-hot-toast';
 import { CalendarIcon, CurrencyRupeeIcon, DocumentTextIcon, BuildingOffice2Icon, PaperAirplaneIcon, ArrowPathIcon, PlusIcon, TrashIcon, ArrowLeftIcon, PencilSquareIcon, DocumentArrowDownIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { getSuppliers, getBudgets, getSupplyOrderDetails, getSupplyOrderEditDetails, generateSupplyOrderNo, saveSupplyOrderHeader, getSupplyOrderItems, deleteSupplyOrderItem, addSupplyOrderItem, completeSupplyOrderApi, deleteSupplyOrderApi, amendSupplyOrderApi, getNocDetailsApi, getNocBalanceApi, updateSupplyOrderItemApi } from '../../api/localPurchaseApi';
 import { getFinYears, getContractsForSO, getContractItems } from '../../api/contractApi';
+import { generateSupplyOrderPDF } from '../../utils/supplyOrderPdfGenerator';
 import Select from 'react-select';
 
 export default function AddSupplyOrderPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const user = useSelector((s) => s.auth.user);
   
   // Header State
   const [finYear, setFinYear] = useState('');
@@ -297,6 +300,11 @@ export default function AddSupplyOrderPage() {
 
   const handleCompletePO = async () => {
     if (!id) return;
+    const today = new Date().toISOString().split('T')[0];
+    if (dispatchDate > today) {
+      toast.error('Dispatch date cannot be in the future');
+      return;
+    }
     setIsCompleting(true);
     try {
       await completeSupplyOrderApi(id, {
@@ -310,6 +318,21 @@ export default function AddSupplyOrderPage() {
       console.error(error);
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  const handleDownloadPO = async () => {
+    if (!id) return;
+    try {
+      const response = await getSupplyOrderDetails(id);
+      if (response && response.success && response.data) {
+        generateSupplyOrderPDF(response.data, user);
+      } else {
+        toast.error('Failed to load PDF details');
+      }
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      toast.error('Failed to generate PDF');
     }
   };
 
@@ -908,6 +931,7 @@ export default function AddSupplyOrderPage() {
                                   type="date" 
                                   value={dispatchDate}
                                   onChange={(e) => setDispatchDate(e.target.value)}
+                                  max={new Date().toISOString().split('T')[0]}
                                   className="w-full border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 pl-10"
                                 />
                                 <CalendarIcon className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -928,7 +952,10 @@ export default function AddSupplyOrderPage() {
 
                         {/* Actions Section */}
                         <div className="flex justify-center gap-4 py-6 border-t border-slate-200">
-                          <button className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2">
+                          <button 
+                            onClick={handleDownloadPO}
+                            className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2"
+                          >
                             <DocumentArrowDownIcon className="w-5 h-5 text-slate-400" />
                             Download PO
                           </button>

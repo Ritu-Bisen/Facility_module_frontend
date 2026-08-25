@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../api/axios';
+import { generateMonthlyIndentPDF } from '../utils/monthlyIndentPdfGenerator';
 import { ArrowLeftIcon, PrinterIcon } from '@heroicons/react/24/outline';
 
 export default function PrintMonthlyIndentPage() {
@@ -29,11 +30,6 @@ export default function PrintMonthlyIndentPage() {
         header: headerRes.data,
         items: itemsRes.data || []
       });
-      
-      // Wait for rendering to settle then open print dialog
-      setTimeout(() => {
-        window.print();
-      }, 800);
     } catch (e) {
       console.error(e);
       setError(e.response?.data?.error || 'Failed to load indent details');
@@ -96,7 +92,7 @@ export default function PrintMonthlyIndentPage() {
           <ArrowLeftIcon className="w-4 h-4" /> Back to List
         </button>
         <button
-          onClick={() => window.print()}
+          onClick={() => generateMonthlyIndentPDF(data, user)}
           className="flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl transition shadow-sm"
         >
           <PrinterIcon className="w-4.5 h-4.5" /> Save / Download PDF

@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../api/axios';
 import { getInFacilityTransferList } from '../api/inFacilityTransferApi';
+import { generateWardIssuePDF } from '../utils/wardIssuePdfGenerator';
 import {
   PlusIcon,
   CheckCircleIcon,
@@ -226,7 +227,7 @@ export default function InterFacilityIssueFAC() {
                             <td className="px-5 py-4 text-center">
                               {issue.STATUS === 'C' || issue.Status === 'C' ? (
                                 <button
-                                  onClick={() => window.open(`/ward-issues/print/${issue.ISSUEID || issue.IssueID || issue.issueId}`, '_blank')}
+                                  onClick={() => generateWardIssuePDF(issue.ISSUEID || issue.IssueID || issue.issueId, 'ward')}
                                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition shadow-sm hover:shadow mx-auto"
                                 >
                                   <PrinterIcon className="w-4.5 h-4.5 text-slate-500" />

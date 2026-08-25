@@ -1,16 +1,16 @@
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAuth } from '../../hooks/useAuth';
-import { logout } from '../../features/auth/authSlice';
+import { logoutUser } from '../../features/auth/authSlice';
 
 export default function Navbar() { 
   const { user } = useAuth();
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    navigate('/login', { replace: true });
   };
 
   return (

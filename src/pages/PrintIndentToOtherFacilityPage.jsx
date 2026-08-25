@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { getIndentDetail } from '../api/indentToOtherFacilityApi';
+import { generateIndentToOtherFacilityPDF } from '../utils/indentToOtherFacilityPdfGenerator';
 import { ArrowLeftIcon, PrinterIcon } from '@heroicons/react/24/outline';
 
 export default function PrintIndentToOtherFacilityPage() {
@@ -25,11 +26,6 @@ export default function PrintIndentToOtherFacilityPage() {
           header: res.data.header,
           items: res.data.items || []
         });
-        
-        // Wait for rendering to settle then open print dialog
-        setTimeout(() => {
-          window.print();
-        }, 800);
       } else {
         setError(res.message || 'Failed to load indent details');
       }
@@ -95,7 +91,7 @@ export default function PrintIndentToOtherFacilityPage() {
           <ArrowLeftIcon className="w-4 h-4" /> Back to List
         </button>
         <button
-          onClick={() => window.print()}
+          onClick={() => generateIndentToOtherFacilityPDF(data)}
           className="flex items-center gap-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl transition shadow-sm"
         >
           <PrinterIcon className="w-4.5 h-4.5" /> Save / Download PDF

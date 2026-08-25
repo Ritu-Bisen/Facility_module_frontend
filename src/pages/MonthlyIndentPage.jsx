@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../api/axios';
+import { generateMonthlyIndentPDF } from '../utils/monthlyIndentPdfGenerator';
 import {
   PlusIcon,
   FolderOpenIcon,
@@ -77,7 +78,11 @@ export default function MonthlyIndentPage() {
   };
 
   const handleAddClick = () => {
-    navigate('/indent/warehouse/add');
+    if (user?.roleName === 'MC Facility') {
+      navigate('/indent/warehouse/add-mc');
+    } else {
+      navigate('/indent/warehouse/add');
+    }
   };
 
   return (
@@ -181,7 +186,10 @@ export default function MonthlyIndentPage() {
                             </td>
                             <td className="px-5 py-4 text-center">
                               {indent.nocAvailable ? (
-                                <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition shadow-sm hover:shadow mx-auto">
+                                <button 
+                                  onClick={() => generateMonthlyIndentPDF(indent.NOCID || indent.id, user, 'NOC')}
+                                  className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition shadow-sm hover:shadow mx-auto"
+                                >
                                   Download
                                 </button>
                               ) : (
@@ -189,7 +197,10 @@ export default function MonthlyIndentPage() {
                               )}
                             </td>
                             <td className="px-5 py-4 text-center">
-                              <button className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition shadow-sm hover:shadow mx-auto">
+                              <button 
+                                onClick={() => generateMonthlyIndentPDF(indent.NOCID || indent.id, user, 'INDENT')}
+                                className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition shadow-sm hover:shadow mx-auto"
+                              >
                                 Download
                               </button>
                             </td>
@@ -197,7 +208,13 @@ export default function MonthlyIndentPage() {
                               {(indent.STATUS === 'Incomplete' || indent.status === 'Incomplete' || indent.STATUS === 'I') && (
                                 <div className="flex items-center justify-center gap-2">
                                   <button 
-                                    onClick={() => navigate(`/indent/warehouse/add?nocId=${indent.NOCID || indent.id}`)}
+                                    onClick={() => {
+                                      if (user?.roleName === 'MC Facility') {
+                                        navigate(`/indent/warehouse/add-mc?nocId=${indent.NOCID || indent.id}`);
+                                      } else {
+                                        navigate(`/indent/warehouse/add?nocId=${indent.NOCID || indent.id}`);
+                                      }
+                                    }}
                                     className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition shadow-sm hover:shadow"
                                   >
                                     Edit
@@ -207,7 +224,7 @@ export default function MonthlyIndentPage() {
                               {(indent.STATUS === 'Completed' || indent.status === 'Completed' || indent.STATUS === 'C') && (
                                 <div className="flex items-center justify-center gap-2">
                                   <button 
-                                    onClick={() => navigate(`/indent/warehouse/print/${indent.NOCID || indent.id}`)}
+                                    onClick={() => generateMonthlyIndentPDF(indent.NOCID || indent.id, user, 'INDENT')}
                                     className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition shadow-sm hover:shadow"
                                     title="Download Indent PDF"
                                   >

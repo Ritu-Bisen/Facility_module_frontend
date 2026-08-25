@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useAuth } from '../../hooks/useAuth';
-import { logout } from '../../features/auth/authSlice';
+import { logoutUser } from '../../features/auth/authSlice';
 import ChangePasswordModal from './ChangePasswordModal';
 
 export default function Header() {
@@ -21,9 +21,9 @@ export default function Header() {
     }
   }, [isDarkMode]);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -38,7 +38,7 @@ export default function Header() {
           </div>
           <div className="min-w-0">
             <h1 className="text-base md:text-xl lg:text-2xl font-bold text-white leading-tight tracking-wide">
-              Drug Distribution & Management Information System
+              Drug Procurement & Distribution Management Information System (DPDMIS)
             </h1>
             <p className="text-[10px] md:text-xs font-medium text-blue-200/60 mt-0.5 tracking-wide hidden sm:block">
               Chhattisgarh Medical Services Corporation Limited, Government of Chhattisgarh

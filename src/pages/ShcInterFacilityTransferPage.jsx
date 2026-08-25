@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../api/axios';
+import { generateWardIssuePDF } from '../utils/wardIssuePdfGenerator';
 import {
   PlusCircleIcon,
   FolderOpenIcon
@@ -232,7 +233,7 @@ export default function ShcInterFacilityTransferPage() {
                                                 </button>
                                               ) : (
                                                 <button 
-                                                  onClick={() => window.open(`/ward-issues/print/${indent.issueid || indent.IssueID}?type=shc`, '_blank')}
+                                                  onClick={() => generateWardIssuePDF(indent.issueid || indent.IssueID, 'shc')}
                                                   className="text-emerald-600 hover:text-emerald-700 font-bold hover:underline"
                                                 >
                                                   Completed

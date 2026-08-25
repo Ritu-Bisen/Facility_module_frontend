@@ -10,7 +10,7 @@ import api from '../api/axios';
 
 const today = new Date().toISOString().split('T')[0];
 
-function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey, disabled }) {
+function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey, disabled, isLoading }) {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const boxRef = useRef();
@@ -27,7 +27,7 @@ function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey,
     return () => document.removeEventListener('mousedown', h);
   }, []);
 
-  const openDrop = () => { if (disabled) return; setQ(''); setOpen(true); };
+  const openDrop = () => { if (disabled || isLoading) return; setQ(''); setOpen(true); };
   const pick = (o) => { onChange(o[valueKey]); setOpen(false); setQ(''); };
   const clearSelection = (e) => { e.stopPropagation(); onChange(''); setOpen(false); setQ(''); };
 
@@ -36,21 +36,28 @@ function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey,
       <div
         onClick={openDrop}
         className={`flex items-center justify-between gap-2 w-full h-10 px-3 rounded-xl border text-sm cursor-pointer select-none transition
-          ${disabled ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+          ${(disabled || isLoading) ? 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
             : open     ? 'border-blue-500 ring-2 ring-blue-100 bg-white'
             : 'bg-slate-50 border-slate-200 hover:border-blue-400'}`}
       >
-        <span className={`truncate font-semibold ${selected ? 'text-slate-700' : 'text-slate-400'}`}>
-          {selected ? selected[labelKey] : placeholder}
+        <span className={`truncate font-semibold ${selected && !isLoading ? 'text-slate-700' : 'text-slate-400'}`}>
+          {isLoading ? 'Loading...' : (selected ? selected[labelKey] : placeholder)}
         </span>
         <div className="flex items-center gap-1">
-          {selected && (
+          {selected && !isLoading && (
              <button onClick={clearSelection} className="text-slate-400 hover:text-red-500 text-lg font-bold leading-none mr-1" title="Clear">&times;</button>
           )}
-          <svg className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          {isLoading ? (
+            <svg className="animate-spin h-4 w-4 text-blue-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : (
+            <svg className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          )}
         </div>
       </div>
 
@@ -713,6 +720,7 @@ export default function AddMonthlyIndentPage() {
                           placeholder="Search Name, Code..."
                           labelKey="label"
                           valueKey="value"
+                          isLoading={loadingFmItems}
                         />
                       </div>
                     )}

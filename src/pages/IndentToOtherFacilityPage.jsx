@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../api/axios';
 import { getIndentsToOtherFacility } from '../api/indentToOtherFacilityApi';
+import { generateIndentToOtherFacilityPDF } from '../utils/indentToOtherFacilityPdfGenerator';
 import {
   PlusCircleIcon,
   FolderOpenIcon,
@@ -191,7 +192,7 @@ export default function IndentToOtherFacilityPage() {
                                   {indent.StatusCode === 'C' ? (
                                     <button 
                                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-bold transition-colors"
-                                      onClick={() => window.open(`/indent-to-other-facility/print/${indent.NOCID}`, '_blank')}
+                                      onClick={() => generateIndentToOtherFacilityPDF(indent.NOCID)}
                                     >
                                       <ArrowDownTrayIcon className="w-4 h-4" /> Download
                                     </button>

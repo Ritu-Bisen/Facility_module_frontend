@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { logout } from '../../features/auth/authSlice';
 
 export default function ChangePasswordModal({ isOpen, onClose }) {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
 
@@ -39,11 +44,13 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
       });
       
       if (res.data.success) {
-        toast.success('Password changed successfully');
+        toast.success('Password changed successfully. Please log in with your new password.');
         onClose();
         setOldPassword('');
         setNewPassword('');
         setConfirmPassword('');
+        dispatch(logout());
+        navigate('/login', { replace: true });
       } else {
         toast.error(res.data.message || 'Failed to change password');
       }
