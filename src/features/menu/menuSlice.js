@@ -51,21 +51,26 @@ const menuSlice = createSlice({
       .addCase(fetchMyMenus.fulfilled, (state, action) => {
         state.loading = false;
         state.isLoaded = true;
-        state.menus = action.payload.menus || [];
-        state.facilityType = action.payload.facilityType;
+        const menus = Array.isArray(action.payload?.menus) ? action.payload.menus : [];
+        state.menus = menus;
+        state.facilityType = action.payload?.facilityType || null;
         
         // Build flat permission map
         const pMap = {};
-        state.menus.forEach(module => {
-          module.screens.forEach(screen => {
-            pMap[screen.screenUrl] = {
-              canView: screen.canView,
-              canAdd: screen.canAdd,
-              canEdit: screen.canEdit,
-              canDelete: screen.canDelete,
-              canApprove: screen.canApprove
-            };
-          });
+        menus.forEach(module => {
+          if (module && Array.isArray(module.screens)) {
+            module.screens.forEach(screen => {
+              if (screen && screen.screenUrl) {
+                pMap[screen.screenUrl] = {
+                  canView: !!screen.canView,
+                  canAdd: !!screen.canAdd,
+                  canEdit: !!screen.canEdit,
+                  canDelete: !!screen.canDelete,
+                  canApprove: !!screen.canApprove
+                };
+              }
+            });
+          }
         });
         state.permissions = pMap;
 

@@ -15,7 +15,7 @@ export default function Sidebar() {
   const { user } = useAuth();
   const location = useLocation();
   const dispatch = useDispatch();
-  const { menus, loading, isLoaded } = useSelector((state) => state.menu);
+  const { menus, loading, isLoaded, facilityType } = useSelector((state) => state.menu);
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState({});
 
@@ -29,6 +29,8 @@ export default function Sidebar() {
                        user?.roleName?.toLowerCase()?.includes('mc') || 
                        facilityType === 'MC Facility' || 
                        facilityType === 'MC' || 
+                       user?.facilityType === 'MC Facility' ||
+                       user?.facilityType === 'MC' ||
                        user?.emailId === 'admink@gnail.com';
 
   const isCmeUser = user?.roleName === 'CME' || 
@@ -91,19 +93,21 @@ export default function Sidebar() {
     const moduleMap = new Map();
 
     combined.forEach((module) => {
-      const name = module.moduleName?.trim();
+      if (!module) return;
+      const name = module.moduleName ? String(module.moduleName).trim() : '';
       if (!name) return;
 
       if (!moduleMap.has(name)) {
         moduleMap.set(name, {
           ...module,
+          moduleName: name,
           screens: [...(module.screens || [])]
         });
       } else {
         const existing = moduleMap.get(name);
-        const existingUrls = new Set(existing.screens.map((s) => s.screenUrl));
+        const existingUrls = new Set((existing.screens || []).map((s) => s?.screenUrl).filter(Boolean));
         (module.screens || []).forEach((screen) => {
-          if (!existingUrls.has(screen.screenUrl)) {
+          if (screen && screen.screenUrl && !existingUrls.has(screen.screenUrl)) {
             existing.screens.push(screen);
             existingUrls.add(screen.screenUrl);
           }
@@ -119,8 +123,9 @@ export default function Sidebar() {
     if (allModules.length > 0) {
       const activeParents = {};
       allModules.forEach((module) => {
-        const hasActive = module.screens.some(
-          (sub) => location.pathname === sub.screenUrl || location.pathname.startsWith(sub.screenUrl + '/')
+        if (!module || !module.moduleName) return;
+        const hasActive = (module.screens || []).some(
+          (sub) => sub?.screenUrl && (location.pathname === sub.screenUrl || location.pathname.startsWith(sub.screenUrl + '/'))
         );
         if (hasActive) {
           activeParents[module.moduleName] = true;
@@ -156,7 +161,7 @@ export default function Sidebar() {
   };
 
   const active = (path) =>
-    location.pathname === path || location.pathname.startsWith(path + '/');
+    path ? (location.pathname === path || location.pathname.startsWith(path + '/')) : false;
 
   // Hardcoded essentials
   const baseMenus = [
@@ -238,18 +243,19 @@ export default function Sidebar() {
 
         {/* Dynamic Menus from DB & Hardcoded Modules (Only showing those with 'View' permission) */}
         {!loading && allModules.map((module) => {
+          if (!module || !module.moduleName) return null;
           // Filter screens that user can view, or show all if user is admink@gnail.com
-          const viewableScreens = module.screens.filter(s => s.canView || user?.emailId === 'admink@gnail.com');
+          const viewableScreens = (module.screens || []).filter(s => s && (s.canView || user?.emailId === 'admink@gnail.com'));
           
           // If no screens are viewable in this module, hide it
           if (viewableScreens.length === 0) return null;
 
           const isOpen = openMenus[module.moduleName];
-          const isSubActive = viewableScreens.some(sub => active(sub.screenUrl));
+          const isSubActive = viewableScreens.some(sub => active(sub?.screenUrl));
           const Icon = ClipboardDocumentListIcon; // Default icon for dynamic modules
           
           return (
-            <div key={module.moduleId} className="flex flex-col mt-1">
+            <div key={module.moduleId || module.moduleName} className="flex flex-col mt-1">
               <button
                 onClick={() => handleMainMenuClick(module.moduleName)}
                 title={collapsed ? module.moduleName : undefined}
@@ -275,10 +281,11 @@ export default function Sidebar() {
               {isOpen && !collapsed && (
                 <div className="pl-6 flex flex-col gap-1 mt-1 mb-2 transition-all duration-300">
                   {viewableScreens.map((sub) => {
+                    if (!sub || !sub.screenUrl) return null;
                     const isActive = active(sub.screenUrl);
                     return (
                       <Link
-                        key={sub.screenId}
+                        key={sub.screenId || sub.screenUrl}
                         to={sub.screenUrl}
                         className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-semibold transition-all duration-150
                           ${isActive

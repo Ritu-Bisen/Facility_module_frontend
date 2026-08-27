@@ -18,12 +18,12 @@ export default function Dashboard() {
 
   const hasMenuAccess = (url) => {
     if (user?.emailId === 'admink@gnail.com') return true;
-    if (!menus) return false;
+    if (!Array.isArray(menus)) return false;
     
     for (const module of menus) {
-      if (module.screens) {
+      if (module && Array.isArray(module.screens)) {
         for (const screen of module.screens) {
-          if (screen.screenUrl === url && screen.canView) {
+          if (screen && screen.screenUrl === url && screen.canView) {
             return true;
           }
         }
@@ -63,9 +63,11 @@ export default function Dashboard() {
       const fetchStats = async () => {
         try {
           const result = await storeAPI.getFacilityStockDrugWise(user.facilityId);
-          // Filter for <= 90 days
-          const expiring = result.filter(item => (item.EXPDAYSSTATUS || item.expdaysstatus) === '<=90 days');
-          setNearExpiryData(expiring);
+          if (Array.isArray(result)) {
+            // Filter for <= 90 days
+            const expiring = result.filter(item => item && ((item.EXPDAYSSTATUS || item.expdaysstatus) === '<=90 days'));
+            setNearExpiryData(expiring);
+          }
         } catch (e) {
           console.error('Failed to fetch stats', e);
         } finally {
@@ -83,22 +85,22 @@ export default function Dashboard() {
       const fetchPendingReceipts = async () => {
         try {
           const finRes = await getFinancialYears();
-          if (finRes.success && finRes.data.length > 0) {
+          if (finRes.success && Array.isArray(finRes.data) && finRes.data.length > 0) {
             const today = new Date();
             const currentYear = today.getFullYear();
             const currentMonth = today.getMonth(); // 0 = Jan, 3 = Apr
             let finYearString = currentMonth >= 3 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
             const defaultYearObj = finRes.data.find(y => 
-              y.year === finYearString || 
+              y && (y.year === finYearString || 
               y.year === finYearString.replace(/20/g, '') ||
-              y.year.includes(finYearString.split('-')[0].slice(-2) + '-' + finYearString.split('-')[1].slice(-2))
+              (y.year && y.year.includes(finYearString.split('-')[0].slice(-2) + '-' + finYearString.split('-')[1].slice(-2))))
             );
             const yearId = defaultYearObj ? defaultYearObj.id : finRes.data[0].id;
 
             const indentsRes = await getWarehouseIndents(yearId);
-            if (indentsRes.success) {
+            if (indentsRes.success && Array.isArray(indentsRes.data)) {
               const pendingCount = indentsRes.data.filter(i => 
-                i.receiptStatus === 'Yet to be Received' || i.receiptStatus === 'Partial Receipt' || i.receiptStatus === 'Incomplete'
+                i && (i.receiptStatus === 'Yet to be Received' || i.receiptStatus === 'Partial Receipt' || i.receiptStatus === 'Incomplete')
               ).length;
               setPendingReceiptsCount(pendingCount);
             }
@@ -118,13 +120,13 @@ export default function Dashboard() {
       const fetchPendingIndents = async () => {
         try {
           const res = await api.get('/shc-inter-facility-transfers/fin-years');
-          const mappedYears = (res.data.data || []).map(y => 
-            Array.isArray(y) ? { AccYrSetID: y[0], SHAccYear: y[1] } : { AccYrSetID: y.id || y.ACCYRSETID, SHAccYear: y.year || y.AccYear }
+          const mappedYears = (res.data?.data || []).map(y => 
+            Array.isArray(y) ? { AccYrSetID: y[0], SHAccYear: y[1] } : { AccYrSetID: y?.id || y?.ACCYRSETID, SHAccYear: y?.year || y?.AccYear }
           );
           if (mappedYears.length > 0) {
             const yearId = mappedYears[0].AccYrSetID;
             const indentsRes = await getIndentsToOtherFacility(yearId, 'I');
-            if (indentsRes.success) {
+            if (indentsRes.success && Array.isArray(indentsRes.data)) {
               setPendingIndentsCount(indentsRes.data.length);
             }
           }
@@ -143,20 +145,20 @@ export default function Dashboard() {
       const fetchShcPendingIndents = async () => {
         try {
           const finRes = await getFinancialYears();
-          if (finRes.success && finRes.data.length > 0) {
+          if (finRes.success && Array.isArray(finRes.data) && finRes.data.length > 0) {
             const today = new Date();
             const currentYear = today.getFullYear();
             const currentMonth = today.getMonth();
             let finYearString = currentMonth >= 3 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
             const defaultYearObj = finRes.data.find(y => 
-              y.year === finYearString || 
+              y && (y.year === finYearString || 
               y.year === finYearString.replace(/20/g, '') ||
-              y.year.includes(finYearString.split('-')[0].slice(-2) + '-' + finYearString.split('-')[1].slice(-2))
+              (y.year && y.year.includes(finYearString.split('-')[0].slice(-2) + '-' + finYearString.split('-')[1].slice(-2))))
             );
             const yearId = defaultYearObj ? defaultYearObj.id : finRes.data[0].id;
 
             const indentsRes = await getShcIndents(user.facilityId, yearId, 'I');
-            if (indentsRes.success) {
+            if (indentsRes.success && Array.isArray(indentsRes.data)) {
               setShcPendingIndentsCount(indentsRes.data.length);
             }
           }

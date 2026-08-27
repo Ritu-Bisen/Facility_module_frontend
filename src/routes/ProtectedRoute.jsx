@@ -50,7 +50,7 @@ export default function ProtectedRoute({ children }) {
     return children;
   }
 
-  const permKey = Object.keys(permissions).find(key => path === key || path.startsWith(key + '/'));
+  const permKey = Object.keys(permissions || {}).find(key => key && (path === key || path.startsWith(key + '/')));
 
   if (permKey) {
     const screenPerm = permissions[permKey];
