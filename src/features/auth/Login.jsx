@@ -326,7 +326,7 @@ export default function Login() {
                           className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm"
                         />
                       </div>
-                      <div className="flex-shrink-0 h-[48px] w-[130px] bg-white rounded-xl border-2 border-gray-200 dark:border-[#333640] overflow-hidden flex items-center justify-center relative cursor-pointer select-none" onClick={loadCaptcha} title="Click to refresh CAPTCHA">
+                      <div className="flex-shrink-0 h-[48px] w-[150px] bg-white rounded-xl border-2 border-gray-200 dark:border-[#333640] overflow-hidden flex items-center justify-center relative cursor-pointer select-none" onClick={loadCaptcha} title="Click to refresh CAPTCHA">
                         {captchaLoading ? (
                           <div className="flex items-center gap-1.5 text-xs text-gray-400">
                             <svg className="animate-spin h-3.5 w-3.5 text-gray-400" fill="none" viewBox="0 0 24 24">
@@ -340,7 +340,7 @@ export default function Login() {
                             <span>Failed. Retry</span>
                           </div>
                         ) : captchaData?.image ? (
-                          <div dangerouslySetInnerHTML={{ __html: captchaData.image }} className="w-full h-full flex items-center justify-center scale-90" />
+                          <div dangerouslySetInnerHTML={{ __html: captchaData.image }} className="w-full h-full flex items-center justify-center scale-105" />
                         ) : (
                           <div className="text-xs text-gray-400">Click to load</div>
                         )}
