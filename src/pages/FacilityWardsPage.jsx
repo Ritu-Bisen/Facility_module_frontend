@@ -97,20 +97,42 @@ export default function FacilityWardsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.WardCode.trim() || !formData.WardName.trim()) {
+    const cleanCode = formData.WardCode.trim();
+    const cleanName = formData.WardName.trim();
+
+    if (!cleanCode || !cleanName) {
       toast.error('Ward Code and Ward Name are required');
+      return;
+    }
+
+    const scriptRegex = /<[^>]*>|on\w+=|javascript:/i;
+    if (scriptRegex.test(cleanCode) || scriptRegex.test(cleanName)) {
+      toast.error('Ward Code or Ward Name contains invalid HTML/script tags');
+      return;
+    }
+
+    const codePattern = /^[a-zA-Z0-9_\-\/\s]+$/;
+    if (!codePattern.test(cleanCode)) {
+      toast.error('Ward Code contains invalid characters');
+      return;
+    }
+
+    const namePattern = /^[a-zA-Z0-9\s._\-\/\(\),&]+$/;
+    if (!namePattern.test(cleanName)) {
+      toast.error('Ward Name contains invalid characters or script payload');
       return;
     }
 
     try {
       const token = localStorage.getItem('accessToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
+      const payload = { ...formData, WardCode: cleanCode, WardName: cleanName };
 
       if (editMode) {
-        await axios.put(`${import.meta.env.VITE_API_URL}/facility-wards/${formData.WardID}`, formData, config);
+        await axios.put(`${import.meta.env.VITE_API_URL}/facility-wards/${formData.WardID}`, payload, config);
         toast.success('Updated Successfully');
       } else {
-        await axios.post(`${import.meta.env.VITE_API_URL}/facility-wards`, formData, config);
+        await axios.post(`${import.meta.env.VITE_API_URL}/facility-wards`, payload, config);
         toast.success('Added Successfully');
       }
       setIsModalOpen(false);

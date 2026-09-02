@@ -79,18 +79,30 @@ export default function DoctorInformationPage() {
   };
 
   const handleAddSubmit = async () => {
-    if (!newDrName.trim()) {
+    const cleanName = newDrName.trim();
+    const cleanMobile = newMobileNo.trim();
+    if (!cleanName) {
       toast.error('Doctor Name is required');
       return;
     }
-    if (newMobileNo && newMobileNo.length !== 10) {
+    const scriptRegex = /<[^>]*>|on\w+=|javascript:/i;
+    if (scriptRegex.test(cleanName)) {
+      toast.error('Doctor Name contains invalid HTML/script tags');
+      return;
+    }
+    const namePattern = /^[a-zA-Z0-9\s._\-\/\(\),&]+$/;
+    if (!namePattern.test(cleanName)) {
+      toast.error('Doctor Name contains invalid characters or script payload');
+      return;
+    }
+    if (cleanMobile && !/^\d{10}$/.test(cleanMobile)) {
       toast.error('Mobile Number must be exactly 10 digits');
       return;
     }
     try {
       const token = localStorage.getItem('accessToken');
       await axios.post(`${import.meta.env.VITE_API_URL}/doctor-info`, 
-        { drName: newDrName, mobileNo: newMobileNo },
+        { drName: cleanName, mobileNo: cleanMobile },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Added Successfully');
@@ -106,18 +118,30 @@ export default function DoctorInformationPage() {
   };
 
   const handleUpdateSubmit = async (drId) => {
-    if (!editDrName.trim()) {
+    const cleanName = editDrName.trim();
+    const cleanMobile = editMobileNo.trim();
+    if (!cleanName) {
       toast.error('Doctor Name is required');
       return;
     }
-    if (editMobileNo && editMobileNo.length !== 10) {
+    const scriptRegex = /<[^>]*>|on\w+=|javascript:/i;
+    if (scriptRegex.test(cleanName)) {
+      toast.error('Doctor Name contains invalid HTML/script tags');
+      return;
+    }
+    const namePattern = /^[a-zA-Z0-9\s._\-\/\(\),&]+$/;
+    if (!namePattern.test(cleanName)) {
+      toast.error('Doctor Name contains invalid characters or script payload');
+      return;
+    }
+    if (cleanMobile && !/^\d{10}$/.test(cleanMobile)) {
       toast.error('Mobile Number must be exactly 10 digits');
       return;
     }
     try {
       const token = localStorage.getItem('accessToken');
       await axios.put(`${import.meta.env.VITE_API_URL}/doctor-info/${drId}`, 
-        { drName: editDrName, mobileNo: editMobileNo },
+        { drName: cleanName, mobileNo: cleanMobile },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Updated Successfully');

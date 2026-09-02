@@ -75,14 +75,25 @@ export default function SpLocationPage() {
   };
 
   const handleAddSubmit = async () => {
-    if (!newLocationNo.trim()) {
+    const cleanLocation = newLocationNo.trim();
+    if (!cleanLocation) {
       toast.error('Location Name is required');
+      return;
+    }
+    const scriptRegex = /<[^>]*>|on\w+=|javascript:/i;
+    if (scriptRegex.test(cleanLocation)) {
+      toast.error('Location Name contains invalid HTML/script tags');
+      return;
+    }
+    const namePattern = /^[a-zA-Z0-9\s._\-\/\(\),&]+$/;
+    if (!namePattern.test(cleanLocation)) {
+      toast.error('Location Name contains invalid characters or script payload');
       return;
     }
     try {
       const token = localStorage.getItem('accessToken');
       await axios.post(`${import.meta.env.VITE_API_URL}/special-locations`, 
-        { locationno: newLocationNo },
+        { locationno: cleanLocation },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Added Successfully');
@@ -97,14 +108,25 @@ export default function SpLocationPage() {
   };
 
   const handleUpdateSubmit = async (id) => {
-    if (!editLocationNo.trim()) {
+    const cleanLocation = editLocationNo.trim();
+    if (!cleanLocation) {
       toast.error('Location Name is required');
+      return;
+    }
+    const scriptRegex = /<[^>]*>|on\w+=|javascript:/i;
+    if (scriptRegex.test(cleanLocation)) {
+      toast.error('Location Name contains invalid HTML/script tags');
+      return;
+    }
+    const namePattern = /^[a-zA-Z0-9\s._\-\/\(\),&]+$/;
+    if (!namePattern.test(cleanLocation)) {
+      toast.error('Location Name contains invalid characters or script payload');
       return;
     }
     try {
       const token = localStorage.getItem('accessToken');
       await axios.put(`${import.meta.env.VITE_API_URL}/special-locations/${id}`, 
-        { locationno: editLocationNo },
+        { locationno: cleanLocation },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success('Updated Successfully');

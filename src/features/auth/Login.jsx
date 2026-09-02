@@ -83,10 +83,25 @@ export default function Login() {
     setError('');
 
     // Basic validation
-    if (!identifier.trim()) {
+    const cleanId = identifier.trim();
+    if (!cleanId) {
       setError('Please enter your User ID or Phone Number.');
       return;
     }
+
+    // Input Sanitization & Vulnerability 23 Check (CWE-20)
+    const scriptRegex = /<[^>]*>|on\w+=|javascript:/i;
+    if (scriptRegex.test(cleanId)) {
+      setError('Invalid characters or script payload detected in User ID / Phone field.');
+      return;
+    }
+
+    const allowedIdPattern = /^[a-zA-Z0-9@._\-\+\s]+$/;
+    if (!allowedIdPattern.test(cleanId)) {
+      setError('User ID / Phone field contains disallowed characters.');
+      return;
+    }
+
     if (!password.trim()) {
       setError('Please enter your password or OTP.');
       return;
