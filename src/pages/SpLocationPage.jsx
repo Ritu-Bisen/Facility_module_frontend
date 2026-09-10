@@ -204,9 +204,10 @@ export default function SpLocationPage() {
                             <input
                               type="text"
                               value={newLocationNo}
-                              onChange={(e) => setNewLocationNo(e.target.value)}
+                              onChange={(e) => setNewLocationNo(e.target.value.replace(/[^a-zA-Z0-9\s._\-\/\(\),&]/g, ''))}
                               className="w-full p-2 bg-white border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                               placeholder="Enter location name"
+                              maxLength="200"
                               autoFocus
                             />
                           </td>
@@ -235,8 +236,9 @@ export default function SpLocationPage() {
                               <input
                                 type="text"
                                 value={editLocationNo}
-                                onChange={(e) => setEditLocationNo(e.target.value)}
+                                onChange={(e) => setEditLocationNo(e.target.value.replace(/[^a-zA-Z0-9\s._\-\/\(\),&]/g, ''))}
                                 className="w-full p-2 bg-white border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                maxLength="200"
                               />
                             ) : (
                               <span className="text-slate-800 font-medium">{loc.locationno}</span>

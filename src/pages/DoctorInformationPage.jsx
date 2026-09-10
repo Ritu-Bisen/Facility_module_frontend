@@ -234,9 +234,10 @@ export default function DoctorInformationPage() {
                             <input
                               type="text"
                               value={newDrName}
-                              onChange={(e) => setNewDrName(e.target.value)}
+                              onChange={(e) => setNewDrName(e.target.value.replace(/[^a-zA-Z0-9\s._\-\/\(\),&]/g, ''))}
                               className="w-full p-2 bg-white border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                               placeholder="Doctor Name"
+                              maxLength="200"
                               autoFocus
                             />
                           </td>
@@ -244,7 +245,7 @@ export default function DoctorInformationPage() {
                             <input
                               type="text"
                               value={newMobileNo}
-                              onChange={(e) => handleMobileInput(e, setNewMobileNo)}
+                              onChange={(e) => setNewMobileNo(e.target.value.replace(/\D/g, '').slice(0, 10))}
                               className="w-full p-2 bg-white border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
                               placeholder="Mobile (10 digits)"
                               maxLength="10"
@@ -276,8 +277,9 @@ export default function DoctorInformationPage() {
                               <input
                                 type="text"
                                 value={editDrName}
-                                onChange={(e) => setEditDrName(e.target.value)}
+                                onChange={(e) => setEditDrName(e.target.value.replace(/[^a-zA-Z0-9\s._\-\/\(\),&]/g, ''))}
                                 className="w-full p-2 bg-white border border-blue-300 rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                maxLength="200"
                               />
                             ) : (
                               <span className="text-slate-800 font-medium">{doc.DRNAME}</span>

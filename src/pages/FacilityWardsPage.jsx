@@ -91,8 +91,22 @@ export default function FacilityWardsPage() {
   };
 
   const handleChange = (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setFormData({ ...formData, [e.target.name]: value });
+    const { name, type, checked, value } = e.target;
+    if (type === 'checkbox') {
+      setFormData({ ...formData, [name]: checked });
+      return;
+    }
+
+    let sanitizedValue = value;
+    if (name === 'WardCode') {
+      // Allow only alphanumeric, space, hyphen, underscore, slash
+      sanitizedValue = value.replace(/[^a-zA-Z0-9_\-\/\s]/g, '');
+    } else if (name === 'WardName') {
+      // Allow only standard alphanumeric characters, spaces, and safe punctuation (._-/,()&)
+      sanitizedValue = value.replace(/[^a-zA-Z0-9\s._\-\/\(\),&]/g, '');
+    }
+
+    setFormData({ ...formData, [name]: sanitizedValue });
   };
 
   const handleSubmit = async (e) => {

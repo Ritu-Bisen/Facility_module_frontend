@@ -155,6 +155,11 @@ export default function Login() {
       return;
     }
 
+    if (cleanId.length > 50) {
+      setError('User ID / Email length cannot exceed 50 characters.');
+      return;
+    }
+
     if (!password.trim()) {
       setError('Please enter your password or OTP.');
       return;
@@ -346,8 +351,9 @@ export default function Login() {
                       <input 
                         type="text" 
                         value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
+                        onChange={(e) => setIdentifier(e.target.value.replace(/[^a-zA-Z0-9@._\-\+\s]/g, ''))}
                         placeholder="Enter User Id / Phone Number" 
+                        maxLength="50"
                         onFocus={() => setIsFocused(f => ({ ...f, identifier: true }))}
                         onBlur={() => setIsFocused(f => ({ ...f, identifier: false }))}
                         className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm"
@@ -371,6 +377,7 @@ export default function Login() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder={isOtpMode ? 'Enter OTP received on mobile' : 'Enter Password or OTP'} 
+                        maxLength="100"
                         onFocus={() => setIsFocused(f => ({ ...f, password: true }))}
                         onBlur={() => setIsFocused(f => ({ ...f, password: false }))}
                         className="w-full pl-11 pr-12 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium"
@@ -399,8 +406,9 @@ export default function Login() {
                         <input 
                           type="text" 
                           value={captchaValue}
-                          onChange={(e) => setCaptchaValue(e.target.value)}
+                          onChange={(e) => setCaptchaValue(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
                           placeholder="Enter code" 
+                          maxLength="10"
                           className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm"
                         />
                       </div>
