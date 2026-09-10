@@ -53,6 +53,16 @@ export const getFacilityEquipments = async () => {
 };
 
 /**
+ * Fetch saved equipments dropdown for Tab 2 (FillEqpDdl)
+ */
+export const getSavedEquipmentsDdl = async (indentId) => {
+  const response = await api.get('/reagent-indent/saved-equipments-ddl', {
+    params: { indentId }
+  });
+  return response.data;
+};
+
+/**
  * Fetch Make Models dropdown (FillMakeModel)
  */
 export const getMakeModels = async (pmachineId, indentId) => {
@@ -109,5 +119,13 @@ export const freezeIndentApi = async (freezeData) => {
  */
 export const deleteIndentApi = async (indentId) => {
   const response = await api.delete(`/reagent-indent/delete/${indentId}`);
+  return response.data;
+};
+
+/**
+ * Delete single reagent item entry from anualindent
+ */
+export const deleteReagentItemApi = async (anualIndentId) => {
+  const response = await api.delete(`/reagent-indent/item/${anualIndentId}`);
   return response.data;
 };

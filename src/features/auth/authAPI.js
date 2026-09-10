@@ -1,6 +1,11 @@
 import api from '../../api/axios';
 import { ENDPOINTS } from '../../api/endpoints';
 
+export async function sendOtpApi(identifier, type = 'phone') {
+  const response = await api.post('/auth/otp/send', { identifier, type });
+  return response.data;
+}
+
 export async function loginWithEmail(email, password, captchaValue, captchaToken) {
   const response = await api.post(ENDPOINTS.LOGIN_EMAIL, { email, password, captchaValue, captchaToken });
   return response.data;

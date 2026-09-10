@@ -36,16 +36,12 @@ const IssueDetailsCell = ({ indent }) => {
     if (issues.length === 0) {
         return (
             <div className="flex justify-center p-2">
-                {indent.issueid === 0 || indent.issueid === '0' ? (
-                    <button
-                        onClick={() => navigate(`/inter-facility-issue-online/items/add/${indent.NOCID}`)}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-xs font-bold transition-colors"
-                    >
-                        <PlusIcon className="w-3.5 h-3.5" /> Add Issue
-                    </button>
-                ) : (
-                    <span className="text-xs text-slate-500">No issue found</span>
-                )}
+                <button
+                    onClick={() => navigate(`/inter-facility-issue-online/items/add/${indent.NOCID}`)}
+                    className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                >
+                    <PlusIcon className="w-3.5 h-3.5" /> Add Issue
+                </button>
             </div>
         );
     }

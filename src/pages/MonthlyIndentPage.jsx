@@ -27,6 +27,24 @@ export default function MonthlyIndentPage() {
   const [indents, setIndents] = useState([]);
   const [loadingFilters, setLoadingFilters] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
+
+  const handleDownload = async (nocId, docType) => {
+    if (!nocId) {
+      alert('Unable to identify Indent ID for download.');
+      return;
+    }
+    const key = `${docType}-${nocId}`;
+    setDownloadingId(key);
+    try {
+      await generateMonthlyIndentPDF(nocId, user, docType);
+    } catch (err) {
+      console.error('Failed to download PDF:', err);
+      alert('Failed to download PDF: ' + (err.response?.data?.error || err.message || 'Unknown error'));
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     if (facilityId) {
@@ -158,89 +176,124 @@ export default function MonthlyIndentPage() {
                     <table className="w-full text-sm text-left">
                       <thead>
                         <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
-                          <th className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center w-14">Sl. No.</th>
-                          <th className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center">Request No.</th>
-                          <th className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center">Request Date</th>
-                          <th className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center">Status</th>
-                          <th className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center">Download NOC</th>
-                          <th className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center">Download Indent to Warehouse</th>
-                          <th className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center">Action</th>
+                          <th rowSpan={2} className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center w-14 align-middle">Sl. No.</th>
+                          <th rowSpan={2} className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center align-middle">Request No.</th>
+                          <th rowSpan={2} className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center align-middle">Request Date</th>
+                          <th rowSpan={2} className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center align-middle">Status</th>
+                          <th colSpan={2} className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center align-middle border-l border-slate-200">Action</th>
+                        </tr>
+                        <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+                          <th className="sticky top-[45px] z-10 bg-slate-50 border-b border-slate-200 px-5 py-2 text-center border-l border-slate-200">Download NOC</th>
+                          <th className="sticky top-[45px] z-10 bg-slate-50 border-b border-slate-200 px-5 py-2 text-center border-l border-slate-200">Download Indent</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {indents.map((indent, idx) => (
-                          <tr key={indent.NOCID || idx} className="hover:bg-slate-50/50 align-middle">
-                            <td className="px-5 py-4 text-center font-bold text-slate-400">{idx + 1}</td>
-                            <td className="px-5 py-4 text-center font-mono text-xs font-bold text-slate-600 bg-slate-50/50">{indent.NOCNUMBER || indent.nocNumber}</td>
-                            <td className="px-5 py-4 text-center text-xs text-slate-600">{indent.NOCDATE || indent.nocDate}</td>
-                            <td className="px-5 py-4 text-center">
-                              {(indent.STATUS === 'Completed' || indent.status === 'Completed') ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
-                                  Completed
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 shadow-sm animate-pulse">
-                                  {indent.STATUS || indent.status || 'Incomplete'}
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-5 py-4 text-center">
-                              {indent.nocAvailable ? (
-                                <button 
-                                  onClick={() => generateMonthlyIndentPDF(indent.NOCID || indent.id, user, 'NOC')}
-                                  className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition shadow-sm hover:shadow mx-auto"
-                                >
-                                  Download
-                                </button>
-                              ) : (
-                                <span className="text-slate-300 text-xs">—</span>
-                              )}
-                            </td>
-                            <td className="px-5 py-4 text-center">
-                              <button 
-                                onClick={() => generateMonthlyIndentPDF(indent.NOCID || indent.id, user, 'INDENT')}
-                                className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition shadow-sm hover:shadow mx-auto"
-                              >
-                                Download
-                              </button>
-                            </td>
-                            <td className="px-5 py-4 text-center">
-                              {(indent.STATUS === 'Incomplete' || indent.status === 'Incomplete' || indent.STATUS === 'I') && (
-                                <div className="flex items-center justify-center gap-2">
+                        {indents.map((indent, idx) => {
+                          const nocId = indent.NOCID || indent.id;
+                          const isCompleted = indent.STATUS === 'Completed' || indent.status === 'Completed' || indent.STATUS === 'C';
+                          const isNocDownloading = downloadingId === `NOC-${nocId}`;
+                          const isIndentDownloading = downloadingId === `INDENT-${nocId}`;
+
+                          return (
+                            <tr key={nocId || idx} className="hover:bg-slate-50/50 align-middle">
+                              <td className="px-5 py-4 text-center font-bold text-slate-400">{idx + 1}</td>
+                              <td className="px-5 py-4 text-center font-mono text-xs font-bold text-slate-600 bg-slate-50/50">{indent.NOCNUMBER || indent.nocNumber}</td>
+                              <td className="px-5 py-4 text-center text-xs text-slate-600">{indent.NOCDATE || indent.nocDate}</td>
+                              <td className="px-5 py-4 text-center">
+                                {isCompleted ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                                    Completed
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 shadow-sm animate-pulse">
+                                    {indent.STATUS || indent.status || 'Incomplete'}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Sub-column 1: Download NOC */}
+                              <td className="px-5 py-4 text-center border-l border-slate-100">
+                                {!isCompleted ? (
                                   <button 
                                     onClick={() => {
                                       if (user?.roleName === 'MC Facility') {
-                                        navigate(`/indent/warehouse/add-mc?nocId=${indent.NOCID || indent.id}`);
+                                        navigate(`/indent/warehouse/add-mc?nocId=${nocId}`);
                                       } else {
-                                        navigate(`/indent/warehouse/add?nocId=${indent.NOCID || indent.id}`);
+                                        navigate(`/indent/warehouse/add?nocId=${nocId}`);
                                       }
                                     }}
-                                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition shadow-sm hover:shadow"
+                                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition shadow-sm hover:shadow"
                                   >
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
                                     Edit
                                   </button>
-                                </div>
-                              )}
-                              {(indent.STATUS === 'Completed' || indent.status === 'Completed' || indent.STATUS === 'C') && (
-                                <div className="flex items-center justify-center gap-2">
+                                ) : indent.nocAvailable ? (
                                   <button 
-                                    onClick={() => generateMonthlyIndentPDF(indent.NOCID || indent.id, user, 'INDENT')}
-                                    className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition shadow-sm hover:shadow"
-                                    title="Download Indent PDF"
+                                    disabled={isNocDownloading}
+                                    onClick={() => handleDownload(nocId, 'NOC')}
+                                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
+                                    title="Download NOC"
                                   >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                    </svg>
-                                    Download
+                                    {isNocDownloading ? (
+                                      <>
+                                        <svg className="animate-spin w-3.5 h-3.5 text-emerald-700" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                        </svg>
+                                        <span>Downloading...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        <span>Download</span>
+                                      </>
+                                    )}
                                   </button>
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                                ) : (
+                                  <span className="text-slate-300 text-xs">—</span>
+                                )}
+                              </td>
+
+                              {/* Sub-column 2: Download Indent to Warehouse */}
+                              <td className="px-5 py-4 text-center border-l border-slate-100">
+                                {!isCompleted ? (
+                                  <span className="text-slate-300 text-xs">—</span>
+                                ) : (
+                                  <button 
+                                    disabled={isIndentDownloading}
+                                    onClick={() => handleDownload(nocId, 'INDENT')}
+                                    className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
+                                    title="Download Indent to Warehouse"
+                                  >
+                                    {isIndentDownloading ? (
+                                      <>
+                                        <svg className="animate-spin w-3.5 h-3.5 text-indigo-700" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                        </svg>
+                                        <span>Downloading...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                        </svg>
+                                        <span>Download</span>
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                         {indents.length === 0 && (
                           <tr>
-                            <td colSpan="7" className="px-5 py-12 text-center text-slate-400">
+                            <td colSpan={6} className="px-5 py-12 text-center text-slate-400">
                                <FolderOpenIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">No records found</p>
                                <p className="text-xs mt-1">Select alternative filters or click 'Add' to create one.</p>

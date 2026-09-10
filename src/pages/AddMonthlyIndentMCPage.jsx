@@ -97,6 +97,26 @@ function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey,
   );
 }
 
+const parseToIsoDate = (dStr) => {
+  if (!dStr) return '';
+  const cleanStr = String(dStr).split(' ')[0];
+  const parts = cleanStr.split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+    } else if (parts[2].length === 4) {
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+  try {
+    const d = new Date(dStr);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split('T')[0];
+    }
+  } catch (e) {}
+  return '';
+};
+
 export default function AddMonthlyIndentMCPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -254,7 +274,7 @@ export default function AddMonthlyIndentMCPage() {
           setEditNocIdInternal(noc.NOCID || noc.id || editNocId);
           setForm({
             finYear: noc.ACCYRSETID || noc.accYrSetId,
-            reqDate: (noc.NOCDATE || noc.nocDate).split(' ')[0] || today,
+            reqDate: parseToIsoDate(noc.NOCDATE || noc.nocDate) || today,
             programId: noc.PROGRAMID || noc.programId
           });
           fetchItems(noc.NOCID || noc.id || editNocId);
@@ -555,7 +575,7 @@ export default function AddMonthlyIndentMCPage() {
                           className="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all font-semibold text-slate-700"
                         >
                           <option value="">Select Item Category</option>
-                          {itemCategories.map(cat => (
+                          {itemCategories.filter(cat => !cat.MCATEGORY?.toUpperCase().includes('AYUSH')).map(cat => (
                             <option key={cat.MCID} value={cat.MCID}>
                               {cat.MCATEGORY}
                             </option>
@@ -574,11 +594,11 @@ export default function AddMonthlyIndentMCPage() {
                           className="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all font-semibold text-slate-700"
                         >
                           <option value="">Select Item Source</option>
-                          <option value="fm_item">fm item</option>
-                          <option value="STOCK_AND_AVAILABLE">stock out and available in warehouse</option>
-                          <option value="INDENT_DHS">indent given by DHS</option>
-                          <option value="AGAINST_APPROVAL_INDENT">against approval indent</option>
-                          <option value="OTHER">other</option>
+                          <option value="fm_item">FM Item</option>
+                          <option value="STOCK_AND_AVAILABLE">Stock Out and Available in Warehouse</option>
+                          <option value="INDENT_DHS">Indent Given by DHS</option>
+                          <option value="AGAINST_APPROVAL_INDENT">SMHO Approved Indent</option>
+                          <option value="OTHER">Other Items</option>
                         </select>
                     </div>
 

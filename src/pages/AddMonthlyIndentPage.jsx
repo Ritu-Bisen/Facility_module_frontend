@@ -98,6 +98,26 @@ function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey,
   );
 }
 
+const parseToIsoDate = (dStr) => {
+  if (!dStr) return '';
+  const cleanStr = String(dStr).split(' ')[0];
+  const parts = cleanStr.split(/[-/]/);
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+    } else if (parts[2].length === 4) {
+      return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+    }
+  }
+  try {
+    const d = new Date(dStr);
+    if (!isNaN(d.getTime())) {
+      return d.toISOString().split('T')[0];
+    }
+  } catch (e) {}
+  return '';
+};
+
 export default function AddMonthlyIndentPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -167,9 +187,9 @@ export default function AddMonthlyIndentPage() {
 
   // Derived filtered items based on searchFilter
   const filteredFmItems = fmItems.filter(item => {
-    // Check Search match (if searchFilter is set, it might be an ITEMID)
     if (!searchFilter) return true;
-    return String(item.ITEMID) === String(searchFilter);
+    const id = String(item.ITEMID || item.itemId || '');
+    return id === String(searchFilter);
   });
 
   useEffect(() => {
@@ -313,7 +333,7 @@ export default function AddMonthlyIndentPage() {
           setEditNocIdInternal(noc.NOCID || noc.id || editNocId);
           setForm({
             finYear: noc.ACCYRSETID || noc.accYrSetId,
-            reqDate: (noc.NOCDATE || noc.nocDate).split(' ')[0] || today,
+            reqDate: parseToIsoDate(noc.NOCDATE || noc.nocDate) || today,
             programId: noc.PROGRAMID || noc.programId
           });
         }
@@ -499,13 +519,28 @@ export default function AddMonthlyIndentPage() {
     }
   };
 
+const getEdlCategoryLabel = (rawEdl) => {
+  if (!rawEdl) return '-';
+  const val = String(rawEdl).trim().toUpperCase();
+  switch (val) {
+    case 'U': return 'Universal';
+    case 'P': return 'Primary';
+    case 'S': return 'Secondary';
+    case 'T': return 'Tertiary';
+    case 'M': return 'Restricted';
+    case 'N':
+    case 'NON-EDL': return 'Non-EDL';
+    default: return rawEdl;
+  }
+};
+
   const handleCompleteNoc = async () => {
     if (!editNocIdInternal) return;
     if (savedItems.length === 0) {
       alert('Please add at least one item before completing the NOC.');
       return;
     }
-    if (window.confirm('Are you sure you want to complete this NOC? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to complete this indent/noc? This action cannot be undone.')) {
       try {
         await api.post(`/monthly-indent/${editNocIdInternal}/complete`);
         alert('NOC Completed successfully!');
@@ -670,7 +705,7 @@ export default function AddMonthlyIndentPage() {
                           className="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all font-semibold text-slate-700"
                         >
                           <option value="">Select Item Category</option>
-                          {itemCategories.map(cat => (
+                          {itemCategories.filter(cat => !cat.MCATEGORY?.toUpperCase().includes('AYUSH')).map(cat => (
                             <option key={cat.MCID} value={cat.MCID}>
                               {cat.MCATEGORY}
                             </option>
@@ -689,11 +724,11 @@ export default function AddMonthlyIndentPage() {
                           className="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all font-semibold text-slate-700"
                         >
                           <option value="">Select Item Source</option>
-                          <option value="fm_item">fm item</option>
-                          <option value="STOCK_AND_AVAILABLE">stock out and available in warehouse</option>
-                          <option value="INDENT_DHS">indent given by DHS</option>
-                          <option value="AGAINST_APPROVAL_INDENT">against approval indent</option>
-                          <option value="OTHER">other</option>
+                          <option value="fm_item">FM Item</option>
+                          <option value="STOCK_AND_AVAILABLE">Stock Out and Available in Warehouse</option>
+                          <option value="INDENT_DHS">Indent Given by DHS</option>
+                          <option value="AGAINST_APPROVAL_INDENT">SMHO Approved Indent</option>
+                          <option value="OTHER">Other Items</option>
                         </select>
                     </div>
 
@@ -789,6 +824,7 @@ export default function AddMonthlyIndentPage() {
                                   <th className="px-2 py-3 border-b border-slate-200 min-w-[200px]">Item Name</th>
                                   <th className="px-2 py-3 border-b border-slate-200">Strength</th>
                                   <th className="px-2 py-3 border-b border-slate-200">Unit</th>
+                                  <th className="px-2 py-3 border-b border-slate-200">EDL Category</th>
 
                                   {itemType === 'AGAINST_APPROVAL_INDENT' ? (
                                     <>
@@ -808,33 +844,23 @@ export default function AddMonthlyIndentPage() {
                                       <th className="px-4 py-3 border-b border-slate-200 text-right">UQC Stock</th>
                                       <th className="px-1 py-3 border-b border-slate-200 text-right">Pipeline Stock</th>
                                       <th className="px-1 py-3 border-b border-slate-200 text-right">Facility Stock</th>
+                                      <th className="px-4 py-3 border-b border-slate-200 text-right">Balance Qty</th>
                                     </>
                                   )}
-                                  <th className="px-4 py-3 border-b border-slate-200">Issue Qty</th>
+                                  <th className="px-4 py-3 border-b border-slate-200">Indent(Issue) Qty</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100">
-                                {fmItems.filter(item => {
+                                {filteredFmItems.filter(item => {
                                   const id = item.ITEMID || item.itemId;
                                   return !savedItems.some(saved => (saved.ITEMID || saved.itemId) === id);
-                                }).sort((a, b) => {
-                                  const aReadyStock = parseFloat(a.READYSTOCKWHNOS ?? a.ReadyStockWHNos ?? a.READYWHNOS ?? 0);
-                                  const aUqcStock = parseFloat(a.UQCSTOCKWHNOS ?? a.UQCStockWHNos ?? a.UQCNOS ?? 0);
-                                  const aIsDisabled = aReadyStock === 0 && aUqcStock === 0;
-
-                                  const bReadyStock = parseFloat(b.READYSTOCKWHNOS ?? b.ReadyStockWHNos ?? b.READYWHNOS ?? 0);
-                                  const bUqcStock = parseFloat(b.UQCSTOCKWHNOS ?? b.UQCStockWHNos ?? b.UQCNOS ?? 0);
-                                  const bIsDisabled = bReadyStock === 0 && bUqcStock === 0;
-
-                                  if (aIsDisabled === bIsDisabled) return 0;
-                                  return aIsDisabled ? 1 : -1;
                                 }).map(item => {
                                   const id = item.ITEMID || item.itemId;
                                   const selection = selectedItems[id] || { checked: false, issueQty: '' };
                                   
                                   const readyStock = parseFloat(item.READYSTOCKWHNOS ?? item.ReadyStockWHNos ?? item.READYWHNOS ?? 0);
                                   const uqcStock = parseFloat(item.UQCSTOCKWHNOS ?? item.UQCStockWHNos ?? item.UQCNOS ?? 0);
-                                  const isDisabled = readyStock === 0 && uqcStock === 0;
+                                  const isDisabled = false;
 
                                   return (
                                     <tr key={id} className={`hover:bg-slate-50/50 transition-colors ${selection.checked ? 'bg-blue-50/30' : ''} ${isDisabled ? 'bg-slate-100/50' : ''}`}>
@@ -853,6 +879,9 @@ export default function AddMonthlyIndentPage() {
                                       <td className={`px-3 py-3 max-w-xs break-words whitespace-normal ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.ITEMNAME || item.itemName}</td>
                                       <td className={`px-3 py-3 max-w-xs break-words whitespace-normal ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.STRENGTH1 || item.STRENGTH || item.strength1}</td>
                                       <td className={`px-3 py-3 max-w-xs break-words whitespace-normal ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.UNIT || item.unit}</td>
+                                      <td className={`px-3 py-3 max-w-xs break-words whitespace-normal font-semibold ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>
+                                        {getEdlCategoryLabel(item.EDLTYPE || item.EDL || item.edlType || item.edl || item.EDLCATEGORY || item.edlCategory)}
+                                      </td>
 
                                       {itemType === 'AGAINST_APPROVAL_INDENT' ? (
                                         <>
@@ -872,6 +901,7 @@ export default function AddMonthlyIndentPage() {
                                           <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-amber-400 bg-amber-50/30' : 'text-amber-600 bg-amber-50/50'}`}>{uqcStock}</td>
                                           <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-blue-400' : 'text-blue-600'}`}>{item.IWHPIPLINESTOCKNOS ?? item.IWHPiplineStockNos ?? 0}</td>
                                           <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-indigo-400' : 'text-indigo-600'}`}>{item.FACILITYSTOCK || 0}</td>
+                                          <td className={`px-3 py-3 text-right font-bold ${isDisabled ? 'text-slate-400' : 'text-slate-600'}`}>{item.BALANCEAIQTYNOS ?? item.BalanceAIQTYNOS ?? item.balanceQty ?? item.BALANCEQTY ?? 0}</td>
                                         </>
                                       )}
                                       <td className="px-3 py-3">
@@ -914,7 +944,7 @@ export default function AddMonthlyIndentPage() {
                                     </tr>
                                   );
                                 })}
-                                {fmItems.filter(item => {
+                                {filteredFmItems.filter(item => {
                                   const id = item.ITEMID || item.itemId;
                                   return !savedItems.some(saved => (saved.ITEMID || saved.itemId) === id);
                                 }).length === 0 && (

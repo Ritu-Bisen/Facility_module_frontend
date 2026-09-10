@@ -22,8 +22,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const url = error.config?.url || '';
-      // Do not trigger session expired on login endpoints
-      if (!url.includes('/auth/login')) {
+      // Do not trigger session expired on auth endpoints (login/logout/refresh)
+      if (!url.includes('/auth/login') && !url.includes('/auth/logout') && !url.includes('/auth/refresh')) {
         // Fire a global custom event that SessionToast listens to
         window.dispatchEvent(new Event('session-expired'));
       }

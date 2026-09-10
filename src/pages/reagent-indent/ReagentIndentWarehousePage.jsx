@@ -55,9 +55,6 @@ export default function ReagentIndentWarehousePage() {
   };
 
   const handleAddNewIndent = () => {
-    if (hasIncompleteEntry) {
-      toast('Opening Reagent Annual Indent creation page...', { icon: 'ℹ️' });
-    }
     navigate('/reagent-indent/warehouse-indent/add?Mode=Create');
   };
 

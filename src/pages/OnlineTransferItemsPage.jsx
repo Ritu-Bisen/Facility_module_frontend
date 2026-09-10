@@ -6,7 +6,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getIndentHeader, getIssueHeader, createIssueHeader, updateIssueHeader, getItemsForIssue, saveIssueItem, updateIssueItem, deleteIssueItem, completeIssue, deleteIssue, getBatches } from '../api/onlineTransferItemsApi';
 import { PencilSquareIcon, CheckCircleIcon, XCircleIcon, TrashIcon } from '@heroicons/react/24/outline';
 
-function BatchDetailsCell({ issueItemId, itemId }) {
+function BatchDetailsCell({ issueItemId, itemId, issueQty }) {
     const [batches, setBatches] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -14,6 +14,7 @@ function BatchDetailsCell({ issueItemId, itemId }) {
         if (!issueItemId) return;
         const fetchBatches = async () => {
             try {
+                setLoading(true);
                 const res = await getBatches(issueItemId, itemId);
                 if (res.success) {
                     setBatches(res.data);
@@ -25,7 +26,7 @@ function BatchDetailsCell({ issueItemId, itemId }) {
             }
         };
         fetchBatches();
-    }, [issueItemId, itemId]);
+    }, [issueItemId, itemId, issueQty]);
 
     if (!issueItemId) return <span className="text-slate-400 text-xs italic">-</span>;
     if (loading) return <div className="w-4 h-4 rounded-full border-2 border-indigo-600 border-t-transparent animate-spin mx-auto"></div>;
@@ -87,6 +88,8 @@ export default function OnlineTransferItemsPage() {
 
     // Items State
     const [items, setItems] = useState([]);
+    const [editingRowId, setEditingRowId] = useState(null);
+    const [editingQtyMap, setEditingQtyMap] = useState({});
 
     useEffect(() => {
         loadData();
@@ -97,6 +100,8 @@ export default function OnlineTransferItemsPage() {
         try {
             // Load Indent Header
             let fetchedIndent = null;
+            let currentNocId = nocId;
+
             if (nocId) {
                 const resNoc = await getIndentHeader(nocId);
                 if (resNoc.success) {
@@ -116,6 +121,7 @@ export default function OnlineTransferItemsPage() {
 
                     // Then fetch indent header
                     if (iHeader.FACINDENTID) {
+                        currentNocId = iHeader.FACINDENTID;
                         const resNoc = await getIndentHeader(iHeader.FACINDENTID);
                         if (resNoc.success) {
                             fetchedIndent = resNoc.data;
@@ -125,9 +131,10 @@ export default function OnlineTransferItemsPage() {
                 }
             }
 
-            // Load Items
-            if (fetchedIndent) {
-                const resItems = await getItemsForIssue(fetchedIndent.NOCID, issueId);
+            // Always Load Items for the NOC ID
+            const targetNocId = currentNocId || (fetchedIndent ? fetchedIndent.NOCID : null);
+            if (targetNocId) {
+                const resItems = await getItemsForIssue(targetNocId, issueId);
                 if (resItems.success) {
                     setItems(resItems.data);
                 }
@@ -162,10 +169,10 @@ export default function OnlineTransferItemsPage() {
                 }
             } else {
                 const payload = {
-                    toFacilityId: indentHeader.FACILITYID,
+                    toFacilityId: indentHeader?.FACILITYID || indentHeader?.facilityid,
                     issueDate: editHeaderData.issueDate,
                     remarks: editHeaderData.remarks,
-                    facIndentId: indentHeader.NOCID
+                    facIndentId: indentHeader?.NOCID || nocId
                 };
                 const res = await createIssueHeader(payload);
                 if (res.success) {
@@ -188,19 +195,42 @@ export default function OnlineTransferItemsPage() {
     const handleSaveItem = async (item) => {
         const qtyInput = document.getElementById(`issue-qty-${item.ITEMID}`);
         const issueQty = qtyInput ? Number(qtyInput.value) : Number(item.ISSUEQTY);
-        const payload = {
-            itemId: item.ITEMID,
-            curStock: item.CURSTOCK || 0,
-            allotted: item.REQUESTEDQTY || 0,
-            issueQty: issueQty
-        };
         
         try {
             setSavingItemId(item.ITEMID);
-            const res = await saveIssueItem(issueId, payload);
+
+            let activeIssueId = issueId;
+            if (!activeIssueId) {
+                const payloadHeader = {
+                    toFacilityId: indentHeader?.FACILITYID || indentHeader?.facilityid,
+                    issueDate: editHeaderData.issueDate,
+                    remarks: editHeaderData.remarks,
+                    facIndentId: indentHeader?.NOCID || nocId
+                };
+                const resH = await createIssueHeader(payloadHeader);
+                if (resH.success && resH.issueId) {
+                    activeIssueId = resH.issueId;
+                } else {
+                    setError(resH.message || "Failed to create issue header");
+                    return;
+                }
+            }
+
+            const payload = {
+                itemId: item.ITEMID,
+                curStock: item.CURSTOCK || 0,
+                allotted: item.REQUESTEDQTY || 0,
+                issueQty: issueQty
+            };
+
+            const res = await saveIssueItem(activeIssueId, payload);
             if (res.message || res.success) {
                 setMsg("Item saved successfully");
-                await loadData(true);
+                if (!issueId) {
+                    navigate(`/inter-facility-issue-online/items/edit/${activeIssueId}`, { replace: true });
+                } else {
+                    await loadData(true);
+                }
             } else {
                 setError(res.error || "Failed to save item");
             }
@@ -211,9 +241,15 @@ export default function OnlineTransferItemsPage() {
         }
     };
 
-    const handleUpdateItem = async (item) => {
-        const qtyInput = document.getElementById(`issue-qty-${item.ITEMID}`);
-        const issueQty = qtyInput ? Number(qtyInput.value) : Number(item.ISSUEQTY);
+    const handleUpdateItem = async (item, newQty) => {
+        let issueQty = newQty;
+        if (issueQty === undefined || issueQty === null || issueQty === '') {
+            const qtyInput = document.getElementById(`issue-qty-${item.ITEMID}`);
+            issueQty = qtyInput ? Number(qtyInput.value) : Number(item.ISSUEQTY);
+        } else {
+            issueQty = Number(issueQty);
+        }
+
         const payload = {
             issueId: issueId,
             itemId: item.ITEMID,
@@ -227,6 +263,7 @@ export default function OnlineTransferItemsPage() {
             const res = await updateIssueItem(item.ISSUEITEMID, payload);
             if (res.message || res.success) {
                 setMsg("Item updated successfully");
+                setEditingRowId(null);
                 await loadData(true);
             } else {
                 setError(res.error || "Failed to update item");
@@ -438,120 +475,169 @@ export default function OnlineTransferItemsPage() {
                                     </div>
 
                                     {/* Items Table */}
-                                    {isEditMode && !isHeaderEditing && (
-                                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                                            <div className="bg-[#0f172a] px-4 py-3">
-                                                <h2 className="text-sm font-bold text-white tracking-wide">Items</h2>
-                                            </div>
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-left border-collapse">
-                                                    <thead>
-                                                        <tr className="bg-slate-50 text-slate-600 text-[10px] uppercase tracking-wider font-bold">
-                                                            <th className="px-4 py-3 border-b border-slate-200 text-center w-12">Sl No</th>
-                                                            <th className="px-4 py-3 border-b border-slate-200">Item Name</th>
-                                                            <th className="px-4 py-3 border-b border-slate-200">Strength</th>
-                                                            <th className="px-4 py-3 border-b border-slate-200">Unit</th>
-                                                            <th className="px-4 py-3 border-b border-slate-200 text-center">Req Qty</th>
-                                                            <th className="px-4 py-3 border-b border-slate-200 text-center">Cur Stock</th>
-                                                            <th className="px-4 py-3 border-b border-slate-200 text-center">Issue Qty</th>
-                                                            <th className="px-4 py-3 border-b border-slate-200 text-center w-40">Batch Details</th>
-                                                            <th className="px-4 py-3 border-b border-slate-200 text-center">Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-100 text-sm">
-                                                        {items.length === 0 ? (
-                                                            <tr>
-                                                                <td colSpan="8" className="px-4 py-8 text-center text-slate-500 font-medium">No items found in indent</td>
-                                                            </tr>
-                                                        ) : (
-                                                            items.map((item, idx) => (
-                                                                <React.Fragment key={item.ITEMID}>
-                                                                    <tr className="hover:bg-slate-50">
-                                                                        <td className="px-4 py-3 text-center text-slate-500 font-medium">{idx + 1}</td>
-                                                                        <td className="px-4 py-3 font-semibold text-slate-800">
-                                                                            {item.ITEMNAME}
-                                                                            <div className="text-xs text-blue-600 font-mono">{item.ITEMCODE}</div>
-                                                                        </td>
-                                                                        <td className="px-4 py-3 text-slate-600">{item.STRENGTH}</td>
-                                                                        <td className="px-4 py-3 text-slate-600">{item.SKU}</td>
-                                                                        <td className="px-4 py-3 text-center font-bold text-slate-700">{item.REQUESTEDQTY}</td>
-                                                                        <td className="px-4 py-3 text-center font-bold text-slate-700">{item.CURSTOCK}</td>
-                                                                        <td className="px-4 py-3 text-center">
-                                                                            <input 
-                                                                                id={`issue-qty-${item.ITEMID}`}
-                                                                                type="number"
-                                                                                min="0"
-                                                                                defaultValue={item.ISSUEQTY}
-                                                                                className="w-20 border border-slate-300 rounded px-2 py-1 text-center font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                                            />
-                                                                        </td>
-                                                                        <td className="px-4 py-3 text-center">
-                                                                            <BatchDetailsCell issueItemId={item.ISSUEITEMID} itemId={item.ITEMID} />
-                                                                        </td>
-                                                                        <td className="px-4 py-3 text-center flex items-center justify-center gap-2">
-                                                                            {item.ISSUEITEMID ? (
-                                                                                <>
-                                                                                    <button 
-                                                                                        title="Save Edits"
-                                                                                        onClick={() => handleUpdateItem(item)}
-                                                                                        disabled={savingItemId === item.ITEMID}
-                                                                                        className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors disabled:opacity-50 w-8 h-8 flex items-center justify-center"
-                                                                                    >
-                                                                                        {savingItemId === item.ITEMID ? (
-                                                                                            <div className="w-5 h-5 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin"></div>
-                                                                                        ) : (
-                                                                                            <PencilSquareIcon className="w-5 h-5" />
-                                                                                        )}
-                                                                                    </button>
-                                                                                    <button 
-                                                                                        title="Delete Item"
-                                                                                        onClick={() => handleDeleteItem(item)}
-                                                                                        disabled={savingItemId === item.ITEMID}
-                                                                                        className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors disabled:opacity-50 w-8 h-8 flex items-center justify-center"
-                                                                                    >
-                                                                                        {savingItemId === item.ITEMID ? (
-                                                                                            <div className="w-5 h-5 rounded-full border-2 border-red-600 border-t-transparent animate-spin"></div>
-                                                                                        ) : (
-                                                                                            <TrashIcon className="w-5 h-5" />
-                                                                                        )}
-                                                                                    </button>
-                                                                                </>
-                                                                            ) : (
-                                                                                <button 
-                                                                                    onClick={() => handleSaveItem(item)}
-                                                                                    disabled={savingItemId === item.ITEMID}
-                                                                                    className="px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 border border-indigo-700 rounded-lg text-xs font-bold transition-colors shadow-sm disabled:opacity-50 min-w-[80px] h-8 flex justify-center items-center"
-                                                                                >
-                                                                                    {savingItemId === item.ITEMID ? (
-                                                                                        <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
-                                                                                    ) : 'Save Item'}
-                                                                                </button>
-                                                                            )}
-                                                                        </td>
-                                                                    </tr>
-                                                                </React.Fragment>
-                                                            ))
-                                                        )}
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                                        <div className="bg-[#0f172a] px-4 py-3">
+                                            <h2 className="text-sm font-bold text-white tracking-wide">Items</h2>
                                         </div>
-                                    )}
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-slate-50 text-slate-600 text-[10px] uppercase tracking-wider font-bold">
+                                                        <th className="px-4 py-3 border-b border-slate-200 text-center w-12">Sl No</th>
+                                                        <th className="px-4 py-3 border-b border-slate-200">Item Name</th>
+                                                        <th className="px-4 py-3 border-b border-slate-200">Strength</th>
+                                                        <th className="px-4 py-3 border-b border-slate-200">Unit</th>
+                                                        <th className="px-4 py-3 border-b border-slate-200 text-center">Req Qty</th>
+                                                        <th className="px-4 py-3 border-b border-slate-200 text-center">Cur Stock</th>
+                                                        <th className="px-4 py-3 border-b border-slate-200 text-center">Issue Qty</th>
+                                                        <th className="px-4 py-3 border-b border-slate-200 text-center w-40">Batch Details</th>
+                                                        <th className="px-4 py-3 border-b border-slate-200 text-center">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 text-sm">
+                                                    {items.length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan="9" className="px-4 py-8 text-center text-slate-500 font-medium">No items found in indent</td>
+                                                        </tr>
+                                                    ) : (
+                                                        items.map((item, idx) => {
+                                                            const isSaved = Boolean(item.ISSUEITEMID);
+                                                            const isEditingThisRow = editingRowId === item.ITEMID;
+
+                                                            return (
+                                                             <React.Fragment key={item.ITEMID}>
+                                                                 <tr className="hover:bg-slate-50">
+                                                                     <td className="px-4 py-3 text-center text-slate-500 font-medium">{idx + 1}</td>
+                                                                     <td className="px-4 py-3 font-semibold text-slate-800">
+                                                                         {item.ITEMNAME}
+                                                                         <div className="text-xs text-blue-600 font-mono">{item.ITEMCODE}</div>
+                                                                     </td>
+                                                                     <td className="px-4 py-3 text-slate-600">{item.STRENGTH}</td>
+                                                                     <td className="px-4 py-3 text-slate-600">{item.SKU}</td>
+                                                                     <td className="px-4 py-3 text-center font-bold text-slate-700">{item.REQUESTEDQTY}</td>
+                                                                     <td className="px-4 py-3 text-center font-bold text-slate-700">{item.CURSTOCK}</td>
+                                                                     <td className="px-4 py-3 text-center">
+                                                                         {!isSaved ? (
+                                                                             <input 
+                                                                                 id={`issue-qty-${item.ITEMID}`}
+                                                                                 type="number"
+                                                                                 min="0"
+                                                                                 defaultValue={item.ISSUEQTY || item.REQUESTEDQTY || 0}
+                                                                                 className="w-20 border border-slate-300 rounded px-2 py-1 text-center font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                                             />
+                                                                         ) : isEditingThisRow ? (
+                                                                             <input 
+                                                                                 type="number"
+                                                                                 min="0"
+                                                                                 value={editingQtyMap[item.ITEMID] ?? (item.ISSUEQTY || 0)}
+                                                                                 onChange={(e) => setEditingQtyMap(prev => ({ ...prev, [item.ITEMID]: e.target.value }))}
+                                                                                 className="w-20 border border-indigo-400 bg-indigo-50/50 rounded px-2 py-1 text-center font-bold text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                                             />
+                                                                         ) : (
+                                                                             <span className="font-bold text-slate-800 text-sm">
+                                                                                 {item.ISSUEQTY ?? 0}
+                                                                             </span>
+                                                                         )}
+                                                                     </td>
+                                                                     <td className="px-4 py-3 text-center">
+                                                                         <BatchDetailsCell issueItemId={item.ISSUEITEMID} itemId={item.ITEMID} issueQty={item.ISSUEQTY} />
+                                                                     </td>
+                                                                     <td className="px-4 py-3 text-center flex items-center justify-center gap-2">
+                                                                         {isSaved ? (
+                                                                             isEditingThisRow ? (
+                                                                                 <>
+                                                                                     <button 
+                                                                                         title="Save Changes"
+                                                                                         onClick={() => handleUpdateItem(item, editingQtyMap[item.ITEMID])}
+                                                                                         disabled={savingItemId === item.ITEMID}
+                                                                                         className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors disabled:opacity-50 w-8 h-8 flex items-center justify-center"
+                                                                                     >
+                                                                                         {savingItemId === item.ITEMID ? (
+                                                                                             <div className="w-4 h-4 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin"></div>
+                                                                                         ) : (
+                                                                                             <CheckCircleIcon className="w-5 h-5" />
+                                                                                         )}
+                                                                                     </button>
+                                                                                     <button 
+                                                                                         title="Cancel Edit"
+                                                                                         onClick={() => setEditingRowId(null)}
+                                                                                         disabled={savingItemId === item.ITEMID}
+                                                                                         className="p-1.5 text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors disabled:opacity-50 w-8 h-8 flex items-center justify-center"
+                                                                                     >
+                                                                                         <XCircleIcon className="w-5 h-5" />
+                                                                                     </button>
+                                                                                 </>
+                                                                             ) : (
+                                                                                 <>
+                                                                                     <button 
+                                                                                         title="Edit Item"
+                                                                                         onClick={() => {
+                                                                                             setEditingRowId(item.ITEMID);
+                                                                                             setEditingQtyMap(prev => ({ ...prev, [item.ITEMID]: item.ISSUEQTY ?? 0 }));
+                                                                                         }}
+                                                                                         disabled={savingItemId === item.ITEMID}
+                                                                                         className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors disabled:opacity-50 w-8 h-8 flex items-center justify-center"
+                                                                                     >
+                                                                                         <PencilSquareIcon className="w-5 h-5" />
+                                                                                     </button>
+                                                                                     <button 
+                                                                                         title="Delete Item"
+                                                                                         onClick={() => handleDeleteItem(item)}
+                                                                                         disabled={savingItemId === item.ITEMID}
+                                                                                         className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors disabled:opacity-50 w-8 h-8 flex items-center justify-center"
+                                                                                     >
+                                                                                         {savingItemId === item.ITEMID ? (
+                                                                                             <div className="w-4 h-4 rounded-full border-2 border-red-600 border-t-transparent animate-spin"></div>
+                                                                                         ) : (
+                                                                                             <TrashIcon className="w-5 h-5" />
+                                                                                         )}
+                                                                                     </button>
+                                                                                 </>
+                                                                             )
+                                                                         ) : (
+                                                                             <button 
+                                                                                 onClick={() => handleSaveItem(item)}
+                                                                                 disabled={savingItemId === item.ITEMID}
+                                                                                 className="px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 border border-indigo-700 rounded-lg text-xs font-bold transition-colors shadow-sm disabled:opacity-50 min-w-[80px] h-8 flex justify-center items-center"
+                                                                             >
+                                                                                 {savingItemId === item.ITEMID ? (
+                                                                                     <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                                                                                 ) : 'Add'}
+                                                                             </button>
+                                                                         )}
+                                                                     </td>
+                                                                 </tr>
+                                                             </React.Fragment>
+                                                            );
+                                                         })
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
 
                                     {/* Action Buttons at Bottom */}
-                                    {isEditMode && items.length > 0 && (
+                                    {items.length > 0 && (
                                         <div className="flex justify-end gap-4 mt-6">
                                             <button
-                                                onClick={handleDeleteIssue}
-                                                className="px-5 py-2.5 bg-red-50 text-red-700 font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-colors flex items-center gap-2"
+                                                onClick={() => alert("Suggestion list generated successfully.")}
+                                                className="px-5 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-lg border border-slate-300 hover:bg-slate-200 transition-colors"
                                             >
-                                                <TrashIcon className="w-5 h-5" /> Delete Issue
+                                                Suggestion list
                                             </button>
+                                            {isEditMode && (
+                                                <button
+                                                    onClick={handleDeleteIssue}
+                                                    className="px-5 py-2.5 bg-red-50 text-red-700 font-bold rounded-lg border border-red-200 hover:bg-red-100 transition-colors flex items-center gap-2"
+                                                >
+                                                    <TrashIcon className="w-5 h-5" /> Delete
+                                                </button>
+                                            )}
                                             <button
                                                 onClick={handleCompleteIssue}
                                                 className="px-5 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow flex items-center gap-2"
                                             >
-                                                <CheckCircleIcon className="w-5 h-5" /> Complete Issue
+                                                <CheckCircleIcon className="w-5 h-5" /> Issue
                                             </button>
                                         </div>
                                     )}

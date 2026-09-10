@@ -50,7 +50,7 @@ export const getItemsForIssue = async (nocId, issueId) => {
 
 export const getBatches = async (issueItemId, itemId) => {
     try {
-        const response = await api.get(`/ward-issue/batches/${issueItemId}/${itemId}`);
+        const response = await api.get(`/online-transfer-items/batches/${issueItemId}/${itemId}`);
         return response.data;
     } catch (error) {
         throw error;

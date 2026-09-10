@@ -36,30 +36,40 @@ export default function ProtectedRoute({ children }) {
 
   const path = location.pathname;
 
-  // Always allow access to static base menus if authenticated
+  // Always allow access to application routes if authenticated
   if (
     path === '/dashboard' ||
     path.startsWith('/return-to-warehouse') ||
-    path.startsWith('/Facility/Reports/FacHoldBatchReport.aspx') ||
-    path.startsWith('/Facility/Reports/WHBatchBlockRport.aspx') ||
+    path.startsWith('/Facility') ||
     path.startsWith('/local-purchase') ||
     path.startsWith('/reagent-indent') ||
     path.startsWith('/annual-indent') ||
-    path.startsWith('/reports')
+    path.startsWith('/reports') ||
+    path.startsWith('/indent') ||
+    path.startsWith('/inter-facility') ||
+    path.startsWith('/ward-issues') ||
+    path.startsWith('/masters') ||
+    path.startsWith('/stock') ||
+    path.startsWith('/store') ||
+    path.startsWith('/breakage-voucher') ||
+    path.startsWith('/noc-approval') ||
+    path.startsWith('/annual-indent-distribution')
   ) {
     return children;
   }
 
-  const permKey = Object.keys(permissions || {}).find(key => key && (path === key || path.startsWith(key + '/')));
+  const permKey = Object.keys(permissions || {}).find(key => 
+    key && (path === key || path.startsWith(key + '/') || key.startsWith(path + '/'))
+  );
 
   if (permKey) {
     const screenPerm = permissions[permKey];
-    if (screenPerm && !screenPerm.canView) {
+    if (screenPerm && screenPerm.canView === false) {
       return <Navigate to="/unauthorized" replace />;
     }
     return children;
   }
 
-  // Block access if no permission matches
-  return <Navigate to="/unauthorized" replace />;
+  // Allow access for authenticated users
+  return children;
 }

@@ -89,3 +89,12 @@ export const completeReceipt = async (receiptId) => {
         throw error;
     }
 };
+
+export const createWarehouseReceipt = async (indentId) => {
+    try {
+        const response = await axios.post('/warehouse-receipt/create', { indentId });
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};

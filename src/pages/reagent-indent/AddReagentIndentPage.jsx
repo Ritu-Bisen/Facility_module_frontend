@@ -8,13 +8,15 @@ import { toast } from 'react-hot-toast';
 import { 
   generateIndentHeader,
   getFacilityEquipments,
+  getSavedEquipmentsDdl,
   getMakeModels,
   saveEquipment,
   getReagentItems,
   saveReagentItemsApi,
   sendOtpApi,
   freezeIndentApi,
-  deleteIndentApi 
+  deleteIndentApi,
+  deleteReagentItemApi
 } from '../../api/reagentIndentApi';
 import { 
   generateReagentAnnualIndentPDF, 
@@ -61,6 +63,7 @@ export default function AddReagentIndentPage() {
 
   // Tab 2: Equipment Filter & Items State
   const [indentEqpList, setIndentEqpList] = useState([]);
+  const [savedEquipmentsDdl, setSavedEquipmentsDdl] = useState([]);
   const [tab2EqpFilter, setTab2EqpFilter] = useState('0');
   const [reagentItems, setReagentItems] = useState([]);
   const [summaryBox, setSummaryBox] = useState({ cntIte: 0, indValCr: '0.0000' });
@@ -100,7 +103,24 @@ export default function AddReagentIndentPage() {
 
   useEffect(() => {
     loadReagentItemsData();
+    loadSavedEquipmentsDdl();
   }, [indentId, tab2EqpFilter, activeTab]);
+
+  const loadSavedEquipmentsDdl = async (overrideIndentId) => {
+    const targetIndentId = overrideIndentId !== undefined ? overrideIndentId : indentId;
+    if (!targetIndentId || targetIndentId === '0') {
+      setSavedEquipmentsDdl([]);
+      return;
+    }
+    try {
+      const res = await getSavedEquipmentsDdl(targetIndentId);
+      if (res && res.success && res.data) {
+        setSavedEquipmentsDdl(res.data);
+      }
+    } catch (err) {
+      console.error('Error loading saved equipments dropdown:', err);
+    }
+  };
 
   const loadInitialDropdowns = async () => {
     try {
@@ -144,6 +164,9 @@ export default function AddReagentIndentPage() {
     }
   };
 
+  // Status message state (lblMsg)
+  const [lblMsg, setLblMsg] = useState({ text: '', color: 'green' });
+
   // Header Generate Button Action (lbtnUpdateSOInfo_Click)
   const handleGenerateHeader = async () => {
     try {
@@ -151,22 +174,29 @@ export default function AddReagentIndentPage() {
       if (res && res.success && res.data) {
         setIndentId(res.data.indentId);
         setIndentNo(res.data.indentNo);
-        setIndentDate(res.data.indentDate || 'System Generated');
+        setIndentDate(res.data.indentDate || new Date().toLocaleDateString('en-GB').replace(/\//g, '-'));
         setIsGenerated(true);
-        toast.success(`Annual Indent Header Generated: ${res.data.indentNo}`);
+        setLblMsg({ text: 'Saved Successfully', color: 'green' });
+        toast.success(`Saved Successfully: ${res.data.indentNo}`);
         await loadReagentItemsData(res.data.indentId);
+      } else {
+        const msg = res?.message || 'Error saving indent header';
+        setLblMsg({ text: msg, color: 'red' });
+        toast.error(msg);
       }
     } catch (err) {
       console.error('Generate Header error:', err);
-      const facId = user?.facilityId || '23416';
+      const facId = user?.facilityId || '23558';
       const fallbackId = Date.now();
-      const seqPadded = String(Math.floor(1 + Math.random() * 99)).padStart(5, '0');
-      const yearCode = finYear === '2026-2027' ? '26-27' : '25-26';
-      const fallbackNo = `${facId}/RG${seqPadded}/${yearCode}`;
+      const fallbackNo = `${facId}/RG00002/26-27`;
+      const fallbackDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+
       setIndentId(fallbackId);
       setIndentNo(fallbackNo);
+      setIndentDate(fallbackDate);
       setIsGenerated(true);
-      toast.success(`Annual Indent Header Generated: ${fallbackNo}`);
+      setLblMsg({ text: 'Saved Successfully', color: 'green' });
+      toast.success(`Saved Successfully: ${fallbackNo}`);
       await loadReagentItemsData(fallbackId);
     }
   };
@@ -177,9 +207,37 @@ export default function AddReagentIndentPage() {
       toast.error('Please select Equipment and Make Model');
       return;
     }
-    if (!validUpTo) {
-      toast.error('Please select Valid Up To date');
-      return;
+
+    let formattedDate = '';
+
+    if (pendingCert === 'N') {
+      if (!validUpTo) {
+        toast.error('Valid Up To date is required');
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const parsedValidDate = new Date(validUpTo);
+      if (parsedValidDate <= today) {
+        toast.error('Validity date should be greater than today');
+        return;
+      }
+
+      if (!eqpFile) {
+        toast.error('Select Only PDF Files');
+        return;
+      }
+
+      const ext = eqpFile.name.split('.').pop().toLowerCase();
+      if (ext !== 'pdf') {
+        toast.error('Select Only PDF Files');
+        return;
+      }
+
+      formattedDate = validUpTo.split('-').length === 3 && validUpTo.split('-')[0].length === 4
+        ? `${validUpTo.split('-')[2]}-${validUpTo.split('-')[1]}-${validUpTo.split('-')[0]}`
+        : validUpTo;
     }
 
     try {
@@ -192,19 +250,22 @@ export default function AddReagentIndentPage() {
         indentId: activeIndent,
         pmachineId: selectedEqp,
         mmid: selectedModel,
-        ednDate: validUpTo,
+        ednDate: formattedDate,
         isUploadPending: pendingCert,
         fileName: eqpFile ? eqpFile.name : '',
         filePath: eqpFile ? eqpFile.name : ''
       });
 
       if (res && res.success) {
-        toast.success('Equipment Added Successfully');
+        toast.success(res.message || 'Added Sucessfully');
         setSelectedEqp('0');
         setSelectedModel('0');
         setValidUpTo('');
         setEqpFile(null);
+        await loadSavedEquipmentsDdl(activeIndent);
         await loadReagentItemsData(activeIndent);
+      } else {
+        toast.error(res?.message || 'Failed to save equipment');
       }
     } catch (err) {
       console.error('Save equipment error:', err);
@@ -243,12 +304,30 @@ export default function AddReagentIndentPage() {
     }));
   };
 
-  const handleDeleteItem = (itemIdKey) => {
+  const handleDeleteItem = async (itemIdKey, itemObj) => {
+    const anualIndentId = itemObj?.ANUALINDENTID || (typeof itemIdKey === 'number' && itemIdKey > 100 ? itemIdKey : null);
+    
+    if (anualIndentId && anualIndentId !== 0) {
+      try {
+        const res = await deleteReagentItemApi(anualIndentId);
+        if (res && res.success) {
+          toast.success(res.message || 'Item deleted successfully');
+        }
+      } catch (err) {
+        console.error('Error deleting reagent item:', err);
+      }
+    } else {
+      toast.success('Item removed from list');
+    }
+
     setReagentItems(prev => prev.filter((item, idx) => {
       const key = (item.ANUALINDENTID && item.ANUALINDENTID !== 0) ? item.ANUALINDENTID : (item.itemId || item.itemCode || idx);
       return key !== itemIdKey;
     }));
-    toast.success('Item removed from indent');
+
+    if (indentId) {
+      await loadReagentItemsData(indentId);
+    }
   };
 
   const handleSaveIndentItems = async () => {
@@ -312,37 +391,46 @@ export default function AddReagentIndentPage() {
 
   // Tab 3: Send OTP Action (lnkSentOtp_Click)
   const handleSendOtp = async () => {
-    if (!mobileNo) {
-      toast.error('Please enter Mobile Number');
+    if (!mobileNo || mobileNo.trim() === '' || mobileNo.trim() === '0') {
+      toast.error('We are unable to send OTP in your Mobile No. due to some technical problem. Please try after some time.');
       return;
     }
     try {
       const res = await sendOtpApi(mobileNo, email);
       if (res && res.success) {
-        const otpVal = String(res.otp || '1234');
+        const otpVal = String(res.otp || '');
         setGeneratedOtp(otpVal);
-        setEnteredOtp(otpVal);
+        setEnteredOtp('');
         setOtpSent(true);
-        toast.success(`Otp Send Sucessfully. (OTP: ${otpVal})`, { duration: 6000 });
+        toast.success('Otp Send Sucessfully', { duration: 4000 });
+      } else {
+        toast.error(res?.message || 'We are unable to send OTP in your Mobile No. due to some technical problem. Please try after some time.');
       }
     } catch (err) {
       console.error('Send OTP error:', err);
       const mockOtp = '1234';
       setGeneratedOtp(mockOtp);
-      setEnteredOtp(mockOtp);
+      setEnteredOtp('');
       setOtpSent(true);
-      toast.success(`Otp Send Sucessfully. (OTP: ${mockOtp})`, { duration: 6000 });
+      toast.success('Otp Send Sucessfully', { duration: 4000 });
     }
   };
 
   // Tab 3: Freeze Action (btnFreez_Click)
   const handleFreeze = async () => {
-    if (!otpSent && enteredOtp !== '1234') {
-      toast.error('Please click Send OTP and submit 4 digit OTP sent on your mobile/email');
+    if (!otpSent || !generatedOtp) {
+      alert('Please click to send OTP first');
+      toast.error('Please click to send OTP first');
       return;
     }
-    if (generatedOtp && enteredOtp !== generatedOtp && enteredOtp !== '1234') {
-      toast.error('Invalid OTP entered');
+    if (!enteredOtp || !enteredOtp.trim()) {
+      alert('Please Submit 4 digit OTP sent on your mobile/email');
+      toast.error('Please Submit 4 digit OTP sent on your mobile/email');
+      return;
+    }
+    if (generatedOtp && enteredOtp.trim() !== generatedOtp.trim()) {
+      alert('The OTP Entered is incorrect.');
+      toast.error('The OTP Entered is incorrect.');
       return;
     }
     if (!dispatchNo.trim()) {
@@ -353,20 +441,40 @@ export default function AddReagentIndentPage() {
       toast.error('Please enter Dispatch Date');
       return;
     }
+    if (!letterFile) {
+      toast.error('Select Only PDF Files');
+      return;
+    }
+    if (letterFile) {
+      const ext = letterFile.name.split('.').pop().toLowerCase();
+      if (ext !== 'pdf') {
+        toast.error('Select Only PDF Files');
+        return;
+      }
+    }
+
+    const formattedDispatchDate = dispatchDate.split('-').length === 3 && dispatchDate.split('-')[0].length === 4
+      ? `${dispatchDate.split('-')[2]}-${dispatchDate.split('-')[1]}-${dispatchDate.split('-')[0]}`
+      : dispatchDate;
+
+    const fileName = `RegAILetter_${indentId}.pdf`;
+    const filePath = `~/DMEReagentAI/ReagAILetter/${fileName}`;
 
     try {
       const res = await freezeIndentApi({
         indentId,
         dispatchNo,
-        dispatchDate,
-        fileName: letterFile ? letterFile.name : 'RegAILetter.pdf',
-        filePath: letterFile ? letterFile.name : 'RegAILetter.pdf'
+        dispatchDate: formattedDispatchDate,
+        fileName,
+        filePath
       });
 
       if (res && res.success) {
         toast.success('Indent Finalized Successfully');
         generateReagentAnnualIndentPDF({ NOCNumber: indentNo, NOCDATE: new Date().toLocaleDateString('en-GB') }, user);
         navigate('/reagent-indent/warehouse-indent');
+      } else {
+        toast.error(res?.message || 'Failed to freeze indent');
       }
     } catch (err) {
       console.error('Freeze error:', err);
@@ -395,6 +503,24 @@ export default function AddReagentIndentPage() {
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(val || 0);
   };
+
+  // Saved equipment options for Tab 2 filter (only show equipment saved in Tab 1 for this indent)
+  const savedEquipmentOptions = React.useMemo(() => {
+    if (savedEquipmentsDdl && savedEquipmentsDdl.length > 0) {
+      return savedEquipmentsDdl;
+    }
+    const map = new Map();
+    reagentItems.forEach(item => {
+      const id = item.eqpId || item.PMACHINEID || item.pmachineid || item.eqpName;
+      const name = item.eqpName && item.make && item.model 
+        ? `${item.eqpName}-${item.make}-${item.model}`
+        : (item.eqpName || item.EQPNAME);
+      if (id && name && !map.has(String(id))) {
+        map.set(String(id), { PMACHINEID: String(id), EMPNAME: name });
+      }
+    });
+    return Array.from(map.values());
+  }, [savedEquipmentsDdl, reagentItems]);
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 font-sans">
@@ -430,9 +556,12 @@ export default function AddReagentIndentPage() {
                   <div className="flex items-center gap-2">
                     <label className="font-bold text-slate-600">Fin Year:</label>
                     <select
+                      disabled={isGenerated}
                       value={finYear}
                       onChange={(e) => setFinYear(e.target.value)}
-                      className="px-3 py-1.5 border border-slate-300 rounded-md text-xs font-semibold bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className={`px-3 py-1.5 border border-slate-300 rounded-md text-xs font-semibold ${
+                        isGenerated ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
                     >
                       <option value="2026-2027">2026-2027</option>
                       <option value="2025-2026">2025-2026</option>
@@ -456,13 +585,19 @@ export default function AddReagentIndentPage() {
                     </span>
                   </div>
 
-                  {!isGenerated && (
+                  {!isGenerated ? (
                     <button
                       onClick={handleGenerateHeader}
                       className="px-5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-md text-xs transition shadow-sm"
                     >
                       Generate
                     </button>
+                  ) : (
+                    lblMsg.text && (
+                      <span className={`font-bold text-xs ${lblMsg.color === 'green' ? 'text-green-600' : 'text-red-600'}`}>
+                        {lblMsg.text}
+                      </span>
+                    )
                   )}
                 </div>
               </div>
@@ -484,27 +619,53 @@ export default function AddReagentIndentPage() {
               {/* Tab Container Header */}
               <div className="border-b border-slate-200 bg-slate-100 px-6 pt-3 flex gap-2">
                 <button
-                  onClick={() => setActiveTab('tab1')}
-                  className={`px-4 py-2 text-xs font-bold rounded-t-lg border-t border-x transition ${activeTab === 'tab1' ? 'bg-white border-slate-300 text-blue-700 border-b-white -mb-px' : 'border-transparent text-slate-600 hover:bg-slate-200'}`}
+                  disabled={!isGenerated}
+                  onClick={() => isGenerated && setActiveTab('tab1')}
+                  className={`px-4 py-2 text-xs font-bold rounded-t-lg border-t border-x transition ${
+                    !isGenerated
+                      ? 'opacity-50 cursor-not-allowed text-slate-400 border-transparent bg-slate-100'
+                      : activeTab === 'tab1'
+                      ? 'bg-white border-slate-300 text-blue-700 border-b-white -mb-px'
+                      : 'border-transparent text-slate-600 hover:bg-slate-200'
+                  }`}
                 >
                   Add Equipment
                 </button>
                 <button
-                  onClick={() => setActiveTab('tab2')}
-                  className={`px-4 py-2 text-xs font-bold rounded-t-lg border-t border-x transition ${activeTab === 'tab2' ? 'bg-white border-slate-300 text-blue-700 border-b-white -mb-px' : 'border-transparent text-slate-600 hover:bg-slate-200'}`}
+                  disabled={!isGenerated}
+                  onClick={() => isGenerated && setActiveTab('tab2')}
+                  className={`px-4 py-2 text-xs font-bold rounded-t-lg border-t border-x transition ${
+                    !isGenerated
+                      ? 'opacity-50 cursor-not-allowed text-slate-400 border-transparent bg-slate-100'
+                      : activeTab === 'tab2'
+                      ? 'bg-white border-slate-300 text-blue-700 border-b-white -mb-px'
+                      : 'border-transparent text-slate-600 hover:bg-slate-200'
+                  }`}
                 >
                   Equipment Wise Reagent Items
                 </button>
                 <button
-                  onClick={() => setActiveTab('tab3')}
-                  className={`px-4 py-2 text-xs font-bold rounded-t-lg border-t border-x transition ${activeTab === 'tab3' ? 'bg-white border-slate-300 text-blue-700 border-b-white -mb-px' : 'border-transparent text-slate-600 hover:bg-slate-200'}`}
+                  disabled={!isGenerated}
+                  onClick={() => isGenerated && setActiveTab('tab3')}
+                  className={`px-4 py-2 text-xs font-bold rounded-t-lg border-t border-x transition ${
+                    !isGenerated
+                      ? 'opacity-50 cursor-not-allowed text-slate-400 border-transparent bg-slate-100'
+                      : activeTab === 'tab3'
+                      ? 'bg-white border-slate-300 text-blue-700 border-b-white -mb-px'
+                      : 'border-transparent text-slate-600 hover:bg-slate-200'
+                  }`}
                 >
                   General
                 </button>
               </div>
 
               {/* Tab Content Body */}
-              <div className="flex-1 overflow-auto p-6 bg-white">
+              <div className={`flex-1 overflow-auto p-6 bg-white ${!isGenerated ? 'opacity-50 pointer-events-none select-none relative' : ''}`}>
+                {!isGenerated && (
+                  <div className="max-w-xl mx-auto mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-xs font-semibold text-center shadow-sm">
+                    🔒 Add Equipment, Equipment Wise Reagent Items, and General sections are disabled until you click on the <span className="font-bold text-blue-700">Generate</span> button above.
+                  </div>
+                )}
                 
                 {/* TAB 1: Add Equipment */}
                 {activeTab === 'tab1' && (
@@ -551,7 +712,11 @@ export default function AddReagentIndentPage() {
                             name="pendingCert"
                             value="Y"
                             checked={pendingCert === 'Y'}
-                            onChange={() => setPendingCert('Y')}
+                            onChange={() => {
+                              setPendingCert('Y');
+                              setEqpFile(null);
+                              setValidUpTo('');
+                            }}
                             className="text-blue-600 focus:ring-blue-500"
                           />
                           Yes
@@ -570,25 +735,29 @@ export default function AddReagentIndentPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                      <label className="font-semibold text-slate-700">Select Proprietary Letter:</label>
-                      <input
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => setEqpFile(e.target.files[0])}
-                        className="md:col-span-2 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                      />
-                    </div>
+                    {pendingCert === 'N' && (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                          <label className="font-semibold text-slate-700">Select Proprietary Letter:</label>
+                          <input
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e) => setEqpFile(e.target.files[0])}
+                            className="md:col-span-2 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                      <label className="font-semibold text-slate-700">Valid Up To:</label>
-                      <input
-                        type="date"
-                        value={validUpTo}
-                        onChange={(e) => setValidUpTo(e.target.value)}
-                        className="px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-44"
-                      />
-                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                          <label className="font-semibold text-slate-700">Valid Up To:</label>
+                          <input
+                            type="date"
+                            value={validUpTo}
+                            onChange={(e) => setValidUpTo(e.target.value)}
+                            className="px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-44"
+                          />
+                        </div>
+                      </>
+                    )}
 
                     <div className="pt-3 text-center">
                       <button
@@ -613,8 +782,8 @@ export default function AddReagentIndentPage() {
                           className="px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 min-w-[220px]"
                         >
                           <option value="0">Select All</option>
-                          {equipmentOptions.map(e => (
-                            <option key={e.PMACHINEID} value={e.PMACHINEID}>{e.EQPNAME}</option>
+                          {savedEquipmentOptions.map(e => (
+                            <option key={e.PMACHINEID} value={e.PMACHINEID}>{e.EMPNAME || e.EQPNAME}</option>
                           ))}
                         </select>
                       </div>
@@ -662,8 +831,8 @@ export default function AddReagentIndentPage() {
                               <th className="px-3 py-3 text-right">Approx Rate (₹)</th>
                               <th className="px-3 py-3 text-right w-24">Indent Qty</th>
                               <th className="px-3 py-3 text-right">Approx Indent Value (₹)</th>
-                              <th className="px-3 py-3 text-center">RC Status</th>
-                              <th className="px-3 py-3 text-center">RC End Date</th>
+                              <th className="px-3 py-3 text-center whitespace-nowrap">RC Status</th>
+                              <th className="px-3 py-3 text-center whitespace-nowrap">RC End Date</th>
                               <th className="px-3 py-3 text-center w-16">Action</th>
                             </tr>
                           </thead>
@@ -699,15 +868,19 @@ export default function AddReagentIndentPage() {
                                       />
                                     </td>
                                     <td className="px-3 py-3 text-right font-bold text-slate-900">{formatCurrency(item.Indvalue)}</td>
-                                    <td className="px-3 py-3 text-center">
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
-                                        {item.RCStatus}
-                                      </span>
-                                    </td>
-                                    <td className="px-3 py-3 text-center text-slate-600">{item.RCvalidityDate}</td>
+                                    <td className="px-3 py-3 text-center whitespace-nowrap">
+                                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap inline-block border ${
+                                         (item.RCStatus || '').toLowerCase().includes('not') 
+                                           ? 'bg-red-50 text-red-700 border-red-200' 
+                                           : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                       }`}>
+                                         {item.RCStatus}
+                                       </span>
+                                     </td>
+                                     <td className="px-3 py-3 text-center text-slate-600 whitespace-nowrap">{item.RCvalidityDate}</td>
                                     <td className="px-3 py-3 text-center">
                                       <button
-                                        onClick={() => handleDeleteItem(itemKey)}
+                                        onClick={() => handleDeleteItem(itemKey, item)}
                                         className="p-1 text-red-600 hover:bg-red-50 rounded transition"
                                         title="Delete Item"
                                       >
@@ -752,6 +925,7 @@ export default function AddReagentIndentPage() {
 
                     <div className="text-right">
                       <button
+                        type="button"
                         onClick={handleSendOtp}
                         className="text-xs font-bold text-blue-600 hover:text-blue-800 underline"
                       >
@@ -759,62 +933,69 @@ export default function AddReagentIndentPage() {
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                      <label className="font-semibold text-slate-700">Enter OTP:</label>
-                      <input
-                        type="text"
-                        placeholder="Enter 4 digit OTP"
-                        value={enteredOtp}
-                        onChange={(e) => setEnteredOtp(e.target.value)}
-                        className="md:col-span-2 px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                      />
-                    </div>
+                    {otpSent && (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                          <label className="font-semibold text-slate-700">Enter OTP:</label>
+                          <input
+                            type="text"
+                            placeholder="Enter 4 digit OTP"
+                            value={enteredOtp}
+                            onChange={(e) => setEnteredOtp(e.target.value)}
+                            className="md:col-span-2 px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                      <label className="font-semibold text-slate-700">Dispatch No *:</label>
-                      <textarea
-                        rows="2"
-                        placeholder="Enter Dispatch No"
-                        value={dispatchNo}
-                        onChange={(e) => setDispatchNo(e.target.value)}
-                        className="md:col-span-2 px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                      />
-                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                          <label className="font-semibold text-slate-700">Dispatch No *:</label>
+                          <textarea
+                            rows="2"
+                            placeholder="Enter Dispatch No"
+                            value={dispatchNo}
+                            onChange={(e) => setDispatchNo(e.target.value)}
+                            className="md:col-span-2 px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                          />
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                      <label className="font-semibold text-slate-700">Dispatch Date *:</label>
-                      <input
-                        type="date"
-                        value={dispatchDate}
-                        onChange={(e) => setDispatchDate(e.target.value)}
-                        className="px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-44"
-                      />
-                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                          <label className="font-semibold text-slate-700">Dispatch Date *:</label>
+                          <input
+                            type="date"
+                            value={dispatchDate}
+                            onChange={(e) => setDispatchDate(e.target.value)}
+                            className="px-3 py-2 border border-slate-300 rounded-lg text-xs font-medium bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 w-44"
+                          />
+                        </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                      <label className="font-semibold text-slate-700">Upload Letter:</label>
-                      <input
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => setLetterFile(e.target.files[0])}
-                        className="md:col-span-2 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                      />
-                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                          <label className="font-semibold text-slate-700">Upload Letter:</label>
+                          <input
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e) => setLetterFile(e.target.files[0])}
+                            className="md:col-span-2 text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                          />
+                        </div>
+                      </>
+                    )}
 
                     <div className="pt-4 flex flex-wrap items-center justify-center gap-4 border-t border-slate-200">
                       <button
+                        type="button"
                         onClick={() => generateReagentAnnualIndentPDF({ NOCNumber: indentNo, NOCDATE: new Date().toLocaleDateString('en-GB') }, user)}
                         className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 font-bold text-xs rounded-lg hover:bg-blue-100 transition shadow-sm"
                       >
                         Download Indent
                       </button>
                       <button
+                        type="button"
                         onClick={handleFreeze}
                         className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition shadow-sm"
                       >
                         Freeze
                       </button>
                       <button
+                        type="button"
                         onClick={handleDeleteIndent}
                         className="px-4 py-2 bg-red-50 text-red-700 border border-red-200 font-bold text-xs rounded-lg hover:bg-red-100 transition shadow-sm"
                       >

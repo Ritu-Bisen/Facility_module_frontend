@@ -3,7 +3,7 @@ import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getFinancialYears, getWarehouseIndents, getReceiptsByIndent } from '../api/warehouseReceiptApi';
+import { getFinancialYears, getWarehouseIndents, getReceiptsByIndent, createWarehouseReceipt } from '../api/warehouseReceiptApi';
 import { ChevronDownIcon, ChevronUpIcon, PlusCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
@@ -15,6 +15,7 @@ export default function WarehouseReceiptFAC() {
     const [selectedYear, setSelectedYear] = useState('');
     const [indents, setIndents] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [creatingId, setCreatingId] = useState(null);
     
     const [filterPending, setFilterPending] = useState(location.state?.filterPending || false);
 
@@ -75,6 +76,25 @@ export default function WarehouseReceiptFAC() {
             toast.error("Failed to load warehouse indents");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleCreateReceipt = async (indentId) => {
+        setCreatingId(indentId);
+        const toastId = toast.loading('Creating receipt...');
+        try {
+            const res = await createWarehouseReceipt(indentId);
+            if (res.success && res.data?.receiptId) {
+                toast.success('Receipt created successfully!', { id: toastId });
+                navigate(`/indent/warehouse-receipts/view/${res.data.receiptId}`);
+            } else {
+                toast.error(res.message || 'Failed to create receipt', { id: toastId });
+            }
+        } catch (error) {
+            console.error('Error creating receipt:', error);
+            toast.error('Failed to create receipt', { id: toastId });
+        } finally {
+            setCreatingId(null);
         }
     };
 
@@ -206,9 +226,15 @@ export default function WarehouseReceiptFAC() {
                                                         </button>
                                                     ) : (
                                                         <button 
-                                                            className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded transition-colors border border-emerald-200 mx-auto"
+                                                            onClick={() => handleCreateReceipt(indent.indentId)}
+                                                            disabled={creatingId === indent.indentId}
+                                                            className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 px-2 py-1 rounded transition-colors border border-emerald-200 mx-auto"
                                                         >
-                                                            <PlusCircleIcon className="w-3.5 h-3.5" />
+                                                            {creatingId === indent.indentId ? (
+                                                                <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
+                                                            ) : (
+                                                                <PlusCircleIcon className="w-3.5 h-3.5" />
+                                                            )}
                                                             New
                                                         </button>
                                                     )}

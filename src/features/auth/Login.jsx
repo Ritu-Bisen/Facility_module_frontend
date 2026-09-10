@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials, fetchUserMenus } from './authSlice';
-import { loginWithEmail, loginWithPhone, fetchCaptcha, verifyMfaApi } from './authAPI';
+import { loginWithEmail, loginWithPhone, fetchCaptcha, verifyMfaApi, sendOtpApi } from './authAPI';
 import Header from '../../components/layout/Header';
 
 export default function Login() {
@@ -19,6 +19,12 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // OTP State
+  const [otpSending, setOtpSending] = useState(false);
+  const [otpSuccessMsg, setOtpSuccessMsg] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+  const [isOtpMode, setIsOtpMode] = useState(false);
+
   // MFA State (CWE-308 / Vulnerability Point No. 20)
   const [showMfaModal, setShowMfaModal] = useState(false);
   const [mfaTempToken, setMfaTempToken] = useState('');
@@ -28,6 +34,53 @@ export default function Login() {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Resend Countdown Timer
+  useEffect(() => {
+    let interval = null;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    } else if (resendTimer === 0) {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
+  const handleGenerateOtp = async () => {
+    setError('');
+    setOtpSuccessMsg('');
+    const cleanId = identifier.trim();
+
+    if (!cleanId) {
+      setError('Please enter your User ID or Phone Number first.');
+      return;
+    }
+
+    const scriptRegex = /<[^>]*>|on\w+=|javascript:/i;
+    if (scriptRegex.test(cleanId)) {
+      setError('Invalid characters or script payload detected in User ID / Phone field.');
+      return;
+    }
+
+    setOtpSending(true);
+    try {
+      const res = await sendOtpApi(cleanId);
+      if (res && res.success) {
+        setOtpSuccessMsg(res.message || 'OTP sent successfully to your registered mobile number!');
+        setResendTimer(30);
+        setIsOtpMode(true);
+        setShowPassword(true);
+      } else {
+        setError(res?.message || 'Failed to send OTP. Please check the entered User ID / Phone.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to send OTP. Please verify the entered User ID / Phone.');
+    } finally {
+      setOtpSending(false);
+    }
+  };
 
   const handleVerifyMfa = async (e) => {
     e.preventDefault();
@@ -267,6 +320,16 @@ export default function Login() {
                   </div>
                 )}
 
+                {/* OTP Success Message */}
+                {otpSuccessMsg && (
+                  <div className="mb-4 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/40 flex items-start gap-2.5 animate-fadeIn">
+                    <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">{otpSuccessMsg}</span>
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   
                   {/* Email / Phone Input */}
@@ -292,10 +355,10 @@ export default function Login() {
                     </div>
                   </div>
 
-                  {/* Password Input */}
+                  {/* Password / OTP Input */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                      Password / OTP <span className="text-red-500">*</span>
+                      {isOtpMode ? 'Enter OTP' : 'Password / OTP'} <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isFocused.password ? 'text-[#1e3a6a] dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
@@ -307,10 +370,10 @@ export default function Login() {
                         type={showPassword ? 'text' : 'password'} 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter Password or OTP" 
+                        placeholder={isOtpMode ? 'Enter OTP received on mobile' : 'Enter Password or OTP'} 
                         onFocus={() => setIsFocused(f => ({ ...f, password: true }))}
                         onBlur={() => setIsFocused(f => ({ ...f, password: false }))}
-                        className="w-full pl-11 pr-12 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm"
+                        className="w-full pl-11 pr-12 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium"
                       />
                       <button 
                         type="button"
@@ -368,8 +431,30 @@ export default function Login() {
 
                   {/* Action Links */}
                   <div className="flex items-center justify-between -mt-1">
-                    <button type="button" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-200">
-                      Generate OTP
+                    <button 
+                      type="button"
+                      onClick={handleGenerateOtp}
+                      disabled={otpSending || resendTimer > 0}
+                      className={`text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-200 flex items-center gap-1.5 ${otpSending || resendTimer > 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
+                    >
+                      {otpSending ? (
+                        <>
+                          <svg className="animate-spin h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Sending OTP...</span>
+                        </>
+                      ) : resendTimer > 0 ? (
+                        <span>Resend OTP in {resendTimer}s</span>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                          </svg>
+                          <span>Generate OTP</span>
+                        </>
+                      )}
                     </button>
                     <a href="#" className="text-xs font-medium text-[#1e3a6a] dark:text-blue-400 hover:text-[#2d5299] dark:hover:text-blue-300 hover:underline transition-colors duration-200">
                       Forgot your password?
