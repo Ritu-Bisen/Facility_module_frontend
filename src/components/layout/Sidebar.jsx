@@ -39,7 +39,30 @@ export default function Sidebar() {
                     user?.roleName?.toUpperCase()?.includes('DME') || 
                     isMcFacility;
 
+  const isAyushUser = user?.roleName === 'Ayush FAC' ||
+                      user?.roleName?.toLowerCase()?.includes('ayush') ||
+                      user?.role?.toLowerCase()?.includes('ayush') ||
+                      user?.facilityType?.toLowerCase()?.includes('ayush') ||
+                      user?.facilityTypeName?.toLowerCase()?.includes('ayush') ||
+                      user?.userType?.toLowerCase()?.includes('ayush');
+
   const hardcodedModules = [
+    ...(isAyushUser ? [
+      {
+        moduleId: 'ayush_issue_module',
+        moduleName: 'Issue',
+        screens: [
+          { screenId: 'ayush_ward_issue', screenUrl: '/ayush-ward-issue', screenName: 'Ayush Ward Issue', canView: true }
+        ]
+      },
+      {
+        moduleId: 'program_indent_module',
+        moduleName: 'Indent',
+        screens: [
+          { screenId: 'program_indent_list', screenUrl: '/program-indent/list', screenName: 'Program Indent', canView: true }
+        ]
+      }
+    ] : []),
     {
       moduleId: 'local_purchase_module',
       moduleName: 'Local Purchase',
@@ -62,8 +85,10 @@ export default function Sidebar() {
       moduleName: 'Annual Indent',
       screens: [
         { screenId: 'ai_download_format', screenUrl: '/annual-indent/download-format', screenName: 'Download AI Format', canView: true },
+        ...((isCmeUser || isAyushUser) ? [
+          { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Upload and Forward Indent for Approval', canView: true }
+        ] : []),
         ...(isCmeUser ? [
-          { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Upload and Forward Indent for Approval', canView: true },
           { screenId: 'ai_mc_ai', screenUrl: '/annual-indent/medical-college-ai', screenName: 'Medical College AI', canView: true },
           { screenId: 'ai_mc_vs_issuance', screenUrl: '/annual-indent/mc-hospital-ai-vs-issuance', screenName: 'Medical College/Hospital AI vs Issuance', canView: true }
         ] : [])
@@ -166,6 +191,7 @@ export default function Sidebar() {
   // Hardcoded essentials
   const baseMenus = [
     { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
+    { path: '/opening-stock', label: 'Opening Stock', Icon: ClipboardDocumentListIcon },
     { path: '/return-to-warehouse', label: 'Return to Warehouse', Icon: ClipboardDocumentListIcon },
     { path: '/Facility/Reports/FacHoldBatchReport.aspx', label: 'Hold Batches Report', Icon: ClipboardDocumentListIcon }
   ];

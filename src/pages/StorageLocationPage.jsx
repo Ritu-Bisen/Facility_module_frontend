@@ -4,7 +4,7 @@ import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { PencilIcon, TrashIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon, CheckIcon, XMarkIcon, MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 export default function StorageLocationPage() {
   const [locations, setLocations] = useState([]);
@@ -144,19 +144,28 @@ export default function StorageLocationPage() {
             <>
             <div className="max-w-4xl mx-auto space-y-6">
               
-              {/* Header section with title and search */}
+              {/* Header section with title, search, and add button */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 gap-4">
                 <h1 className="text-2xl font-bold text-slate-800">Storage Location Information</h1>
                 
-                <div className="relative w-full sm:w-64">
-                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by Rack ID..."
-                    value={searchId}
-                    onChange={(e) => setSearchId(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  />
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-64">
+                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search by Rack ID..."
+                      value={searchId}
+                      onChange={(e) => setSearchId(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                    />
+                  </div>
+                  <button
+                    onClick={() => { setIsAdding(true); setNewLocationNo(''); }}
+                    className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium text-sm rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 whitespace-nowrap"
+                  >
+                    <PlusIcon className="w-5 h-5" />
+                    <span>Add New Storage</span>
+                  </button>
                 </div>
               </div>
 
@@ -236,18 +245,12 @@ export default function StorageLocationPage() {
                                 </button>
                               </div>
                             ) : (
-                              <div className="flex items-center justify-center gap-3">
+                              <div className="flex items-center justify-center">
                                 <button
                                   onClick={() => { setEditingId(loc.RackID); setEditLocationNo(loc.locationno); }}
                                   className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors underline"
                                 >
                                   Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(loc.RackID)}
-                                  className="text-sm font-semibold text-red-600 hover:text-red-800 transition-colors underline"
-                                >
-                                  Delete
                                 </button>
                               </div>
                             )}

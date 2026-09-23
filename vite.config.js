@@ -9,7 +9,7 @@ export default defineConfig({
       name: 'block-disallowed-methods',
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
-          const disallowed = ['OPTIONS', 'TRACE', 'TRACK', 'DEBUG'];
+          const disallowed = ['TRACE', 'TRACK', 'DEBUG'];
           if (disallowed.includes(req.method?.toUpperCase())) {
             res.statusCode = 405;
             res.setHeader('Content-Type', 'application/json');

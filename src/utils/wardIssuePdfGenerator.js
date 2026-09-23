@@ -42,33 +42,75 @@ export const generateWardIssuePDF = async (idOrData, type = 'ward') => {
     doc.setTextColor(0, 0, 0);
 
     // --- Meta Info ---
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
 
     const fmtDate = (dStr) => {
       if (!dStr) return '—';
       try {
         const d = new Date(dStr);
-        return isNaN(d.getTime()) ? dStr : d.toLocaleDateString('en-GB');
+        return isNaN(d.getTime()) ? (dStr.split('T')[0] || dStr) : d.toLocaleDateString('en-GB');
       } catch (e) {
         return dStr;
       }
     };
 
     const facName = header.FacilityName || '—';
-    const location = `${header.DistrictName || ''}, ${header.StateName || ''}`;
+    const location = [header.DistrictName, header.StateName].filter(Boolean).join(', ');
+    const fullFacilityText = location ? `${facName} (${location})` : facName;
     const destination = isShc 
-      ? `Transfer To Facility: ${header.WardName || '—'} (${header.WardCode || ''})`
-      : `Issued To Ward: ${header.WardName || '—'} (${header.WardCode || ''})`;
+      ? `${header.WardName || '—'} (${header.WardCode || ''})`
+      : `${header.WardName || '—'} (${header.WardCode || ''})`;
     const issueDate = fmtDate(header.IssueDate);
     const voucherNo = header.IssueNo || '—';
-    const reqBy = `${header.WRequestBy || '—'} (Req Date: ${fmtDate(header.WRequestDate)})`;
+    const reqBy = header.WRequestBy || '—';
+    const reqDate = fmtDate(header.WRequestDate);
 
-    doc.text(`Facility : ${facName} (${location})`, 40, 95);
-    doc.text(destination, 40, 110);
-    doc.text(`Issue Date : ${issueDate}`, 350, 95);
-    doc.text(`Voucher No : ${voucherNo}`, 350, 110);
-    doc.text(`Requested By : ${reqBy}`, 40, 125);
+    const leftX = 40;
+    const rightX = 350;
+    let currentY = 92;
+
+    // Line 1: Facility Name (Left) & Issue Date (Right)
+    doc.setFont('helvetica', 'bold');
+    doc.text('Facility:', leftX, currentY);
+    doc.setFont('helvetica', 'normal');
+    const splitFac = doc.splitTextToSize(fullFacilityText, 255);
+    doc.text(splitFac, leftX + 45, currentY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Issue Date:', rightX, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(issueDate, rightX + 60, currentY);
+
+    currentY += Math.max(splitFac.length * 11, 14);
+
+    // Line 2: Issued To Ward (Left) & Voucher No (Right)
+    doc.setFont('helvetica', 'bold');
+    doc.text(isShc ? 'Transfer To:' : 'Issued To Ward:', leftX, currentY);
+    doc.setFont('helvetica', 'normal');
+    const labelWidth = isShc ? 60 : 80;
+    const splitDest = doc.splitTextToSize(destination, 220);
+    doc.text(splitDest, leftX + labelWidth, currentY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Voucher No:', rightX, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(voucherNo, rightX + 60, currentY);
+
+    currentY += Math.max(splitDest.length * 11, 14);
+
+    // Line 3: Requested By (Left) & Req Date (Right)
+    doc.setFont('helvetica', 'bold');
+    doc.text('Requested By:', leftX, currentY);
+    doc.setFont('helvetica', 'normal');
+    const splitReqBy = doc.splitTextToSize(reqBy, 220);
+    doc.text(splitReqBy, leftX + 70, currentY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text('Req Date:', rightX, currentY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(reqDate, rightX + 60, currentY);
+
+    currentY += Math.max(splitReqBy.length * 11, 16);
 
     // --- Table ---
     const tableBody = items.map((item, idx) => {
@@ -86,7 +128,7 @@ export const generateWardIssuePDF = async (idOrData, type = 'ward') => {
     });
 
     autoTable(doc, {
-      startY: 140,
+      startY: currentY + 5,
       head: [['Sl. No.', 'Item Details', 'Stock & Request Info', 'Issue Qty', 'Batches Details']],
       body: tableBody,
       theme: 'grid',

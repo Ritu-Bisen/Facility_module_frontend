@@ -6,6 +6,8 @@ import UnauthorizedPage from '../pages/UnauthorizedPage';
 import ProtectedRoute from './ProtectedRoute';
 import WardIssuesPage from '../pages/WardIssuesPage';
 import AddWardIssuePage from '../pages/AddWardIssuePage';
+import AyushWardIssuePage from '../pages/AyushWardIssuePage';
+import AddAyushWardIssuePage from '../pages/AddAyushWardIssuePage';
 import PrintWardIssuePage from '../pages/PrintWardIssuePage';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
@@ -77,6 +79,10 @@ import ReturnToWarehouseItemsPage from '../pages/return-to-warehouse/ReturnToWar
 import FreezRcDetailsPage from '../pages/reagent-indent/FreezRcDetailsPage';
 import ReagentIndentWarehousePage from '../pages/reagent-indent/ReagentIndentWarehousePage';
 import AddReagentIndentPage from '../pages/reagent-indent/AddReagentIndentPage';
+import ProgramIndentListPage from '../pages/program-indent/ProgramIndentListPage';
+import CreateProgramIndentPage from '../pages/program-indent/CreateProgramIndentPage';
+import OpeningStockPage from '../pages/OpeningStockPage';
+import FacilityReceiptManualPage from '../pages/FacilityReceiptManualPage';
 
 function PlaceholderPage({ title, description, children }) {
   return (
@@ -181,6 +187,21 @@ export default function AppRoutes() {
       <Route path="/ward-issues" element={
         <ProtectedRoute>
           <WardIssuesPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/ayush-ward-issue" element={
+        <ProtectedRoute>
+          <AyushWardIssuePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/ayush-ward-issue/add" element={
+        <ProtectedRoute>
+          <AddAyushWardIssuePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/ayush-ward-issue/edit/:id" element={
+        <ProtectedRoute>
+          <AddAyushWardIssuePage />
         </ProtectedRoute>
       } />
       <Route path="/return-to-warehouse" element={
@@ -499,6 +520,16 @@ export default function AppRoutes() {
           <UploadForwardIndentPage />
         </ProtectedRoute>
       } />
+      <Route path="/Facility/AnualindentMain.aspx" element={
+        <ProtectedRoute>
+          <UploadForwardIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualindentMain.aspx" element={
+        <ProtectedRoute>
+          <UploadForwardIndentPage />
+        </ProtectedRoute>
+      } />
       <Route path="/annual-indent/create" element={
         <ProtectedRoute>
           <CreateAnnualIndentPage />
@@ -507,6 +538,51 @@ export default function AppRoutes() {
       <Route path="/annual-indent/item-indent" element={
         <ProtectedRoute>
           <CreateAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/AnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AYUSHAnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/AYUSHAnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/program-indent/list" element={
+        <ProtectedRoute>
+          <ProgramIndentListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/program-indent/create" element={
+        <ProtectedRoute>
+          <CreateProgramIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/program-indent/edit/:id" element={
+        <ProtectedRoute>
+          <CreateProgramIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/ProgramIndentMain.aspx" element={
+        <ProtectedRoute>
+          <ProgramIndentListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/ProgramIndentMain.aspx" element={
+        <ProtectedRoute>
+          <ProgramIndentListPage />
         </ProtectedRoute>
       } />
       <Route path="/reports/cgmsc-receipt-drug-wise" element={
@@ -542,6 +618,41 @@ export default function AppRoutes() {
       <Route path="/reagent-indent/warehouse-indent/add" element={
         <ProtectedRoute>
           <AddReagentIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/opening-stock" element={
+        <ProtectedRoute>
+          <OpeningStockPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/ManualReceiptsFAC.aspx" element={
+        <ProtectedRoute>
+          <OpeningStockPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/ManualReceiptsFAC.aspx" element={
+        <ProtectedRoute>
+          <OpeningStockPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/facility-receipt-manual" element={
+        <ProtectedRoute>
+          <FacilityReceiptManualPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/FacilityReceiptManual.aspx" element={
+        <ProtectedRoute>
+          <FacilityReceiptManualPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/OpStock.aspx" element={
+        <ProtectedRoute>
+          <FacilityReceiptManualPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/OpStock.aspx" element={
+        <ProtectedRoute>
+          <FacilityReceiptManualPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />

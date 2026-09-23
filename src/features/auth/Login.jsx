@@ -301,15 +301,55 @@ export default function Login() {
                 <div className="absolute top-4 right-12 w-3 h-3 bg-emerald-400/30 rounded-full"></div>
                 
                 <div className="relative z-10">
-                  <div className=" mx-auto mb-3   flex items-center justify-center ">
-                                <img src={`${import.meta.env.BASE_URL}cgmsc-logo.png`} alt="CGMSC Logo" className="h-14 md:h-16 w-auto object-contain" />
-            
-                      {/* <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg> */}
+                  <div className=" mx-auto mb-3 flex items-center justify-center ">
+                    <img src={`${import.meta.env.BASE_URL}cgmsc-logo.png`} alt="CGMSC Logo" className="h-14 md:h-16 w-auto object-contain" />
                   </div>
                   <h3 className="text-xl font-bold tracking-wide">Welcome to Health Facility Main Store</h3>
                   <p className="text-blue-200/70 text-sm mt-1.5">Sign in to access your dashboard</p>
                 </div>
+              </div>
+
+              {/* Form Tabs: Login with Password vs Login with OTP */}
+              <div className="flex border-b border-gray-200 dark:border-gray-800 bg-gray-50/70 dark:bg-[#20232b]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOtpMode(false);
+                    setError('');
+                    setOtpSuccessMsg('');
+                    setPassword('');
+                  }}
+                  className={`flex-1 py-3 px-3 text-xs sm:text-sm font-bold text-center border-b-2 transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                    !isOtpMode
+                      ? 'border-[#1e3a6a] dark:border-blue-500 text-[#1e3a6a] dark:text-blue-400 bg-white dark:bg-[#1a1d24]'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span>Login with Password</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOtpMode(true);
+                    setError('');
+                    setOtpSuccessMsg('');
+                    setPassword('');
+                  }}
+                  className={`flex-1 py-3 px-3 text-xs sm:text-sm font-bold text-center border-b-2 transition-all duration-200 flex items-center justify-center gap-1.5 ${
+                    isOtpMode
+                      ? 'border-[#1e3a6a] dark:border-blue-500 text-[#1e3a6a] dark:text-blue-400 bg-white dark:bg-[#1a1d24]'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span>Login with OTP</span>
+                </button>
               </div>
 
               {/* Form Body */}
@@ -340,7 +380,7 @@ export default function Login() {
                   {/* Email / Phone Input */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                      User Id / Phone No <span className="text-red-500">*</span>
+                      User Id / Mobile No <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isFocused.identifier ? 'text-[#1e3a6a] dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
@@ -361,40 +401,95 @@ export default function Login() {
                     </div>
                   </div>
 
-                  {/* Password / OTP Input */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                      {isOtpMode ? 'Enter OTP' : 'Password / OTP'} <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                      <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isFocused.password ? 'text-[#1e3a6a] dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                        <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
+                  {/* Password Mode Input */}
+                  {!isOtpMode && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                        Password <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isFocused.password ? 'text-[#1e3a6a] dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                          <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                        <input 
+                          type={showPassword ? 'text' : 'password'} 
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Enter Password" 
+                          maxLength="100"
+                          onFocus={() => setIsFocused(f => ({ ...f, password: true }))}
+                          onBlur={() => setIsFocused(f => ({ ...f, password: false }))}
+                          className="w-full pl-11 pr-12 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium"
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-[#1e3a6a] dark:hover:text-blue-400 focus:outline-none transition-colors duration-200"
+                        >
+                          {showPassword ? (
+                             <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                          ) : (
+                             <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.05 10.05 0 012.35-3.656m1.504-1.504A9.92 9.92 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.05 10.05 0 01-1.39 2.87m-1.506 1.507A3 3 0 1110.125 9.125m3.75 3.75L9 9" /></svg>
+                          )}
+                        </button>
                       </div>
-                      <input 
-                        type={showPassword ? 'text' : 'password'} 
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder={isOtpMode ? 'Enter OTP received on mobile' : 'Enter Password or OTP'} 
-                        maxLength="100"
-                        onFocus={() => setIsFocused(f => ({ ...f, password: true }))}
-                        onBlur={() => setIsFocused(f => ({ ...f, password: false }))}
-                        className="w-full pl-11 pr-12 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium"
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-[#1e3a6a] dark:hover:text-blue-400 focus:outline-none transition-colors duration-200"
-                      >
-                        {showPassword ? (
-                           <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                        ) : (
-                           <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a10.05 10.05 0 012.35-3.656m1.504-1.504A9.92 9.92 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.05 10.05 0 01-1.39 2.87m-1.506 1.507A3 3 0 1110.125 9.125m3.75 3.75L9 9" /></svg>
-                        )}
-                      </button>
                     </div>
-                  </div>
+                  )}
+
+                  {/* OTP Mode Input */}
+                  {isOtpMode && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                        Enter OTP <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <div className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors duration-200 ${isFocused.password ? 'text-[#1e3a6a] dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          </div>
+                          <input 
+                            type="text" 
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter OTP received on mobile" 
+                            maxLength="10"
+                            onFocus={() => setIsFocused(f => ({ ...f, password: true }))}
+                            onBlur={() => setIsFocused(f => ({ ...f, password: false }))}
+                            className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 dark:border-[#333640] focus:ring-4 focus:ring-[#1e3a6a]/10 dark:focus:ring-blue-500/15 focus:border-[#1e3a6a] dark:focus:border-blue-500 transition-all duration-200 outline-none text-gray-700 dark:text-gray-100 bg-gray-50/60 dark:bg-[#252830] focus:bg-white dark:focus:bg-[#2a2d35] placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm font-medium"
+                          />
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={handleGenerateOtp}
+                          disabled={otpSending || resendTimer > 0}
+                          className={`px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-1.5 whitespace-nowrap ${otpSending || resendTimer > 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        >
+                          {otpSending ? (
+                            <>
+                              <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span>Sending...</span>
+                            </>
+                          ) : resendTimer > 0 ? (
+                            <span>Resend in {resendTimer}s</span>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                              <span>Send OTP</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* CAPTCHA */}
                   <div>
@@ -438,36 +533,13 @@ export default function Login() {
                   </div>
 
                   {/* Action Links */}
-                  <div className="flex items-center justify-between -mt-1">
-                    <button 
-                      type="button"
-                      onClick={handleGenerateOtp}
-                      disabled={otpSending || resendTimer > 0}
-                      className={`text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors duration-200 flex items-center gap-1.5 ${otpSending || resendTimer > 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
-                    >
-                      {otpSending ? (
-                        <>
-                          <svg className="animate-spin h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span>Sending OTP...</span>
-                        </>
-                      ) : resendTimer > 0 ? (
-                        <span>Resend OTP in {resendTimer}s</span>
-                      ) : (
-                        <>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                          </svg>
-                          <span>Generate OTP</span>
-                        </>
-                      )}
-                    </button>
-                    <a href="#" className="text-xs font-medium text-[#1e3a6a] dark:text-blue-400 hover:text-[#2d5299] dark:hover:text-blue-300 hover:underline transition-colors duration-200">
-                      Forgot your password?
-                    </a>
-                  </div>
+                  {!isOtpMode && (
+                    <div className="flex items-center justify-end -mt-1">
+                      <a href="#" className="text-xs font-medium text-[#1e3a6a] dark:text-blue-400 hover:text-[#2d5299] dark:hover:text-blue-300 hover:underline transition-colors duration-200">
+                        Forgot your password?
+                      </a>
+                    </div>
+                  )}
 
                   {/* Login Button */}
                   <div className="pt-2">
@@ -489,7 +561,7 @@ export default function Login() {
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                           </svg>
-                          Login
+                          {isOtpMode ? 'Login with OTP' : 'Login'}
                         </>
                       )}
                     </button>
