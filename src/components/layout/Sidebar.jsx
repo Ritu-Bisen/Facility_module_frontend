@@ -84,7 +84,9 @@ export default function Sidebar() {
       moduleId: 'annual_indent_module',
       moduleName: 'Annual Indent',
       screens: [
-        { screenId: 'ai_download_format', screenUrl: '/annual-indent/download-format', screenName: 'Download AI Format', canView: true },
+        ...(!isAyushUser ? [
+          { screenId: 'ai_download_format', screenUrl: '/annual-indent/download-format', screenName: 'Download AI Format', canView: true }
+        ] : []),
         ...((isCmeUser || isAyushUser) ? [
           { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Upload and Forward Indent for Approval', canView: true }
         ] : []),
