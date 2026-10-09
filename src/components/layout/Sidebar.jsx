@@ -87,9 +87,7 @@ export default function Sidebar() {
         ...(!isAyushUser ? [
           { screenId: 'ai_download_format', screenUrl: '/annual-indent/download-format', screenName: 'Download AI Format', canView: true }
         ] : []),
-        ...((isCmeUser || isAyushUser) ? [
-          { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Upload and Forward Indent for Approval', canView: true }
-        ] : []),
+        { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Upload and Forward Indent for Approval', canView: true },
         ...(isCmeUser ? [
           { screenId: 'ai_mc_ai', screenUrl: '/annual-indent/medical-college-ai', screenName: 'Medical College AI', canView: true },
           { screenId: 'ai_mc_vs_issuance', screenUrl: '/annual-indent/mc-hospital-ai-vs-issuance', screenName: 'Medical College/Hospital AI vs Issuance', canView: true }
