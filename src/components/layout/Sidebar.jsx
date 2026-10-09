@@ -284,6 +284,11 @@ export default function Sidebar() {
             <div key={module.moduleId || module.moduleName} className="flex flex-col mt-1">
               <button
                 onClick={() => handleMainMenuClick(module.moduleName)}
+                onDoubleClick={() => {
+                  if (!collapsed) {
+                    setOpenMenus(prev => ({ ...prev, [module.moduleName]: false }));
+                  }
+                }}
                 title={collapsed ? module.moduleName : undefined}
                 className={`w-full flex items-center justify-between rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none
                   ${isSubActive 

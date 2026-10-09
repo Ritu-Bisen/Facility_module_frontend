@@ -625,104 +625,99 @@ export default function CreateAnnualIndentPage() {
               <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6">
                 
                 {headerEditMode ? (
-                  /* Edit Header Panel (pnlEdit) */
-                  <div className="space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-                      
-                      {/* Fin Year */}
-                      <div className="flex items-center gap-3">
-                        <label className="text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                          Fin Year:
-                        </label>
-                        <select
-                          value={selectedFinYear}
-                          onChange={(e) => setSelectedFinYear(e.target.value)}
-                          disabled={dropdownLoading}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-none"
-                        >
-                          {finYears.map(fy => (
-                            <option key={fy.accYrSetId} value={fy.accYrSetId}>
-                              {fy.accYear}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Annual Indent No */}
-                      <div className="flex items-center gap-3">
-                        <label className="text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                          Annual Indent No:
-                        </label>
-                        <input
-                          type="text"
-                          readOnly
-                          value={headerInfo.indentNo}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-extrabold outline-none"
-                        />
-                      </div>
-
-                      {/* Indent Date */}
-                      <div className="flex items-center gap-3">
-                        <label className="text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                          Indent Date:
-                        </label>
-                        <input
-                          type="text"
-                          readOnly
-                          value={headerInfo.indentDate}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400 text-xs font-extrabold outline-none"
-                        />
-                      </div>
+                  /* Edit Header Panel (pnlEdit) - Inline Layout */
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    
+                    {/* Fin Year */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                        Fin Year:
+                      </label>
+                      <select
+                        value={selectedFinYear}
+                        onChange={(e) => setSelectedFinYear(e.target.value)}
+                        disabled={dropdownLoading}
+                        className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-none shadow-sm"
+                      >
+                        {finYears.map(fy => (
+                          <option key={fy.accYrSetId} value={fy.accYrSetId}>
+                            {fy.accYear}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
-                    {/* Annual Indent Category Dropdown (ddlAIType) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                        <label className="text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                          Select Annual Indent Category:
-                        </label>
-                        <div className="flex-1 w-full">
-                          <select
-                            value={selectedCategory}
-                            onChange={(e) => {
-                              setSelectedCategory(e.target.value);
-                              setCategoryError('');
-                            }}
-                            className={`w-full px-3 py-2 rounded-xl border bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none ${
-                              categoryError ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
-                            }`}
-                          >
-                            <option value="0">-- Select Category --</option>
-                            {categories.map(cat => (
-                              <option key={cat.categoryId} value={cat.categoryId}>
-                                {cat.categoryName}
-                              </option>
-                            ))}
-                          </select>
-                          {categoryError && (
-                            <span className="text-red-500 text-[11px] font-bold mt-1 block">
-                              {categoryError}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                    {/* Annual Indent No */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                        Annual Indent No:
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={headerInfo.indentNo}
+                        className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-extrabold outline-none shadow-sm"
+                      />
+                    </div>
+
+                    {/* Indent Date */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                        Indent Date:
+                      </label>
+                      <input
+                        type="text"
+                        readOnly
+                        value={headerInfo.indentDate}
+                        className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400 text-xs font-extrabold outline-none shadow-sm"
+                      />
+                    </div>
+
+                    {/* Annual Indent Category Dropdown */}
+                    <div className="flex items-center gap-2 relative">
+                      <label className="text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                        Select Annual Indent Category:
+                      </label>
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => {
+                          setSelectedCategory(e.target.value);
+                          setCategoryError('');
+                        }}
+                        className={`px-3 py-2 rounded-xl border bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none shadow-sm ${
+                          categoryError ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
+                        }`}
+                      >
+                        <option value="0">-- Select Category --</option>
+                        {categories.map(cat => (
+                          <option key={cat.categoryId} value={cat.categoryId}>
+                            {cat.categoryName}
+                          </option>
+                        ))}
+                      </select>
+                      {categoryError && (
+                        <span className="absolute -bottom-5 left-0 text-red-500 text-[11px] font-bold">
+                          {categoryError}
+                        </span>
+                      )}
                     </div>
 
                     {/* Generate / Cancel Buttons */}
-                    <div className="flex justify-center gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={handleGenerateHeader}
-                        className="px-6 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow transition-all"
+                        className="px-5 py-2 bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs rounded-xl shadow transition-all whitespace-nowrap"
                       >
                         Generate
                       </button>
                       <button
                         onClick={handleCancelHeader}
-                        className="px-6 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all"
+                        className="px-5 py-2 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all whitespace-nowrap"
                       >
                         Cancel
                       </button>
                     </div>
+
                   </div>
                 ) : (
                   /* View Header Panel (pnlView) */

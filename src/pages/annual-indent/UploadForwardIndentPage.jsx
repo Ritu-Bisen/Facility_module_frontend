@@ -289,39 +289,62 @@ export default function UploadForwardIndentPage() {
                 </div>
               </div>
 
-              {/* Filter Parameters Bar - Organized Non-Overflowing Grid */}
-              <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-                
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+              {/* Filter Parameters Bar - Single Line Layout */}
+              <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 md:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   
-                  {/* Financial Year Selector */}
-                  <div className="lg:col-span-4 flex items-center gap-2.5">
+                  {/* Category Selection & Download Excel Format */}
+                  <div className="flex flex-wrap items-center gap-2 relative">
                     <label className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
-                      Financial Year:
+                      Select Category For Download Excel Format:
                     </label>
                     <select
-                      value={selectedFinYear}
-                      onChange={(e) => setSelectedFinYear(e.target.value)}
+                      value={selectedCategory}
+                      onChange={(e) => {
+                        setSelectedCategory(e.target.value);
+                        setCategoryError('');
+                      }}
                       disabled={dropdownLoading}
-                      className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-none w-full shadow-sm"
+                      className={`px-3 py-2 rounded-xl border bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none shadow-sm ${
+                        categoryError ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
+                      }`}
                     >
-                      {finYears.map(fy => (
-                        <option key={fy.accYrSetId} value={fy.accYrSetId}>
-                          {fy.accYear}
+                      <option value="0">-- Select Category --</option>
+                      {categories.map(cat => (
+                        <option key={cat.categoryId} value={cat.categoryId}>
+                          {cat.categoryName}
                         </option>
                       ))}
                     </select>
+                    <button
+                      type="button"
+                      onClick={handleDownloadCategoryFormat}
+                      disabled={downloadingCategory}
+                      className="px-4 py-2 bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow transition-all inline-flex items-center gap-1.5 shrink-0"
+                    >
+                      {downloadingCategory ? (
+                        <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <ArrowDownTrayIcon className="w-4 h-4" />
+                      )}
+                      <span>Download</span>
+                    </button>
+                    {categoryError && (
+                      <span className="absolute -bottom-5 left-0 text-red-500 text-[11px] font-bold">
+                        {categoryError}
+                      </span>
+                    )}
                   </div>
 
                   {/* Add New Annual Indent Button */}
-                  <div className="lg:col-span-3 flex items-center">
+                  <div className="flex items-center">
                     {canAdd && (
                       <Link 
                         to={`/annual-indent/create?finYearId=${selectedFinYear}`}
-                        className="inline-flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-slate-700 transition-all border border-blue-200 dark:border-slate-700 shadow-sm group w-full sm:w-auto"
+                        className="inline-flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-slate-700 transition-all border border-blue-200 dark:border-slate-700 shadow-sm group shrink-0"
                         title="Add new Anualindent"
                       >
-                        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-blue-400">
+                        <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 group-hover:text-blue-700 dark:group-hover:text-blue-400 whitespace-nowrap">
                           Add New Annual Indent:
                         </span>
                         <div className="p-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow transition-all duration-200 group-hover:scale-110 shrink-0">
@@ -331,71 +354,42 @@ export default function UploadForwardIndentPage() {
                     )}
                   </div>
 
-                  {/* Category Selection & Download Excel Format (Fixed Flex Layout - No Overflow) */}
-                  <div className="lg:col-span-5 flex flex-col w-full">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full">
-                      <label className="text-xs font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap shrink-0">
-                        Select Category For<br className="hidden sm:inline" /> Download Excel Format:
-                      </label>
-                      <div className="flex items-center gap-2 w-full min-w-0">
-                        <select
-                          value={selectedCategory}
-                          onChange={(e) => {
-                            setSelectedCategory(e.target.value);
-                            setCategoryError('');
-                          }}
-                          disabled={dropdownLoading}
-                          className={`px-3 py-2 rounded-xl border bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 transition-all outline-none min-w-0 flex-1 truncate ${
-                            categoryError ? 'border-red-500' : 'border-slate-300 dark:border-slate-700'
-                          }`}
-                        >
-                          <option value="0">-- Select Category --</option>
-                          {categories.map(cat => (
-                            <option key={cat.categoryId} value={cat.categoryId}>
-                              {cat.categoryName}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={handleDownloadCategoryFormat}
-                          disabled={downloadingCategory}
-                          className="px-4 py-2 bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-extrabold text-xs rounded-xl shadow transition-all inline-flex items-center gap-1.5 shrink-0"
-                        >
-                          {downloadingCategory ? (
-                            <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <ArrowDownTrayIcon className="w-4 h-4" />
-                          )}
-                          <span>Download</span>
-                        </button>
-                      </div>
-                    </div>
-                    {categoryError && (
-                      <span className="text-red-500 text-[11px] font-bold mt-1 ml-auto">
-                        {categoryError}
-                      </span>
-                    )}
+                  {/* Financial Year Selector */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                      Financial Year:
+                    </label>
+                    <select
+                      value={selectedFinYear}
+                      onChange={(e) => setSelectedFinYear(e.target.value)}
+                      disabled={dropdownLoading}
+                      className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-none shadow-sm"
+                    >
+                      {finYears.map(fy => (
+                        <option key={fy.accYrSetId} value={fy.accYrSetId}>
+                          {fy.accYear}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                      Filter Status:
+                    </label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 text-xs font-semibold outline-none"
+                    >
+                      <option value="All">All</option>
+                      <option value="I">Incomplete</option>
+                      <option value="C">Completed</option>
+                    </select>
                   </div>
 
                 </div>
-
-                {/* Status Filter Row */}
-                <div className="flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
-                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                    Filter Status:
-                  </label>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 text-xs font-semibold outline-none"
-                  >
-                    <option value="All">All</option>
-                    <option value="I">Incomplete</option>
-                    <option value="C">Completed</option>
-                  </select>
-                </div>
-
               </div>
 
               {/* Error Message */}
