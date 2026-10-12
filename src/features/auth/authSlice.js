@@ -62,7 +62,26 @@ export const authSlice = createSlice({
       localStorage.setItem('user', JSON.stringify(data));
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('roleName', data.roleName || '');
+      localStorage.setItem('roleName', data?.roleName || '');
+
+      const facTypeId = data?.facilityTypeId || data?.facilitytypeid || data?.facilityTypeID || data?.usrFacilitytypeID || '';
+      if (facTypeId) {
+        localStorage.setItem('facilityTypeId', String(facTypeId));
+        localStorage.setItem('facilitytypeid', String(facTypeId));
+      }
+      if (data?.facilityType || data?.facilityTypeCode) {
+        localStorage.setItem('facilityType', String(data.facilityType || data.facilityTypeCode));
+      }
+
+      const hodId = data?.hodId ?? data?.hodid ?? '';
+      if (hodId !== '' && hodId !== null && hodId !== undefined) {
+        localStorage.setItem('hodId', String(hodId));
+        localStorage.setItem('hodid', String(hodId));
+      }
+      // Clean up legacy/redundant keys if present
+      localStorage.removeItem('facilityTypeID');
+      localStorage.removeItem('facilityTypeCode');
+      localStorage.removeItem('facilityTypeName');
     },
     logout: (state) => {
       state.user = null;
@@ -73,6 +92,14 @@ export const authSlice = createSlice({
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('roleName');
+      localStorage.removeItem('facilityTypeId');
+      localStorage.removeItem('facilitytypeid');
+      localStorage.removeItem('facilityType');
+      localStorage.removeItem('hodId');
+      localStorage.removeItem('hodid');
+      localStorage.removeItem('facilityTypeID');
+      localStorage.removeItem('facilityTypeCode');
+      localStorage.removeItem('facilityTypeName');
       localStorage.removeItem('menus');
       localStorage.removeItem('userMenuData');
     },

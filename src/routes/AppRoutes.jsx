@@ -70,6 +70,7 @@ import McHospitalAiVsIssuancePage from '../pages/annual-indent/McHospitalAiVsIss
 import MedicalCollegeAiPage from '../pages/annual-indent/MedicalCollegeAiPage';
 import DownloadAiFormatPage from '../pages/annual-indent/DownloadAiFormatPage';
 import UploadForwardIndentPage from '../pages/annual-indent/UploadForwardIndentPage';
+import UploadForwardDhIndentPage from '../pages/annual-indent/UploadForwardDhIndentPage';
 import CreateAnnualIndentPage from '../pages/annual-indent/CreateAnnualIndentPage';
 import CgmscReceiptDrugWisePage from '../pages/reports/CgmscReceiptDrugWisePage';
 import CgmscReceiptBatchWisePage from '../pages/reports/CgmscReceiptBatchWisePage';
@@ -518,6 +519,11 @@ export default function AppRoutes() {
       <Route path="/annual-indent/upload-forward" element={
         <ProtectedRoute>
           <UploadForwardIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/upload-forward-dh" element={
+        <ProtectedRoute>
+          <UploadForwardDhIndentPage />
         </ProtectedRoute>
       } />
       <Route path="/Facility/AnualindentMain.aspx" element={

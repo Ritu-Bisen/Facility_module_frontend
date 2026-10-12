@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
@@ -19,6 +19,19 @@ import {
 
 export default function UploadForwardIndentPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Guard: Only allow HOD ID 2 (DME) or 3 (AYUSH)
+  const rawHodId = localStorage.getItem('hodId') || localStorage.getItem('hodid') || user?.hodId || user?.hodid;
+  const currentHodId = rawHodId !== null && rawHodId !== undefined && rawHodId !== '' ? Number(rawHodId) : null;
+  const isAuthorized = currentHodId === 2 || currentHodId === 3;
+
+  useEffect(() => {
+    if (user && !isAuthorized) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, isAuthorized, navigate]);
+
   const [finYears, setFinYears] = useState([]);
   const [selectedFinYear, setSelectedFinYear] = useState('547');
 
@@ -104,6 +117,28 @@ export default function UploadForwardIndentPage() {
     return true;
   });
 
+  // Check if facility type or role is DH (District Hospital)
+  const isDhUser = useMemo(() => {
+    const facTypeCode = (user?.facilityTypeCode || localStorage.getItem('facilityTypeCode') || '').toUpperCase();
+    const facTypeDesc = (user?.facilityTypeName || user?.facilityType || localStorage.getItem('facilityType') || '').toUpperCase();
+    const facName = (user?.facilityName || '').toUpperCase();
+    const role = (user?.roleName || user?.role || localStorage.getItem('roleName') || '').toUpperCase();
+
+    return (
+      facTypeCode === 'DH' ||
+      facTypeCode.includes('DH') ||
+      facTypeDesc.includes('DH') ||
+      facTypeDesc.includes('DISTRICT HOSPITAL') ||
+      facName.startsWith('DH ') ||
+      facName.includes('DISTRICT HOSPITAL') ||
+      role === 'DH' ||
+      role.includes('DH')
+    );
+  }, [user]);
+
+  // For DH: only show Add New Annual Indent button if in that year there is NO indent (indentList.length === 0)
+  const showAddButton = isDhUser ? (indentList.length === 0) : canAdd;
+
   // Download Category Excel Format Handler (btnDownload_Click)
   const handleDownloadCategoryFormat = async () => {
     if (!selectedCategory || selectedCategory === '0') {
@@ -114,8 +149,11 @@ export default function UploadForwardIndentPage() {
     setDownloadingCategory(true);
 
     try {
-      const res = await axios.get('/annual-indent/download-format', {
-        params: { categoryId: selectedCategory }
+      const res = await axios.get('/annual-indent/ayush/download-format', {
+        params: { 
+          subCatId: selectedCategory,
+          facilityId: user?.facilityId || '29609'
+        }
       });
 
       if (res.data?.success && Array.isArray(res.data.data)) {
@@ -125,26 +163,25 @@ export default function UploadForwardIndentPage() {
           return;
         }
 
-        const catObj = categories.find(c => String(c.categoryId) === String(selectedCategory));
+        const catObj = categories.find(c => String(c.subcatId || c.categoryId) === String(selectedCategory));
         const catNameName = catObj ? catObj.categoryName.replace(/\s+/g, '_') : 'Category';
 
         let tableHtml = `
           <table border="1">
             <thead>
               <tr style="background-color: #1e3a8a; color: #ffffff; font-weight: bold;">
-                <th>SLNO</th>
-                <th>ITEMCODE</th>
-                <th>ITEMNAME</th>
-                <th>FORMULATION</th>
-                <th>STRENGTH</th>
-                <th>GROUPNAME</th>
-                <th>EDL</th>
-                <th>COSUMPTION</th>
-                <th>CURRENT_STOCK</th>
+                <th>SlNo</th>
+                <th>itemcode</th>
+                <th>itemname</th>
+                <th>Formulation</th>
+                <th>Strength</th>
+                <th>UNIT</th>
+                <th>edl</th>
+                <th>categoryname</th>
+                <th>COSUMPTION_From_1APR_25</th>
+                <th>CurStock</th>
                 <th>INDENT_26_27</th>
-                <th>RATE</th>
-                <th>PACKAGINGUNIT</th>
-                <th>CATEGORYNAME</th>
+                <th>Rates</th>
               </tr>
             </thead>
             <tbody>
@@ -158,14 +195,13 @@ export default function UploadForwardIndentPage() {
               <td>${r.itemName || ''}</td>
               <td>${r.formulation || ''}</td>
               <td>${r.strength || ''}</td>
-              <td>${r.groupName || ''}</td>
+              <td style="text-align: center;">${r.unit || '-'}</td>
               <td style="text-align: center;">${r.edl || ''}</td>
-              <td style="text-align: right;">${r.cosumption || 0}</td>
-              <td style="text-align: right;">${r.currentStock || 0}</td>
-              <td style="text-align: right;">${r.indent2627 || 0}</td>
-              <td style="text-align: right;">${Number(r.rate || 0).toFixed(2)}</td>
-              <td style="text-align: center;">${r.packagingUnit || 1}</td>
               <td>${r.categoryName || ''}</td>
+              <td style="text-align: right;">${r.cosumptionFrom1Apr25 || 0}</td>
+              <td style="text-align: right;">${r.curStock || 0}</td>
+              <td style="text-align: right;">${r.indent2627 || 0}</td>
+              <td style="text-align: right;">${Number(r.rates || 0).toFixed(2)}</td>
             </tr>
           `;
         });
@@ -198,7 +234,12 @@ export default function UploadForwardIndentPage() {
   // Download Specific Indent File Handler
   const handleDownloadIndent = async (row) => {
     try {
-      const res = await axios.get('/annual-indent/download-format');
+      const res = await axios.get('/annual-indent/ayush/download-format', {
+        params: {
+          subCatId: row.aiCategoryId || row.categoryId || selectedCategory || 8,
+          facilityId: user?.facilityId || '29609'
+        }
+      });
       if (res.data?.success && Array.isArray(res.data.data)) {
         const rows = res.data.data;
 
@@ -206,18 +247,18 @@ export default function UploadForwardIndentPage() {
           <table border="1">
             <thead>
               <tr style="background-color: #1e3a8a; color: #ffffff; font-weight: bold;">
-                <th>SLNO</th>
-                <th>ITEMCODE</th>
-                <th>ITEMNAME</th>
-                <th>FORMULATION</th>
-                <th>STRENGTH</th>
-                <th>GROUPNAME</th>
-                <th>EDL</th>
-                <th>COSUMPTION</th>
-                <th>CURRENT_STOCK</th>
+                <th>SlNo</th>
+                <th>itemcode</th>
+                <th>itemname</th>
+                <th>Formulation</th>
+                <th>Strength</th>
+                <th>UNIT</th>
+                <th>edl</th>
+                <th>categoryname</th>
+                <th>COSUMPTION_From_1APR_25</th>
+                <th>CurStock</th>
                 <th>INDENT_26_27</th>
-                <th>RATE</th>
-                <th>PACKAGINGUNIT</th>
+                <th>Rates</th>
               </tr>
             </thead>
             <tbody>
@@ -231,13 +272,13 @@ export default function UploadForwardIndentPage() {
               <td>${r.itemName || ''}</td>
               <td>${r.formulation || ''}</td>
               <td>${r.strength || ''}</td>
-              <td>${r.groupName || ''}</td>
+              <td style="text-align: center;">${r.unit || '-'}</td>
               <td style="text-align: center;">${r.edl || ''}</td>
-              <td style="text-align: right;">${r.cosumption || 0}</td>
-              <td style="text-align: right;">${r.currentStock || 0}</td>
+              <td>${r.categoryName || ''}</td>
+              <td style="text-align: right;">${r.cosumptionFrom1Apr25 || 0}</td>
+              <td style="text-align: right;">${r.curStock || 0}</td>
               <td style="text-align: right;">${r.indent2627 || 0}</td>
-              <td style="text-align: right;">${Number(r.rate || 0).toFixed(2)}</td>
-              <td style="text-align: center;">${r.packagingUnit || 1}</td>
+              <td style="text-align: right;">${Number(r.rates || 0).toFixed(2)}</td>
             </tr>
           `;
         });
@@ -251,7 +292,7 @@ export default function UploadForwardIndentPage() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `AnnualIndent_${row.nocNumber.replace(/\//g, '_')}.xls`;
+        a.download = `AnnualIndent_${(row.nocNumber || row.indentNo || 'AYUSH').replace(/\//g, '_')}.xls`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -284,15 +325,16 @@ export default function UploadForwardIndentPage() {
                     <span>Annual Indent</span>
                   </div>
                   <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
-                    Upload Excel File and Forward for Approval
+                    Ayush Upload and Forward Indent for Approval
                   </h1>
                 </div>
               </div>
 
-              {/* Filter Parameters Bar - Single Line Layout */}
-              <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 md:p-5">
+              {/* Filter Parameters Bar */}
+              <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 md:p-5 space-y-4">
+                
+                {/* Category Selection & Add New Annual Indent Button */}
                 <div className="flex flex-wrap items-center justify-between gap-4">
-                  
                   {/* Category Selection & Download Excel Format */}
                   <div className="flex flex-wrap items-center gap-2 relative">
                     <label className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
@@ -311,7 +353,7 @@ export default function UploadForwardIndentPage() {
                     >
                       <option value="0">-- Select Category --</option>
                       {categories.map(cat => (
-                        <option key={cat.categoryId} value={cat.categoryId}>
+                        <option key={cat.subcatId || cat.categoryId} value={cat.subcatId || cat.categoryId}>
                           {cat.categoryName}
                         </option>
                       ))}
@@ -338,7 +380,7 @@ export default function UploadForwardIndentPage() {
 
                   {/* Add New Annual Indent Button */}
                   <div className="flex items-center">
-                    {canAdd && (
+                    {showAddButton && (
                       <Link 
                         to={`/annual-indent/create?finYearId=${selectedFinYear}`}
                         className="inline-flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-slate-700 transition-all border border-blue-200 dark:border-slate-700 shadow-sm group shrink-0"
@@ -353,7 +395,10 @@ export default function UploadForwardIndentPage() {
                       </Link>
                     )}
                   </div>
+                </div>
 
+                {/* Financial Year & Filter Status Side-by-Side */}
+                <div className="flex flex-wrap items-center gap-6 pt-3 border-t border-slate-100 dark:border-slate-800/80">
                   {/* Financial Year Selector */}
                   <div className="flex items-center gap-2">
                     <label className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
@@ -373,7 +418,7 @@ export default function UploadForwardIndentPage() {
                     </select>
                   </div>
 
-                  {/* Status Filter */}
+                  {/* Status Filter Menu (Placed right beside Financial Year) */}
                   <div className="flex items-center gap-2">
                     <label className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                       Filter Status:
@@ -381,15 +426,15 @@ export default function UploadForwardIndentPage() {
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 text-xs font-semibold outline-none"
+                      className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all outline-none shadow-sm"
                     >
                       <option value="All">All</option>
                       <option value="I">Incomplete</option>
                       <option value="C">Completed</option>
                     </select>
                   </div>
-
                 </div>
+
               </div>
 
               {/* Error Message */}

@@ -25,26 +25,38 @@ export default function Sidebar() {
     }
   }, [user, isLoaded, loading, dispatch]);
 
-  const isMcFacility = user?.roleName === 'MC Facility' || 
-                       user?.roleName?.toLowerCase()?.includes('mc') || 
-                       facilityType === 'MC Facility' || 
-                       facilityType === 'MC' || 
-                       user?.facilityType === 'MC Facility' ||
-                       user?.facilityType === 'MC' ||
-                       user?.emailId === 'admink@gnail.com';
+  // Read facilityType, facilityTypeId, and role values from localStorage & user state
+  const localFacType = (localStorage.getItem('facilityType') || '').trim().toUpperCase();
+  const localFacTypeId = (localStorage.getItem('facilityTypeId') || '').trim();
+  const localRoleName = (localStorage.getItem('roleName') || '').trim().toUpperCase();
 
-  const isCmeUser = user?.roleName === 'CME' || 
-                    user?.roleName === 'DME' || 
-                    user?.roleName?.toUpperCase()?.includes('CME') || 
-                    user?.roleName?.toUpperCase()?.includes('DME') || 
-                    isMcFacility;
+  const userFacTypeCode = (user?.facilityTypeCode || '').trim().toUpperCase();
+  const userFacTypeName = (user?.facilityTypeName || user?.facilityType || '').trim().toUpperCase();
+  const userRoleName = (user?.roleName || '').trim().toUpperCase();
 
-  const isAyushUser = user?.roleName === 'Ayush FAC' ||
-                      user?.roleName?.toLowerCase()?.includes('ayush') ||
-                      user?.role?.toLowerCase()?.includes('ayush') ||
-                      user?.facilityType?.toLowerCase()?.includes('ayush') ||
-                      user?.facilityTypeName?.toLowerCase()?.includes('ayush') ||
-                      user?.userType?.toLowerCase()?.includes('ayush');
+  // Facility check for DH, DME, DME MC / MC logins
+  const isDhDmeMcFacility = 
+    ['DH', 'DME', 'DME MC', 'MC', '364', '378'].includes(localFacType) ||
+    ['DH', 'DME', 'DME MC', 'MC', '364', '378'].includes(userFacTypeCode) ||
+    localFacType.includes('DH') || localFacType.includes('DME') || localFacType.includes('MEDICAL COLLEGE') ||
+    userFacTypeName.includes('DH') || userFacTypeName.includes('DME') || userFacTypeName.includes('MEDICAL COLLEGE') ||
+    localRoleName.includes('DH') || localRoleName.includes('DME') || localRoleName.includes('CME') || localRoleName.includes('MC') ||
+    userRoleName.includes('DH') || userRoleName.includes('DME') || userRoleName.includes('CME') || userRoleName.includes('MC') ||
+    ['364', '378'].includes(localFacTypeId) || ['364', '378'].includes(user?.facilityTypeId) || ['364', '378'].includes(user?.facilityTypeID) ||
+    user?.emailId === 'admink@gnail.com';
+
+  const isMcFacility = isDhDmeMcFacility;
+  const isCmeUser = isDhDmeMcFacility;
+
+  const isAyushUser = userRoleName.includes('AYUSH') || 
+                      localRoleName.includes('AYUSH') || 
+                      userFacTypeName.includes('AYUSH') || 
+                      localFacType.includes('AYUSH');
+
+  // HOD ID check: hodId 2 (DME) or 3 (AYUSH)
+  const rawHodId = localStorage.getItem('hodId') || localStorage.getItem('hodid') || user?.hodId || user?.hodid;
+  const currentHodId = rawHodId !== null && rawHodId !== undefined && rawHodId !== '' ? Number(rawHodId) : null;
+  const isHod2Or3 = currentHodId === 2 || currentHodId === 3;
 
   const hardcodedModules = [
     ...(isAyushUser ? [
@@ -84,11 +96,17 @@ export default function Sidebar() {
       moduleId: 'annual_indent_module',
       moduleName: 'Annual Indent',
       screens: [
-        ...(!isAyushUser ? [
+        ...(isAyushUser ? [
+          ...(isHod2Or3 ? [
+            { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Ayush Upload and Forward Indent for Approval', canView: true }
+          ] : [])
+        ] : [
           { screenId: 'ai_download_format', screenUrl: '/annual-indent/download-format', screenName: 'Download AI Format', canView: true }
+        ]),
+        ...(isHod2Or3 ? [
+          { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual Indent', canView: true }
         ] : []),
-        { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Upload and Forward Indent for Approval', canView: true },
-        ...(isCmeUser ? [
+        ...(isDhDmeMcFacility ? [
           { screenId: 'ai_mc_ai', screenUrl: '/annual-indent/medical-college-ai', screenName: 'Medical College AI', canView: true },
           { screenId: 'ai_mc_vs_issuance', screenUrl: '/annual-indent/mc-hospital-ai-vs-issuance', screenName: 'Medical College/Hospital AI vs Issuance', canView: true }
         ] : [])
@@ -114,7 +132,25 @@ export default function Sidebar() {
   ];
 
   const allModules = useMemo(() => {
-    const combined = [...(menus || []), ...hardcodedModules];
+    // If user's HOD is not 2 or 3, filter out upload-forward from dynamic backend menus too
+    const filteredMenus = (menus || []).map(m => {
+      if (!m || !m.screens) return m;
+      return {
+        ...m,
+        screens: m.screens.filter(s => {
+          if (!isHod2Or3) {
+            const url = (s?.screenUrl || '').toLowerCase();
+            const name = (s?.screenName || '').toLowerCase();
+            if (url.includes('upload-forward') || name.includes('upload and forward') || name.includes('forward indent')) {
+              return false;
+            }
+          }
+          return true;
+        })
+      };
+    }).filter(m => (m?.screens?.length || 0) > 0);
+
+    const combined = [...filteredMenus, ...hardcodedModules];
     const moduleMap = new Map();
 
     combined.forEach((module) => {
@@ -141,7 +177,7 @@ export default function Sidebar() {
     });
 
     return Array.from(moduleMap.values());
-  }, [menus, hardcodedModules]);
+  }, [menus, hardcodedModules, isHod2Or3]);
 
   useEffect(() => {
     // Keep parent menu open when navigating to one of its sub-items

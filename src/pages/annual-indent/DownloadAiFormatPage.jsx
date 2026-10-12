@@ -39,7 +39,10 @@ export default function DownloadAiFormatPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get('/annual-indent/download-format');
+      const facTypeId = localStorage.getItem('facilityTypeId') || localStorage.getItem('facilitytypeid') || user?.facilityTypeId || user?.facilitytypeid;
+      const res = await axios.get('/annual-indent/download-format', {
+        params: { facilityTypeId: facTypeId || undefined }
+      });
       if (res.data?.success && Array.isArray(res.data.data)) {
         setItemsData(res.data.data);
       } else {
@@ -85,7 +88,10 @@ export default function DownloadAiFormatPage() {
     try {
       let exportRows = itemsData;
       if (exportRows.length === 0) {
-        const res = await axios.get('/annual-indent/download-format');
+        const facTypeId = localStorage.getItem('facilityTypeId') || localStorage.getItem('facilitytypeid') || user?.facilityTypeId || user?.facilitytypeid;
+        const res = await axios.get('/annual-indent/download-format', {
+          params: { facilityTypeId: facTypeId || undefined }
+        });
         if (res.data?.success && Array.isArray(res.data.data)) {
           exportRows = res.data.data;
         }
@@ -94,20 +100,22 @@ export default function DownloadAiFormatPage() {
       if (exportRows.length > 0) {
         const facId = user?.facilityId || '22595';
 
-        // Prepare XLSX worksheet data matching live website structure (Image 3)
+        // Prepare XLSX worksheet data matching the exact query columns
         const worksheetData = exportRows.map((row, index) => ({
-          'SLNO': index + 1,
-          'ITEMCODE': row.itemCode || '',
-          'ITEMNAME': row.itemName || '',
-          'FORMULATION': row.formulation || '',
-          'STRENGTH': row.strength || '',
-          'GROUPNAME': row.groupName || '',
-          'EDL': row.edl || '',
-          'COSUMPTION': row.cosumption || 0,
-          'CURRENT_STOCK': row.currentStock || 0,
-          'INDENT_26_27': row.indent2627 || 0,
-          'RATE': Number(row.rate || 0),
-          'PACKAGINGUNIT': row.packagingUnit || 1
+          'SlNo': index + 1,
+          'itemcode': row.itemCode || '',
+          'itemname': row.itemName || '',
+          'Formulation': row.formulation || '',
+          'Strength': row.strength || '',
+          'GroupName': row.groupName || '',
+          'edl': row.edl || '',
+          'Issued_From_WH_01_Apr_25_to_31st_Oct_25': Number(row.issuedFromWh !== undefined ? row.issuedFromWh : 0),
+          'Actual_Consumption_From_01_April_25_to_31st_Oct_25': Number(row.actualConsumption !== undefined ? row.actualConsumption : 0),
+          'Estimated_Consumption_For_One_Year_From_01_April_25_to_31st_March_26': Number(row.estimatedConsumption !== undefined ? row.estimatedConsumption : 0),
+          'Current_Stock': Number(row.currentStock !== undefined ? row.currentStock : 0),
+          'ANNUAL_INDENT_26_27': Number(row.annualIndent2627 !== undefined ? row.annualIndent2627 : 0),
+          'Rate': Number(row.rate !== undefined ? row.rate : 0),
+          'categoryname': row.categoryName || ''
         }));
 
         const worksheet = XLSX.utils.json_to_sheet(worksheetData);
