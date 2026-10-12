@@ -30,7 +30,7 @@ export default function UploadForwardDhIndentPage() {
   }, [user, isAuthorized, navigate]);
 
   const [finYears, setFinYears] = useState([]);
-  const [selectedFinYear, setSelectedFinYear] = useState('547');
+  const [selectedFinYear, setSelectedFinYear] = useState('548');
   const [statusFilter, setStatusFilter] = useState('All');
 
   const [indentList, setIndentList] = useState([]);
@@ -48,9 +48,16 @@ export default function UploadForwardDhIndentPage() {
         if (res.data?.success && Array.isArray(res.data.data)) {
           setFinYears(res.data.data);
           if (res.data.data.length > 0) {
-            const currentFy = res.data.data.find(fy => fy.isCurrent);
-            const defaultId = currentFy ? currentFy.accYrSetId : res.data.data[0].accYrSetId;
-            setSelectedFinYear(String(defaultId));
+            const currentIndex = res.data.data.findIndex(fy => fy.isCurrent);
+            let defaultFy = null;
+            if (currentIndex > 0) {
+              defaultFy = res.data.data[currentIndex - 1]; // One year in the future
+            } else if (currentIndex === 0) {
+              defaultFy = res.data.data[0];
+            } else {
+              defaultFy = res.data.data[0];
+            }
+            setSelectedFinYear(String(defaultFy.accYrSetId));
           }
         }
       } catch (err) {
@@ -272,7 +279,7 @@ export default function UploadForwardDhIndentPage() {
                   {showAddButton && (
                     <div className="flex items-center">
                       <Link 
-                        to={`/annual-indent/create?finYearId=${selectedFinYear}&isDh=true`}
+                        to={`/annual-indent/create-dh?finYearId=${selectedFinYear}`}
                         className="inline-flex items-center justify-between gap-2 px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-slate-800 dark:hover:bg-slate-700 transition-all border border-emerald-300 dark:border-slate-700 shadow-sm group shrink-0"
                         title="Add new Anualindent"
                       >
@@ -352,12 +359,20 @@ export default function UploadForwardDhIndentPage() {
                             <td className="py-3 px-4 text-center border-r border-slate-100 dark:border-slate-800 font-medium">
                               {row.nocDate || row.indentDate}
                             </td>
-                            <td className={`py-3 px-4 text-center border-r border-slate-100 dark:border-slate-800 font-extrabold ${
-                              row.status === 'Incomplete' 
-                                ? 'text-red-600 dark:text-red-400' 
-                                : 'text-emerald-600 dark:text-emerald-400'
-                            }`}>
-                              {row.status}
+                            <td className="py-3 px-4 text-center border-r border-slate-100 dark:border-slate-800 font-extrabold">
+                              {row.status === 'Incomplete' ? (
+                                <Link
+                                  to={`/annual-indent/create-dh?indentId=${row.nocId}&finYearId=${selectedFinYear}`}
+                                  className="text-red-600 dark:text-red-400 hover:text-red-800 hover:underline cursor-pointer inline-flex items-center gap-1 font-black"
+                                  title="Click to view/edit incomplete indent"
+                                >
+                                  <span>{row.status}</span>
+                                </Link>
+                              ) : (
+                                <span className="text-emerald-600 dark:text-emerald-400">
+                                  {row.status}
+                                </span>
+                              )}
                             </td>
                             <td className="py-3 px-4 text-center">
                               {row.status !== 'Incomplete' ? (

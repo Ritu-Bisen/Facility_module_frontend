@@ -72,6 +72,8 @@ import DownloadAiFormatPage from '../pages/annual-indent/DownloadAiFormatPage';
 import UploadForwardIndentPage from '../pages/annual-indent/UploadForwardIndentPage';
 import UploadForwardDhIndentPage from '../pages/annual-indent/UploadForwardDhIndentPage';
 import CreateAnnualIndentPage from '../pages/annual-indent/CreateAnnualIndentPage';
+import CreateAnnualIndentAyushPage from '../pages/annual-indent/CreateAnnualIndentAyushPage';
+import CreateAnnualIndentDhPage from '../pages/annual-indent/CreateAnnualIndentDhPage';
 import CgmscReceiptDrugWisePage from '../pages/reports/CgmscReceiptDrugWisePage';
 import CgmscReceiptBatchWisePage from '../pages/reports/CgmscReceiptBatchWisePage';
 import DateWiseFacilityIssuePage from '../pages/reports/DateWiseFacilityIssuePage';
@@ -541,6 +543,16 @@ export default function AppRoutes() {
           <CreateAnnualIndentPage />
         </ProtectedRoute>
       } />
+      <Route path="/annual-indent/create-ayush" element={
+        <ProtectedRoute>
+          <CreateAnnualIndentAyushPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/create-dh" element={
+        <ProtectedRoute>
+          <CreateAnnualIndentDhPage />
+        </ProtectedRoute>
+      } />
       <Route path="/annual-indent/item-indent" element={
         <ProtectedRoute>
           <CreateAnnualIndentPage />
@@ -548,22 +560,22 @@ export default function AppRoutes() {
       } />
       <Route path="/AnualItemIndent.aspx" element={
         <ProtectedRoute>
-          <CreateAnnualIndentPage />
+          <CreateAnnualIndentDhPage />
         </ProtectedRoute>
       } />
       <Route path="/Facility/AnualItemIndent.aspx" element={
         <ProtectedRoute>
-          <CreateAnnualIndentPage />
+          <CreateAnnualIndentDhPage />
         </ProtectedRoute>
       } />
       <Route path="/AYUSHAnualItemIndent.aspx" element={
         <ProtectedRoute>
-          <CreateAnnualIndentPage />
+          <CreateAnnualIndentAyushPage />
         </ProtectedRoute>
       } />
       <Route path="/Facility/AYUSHAnualItemIndent.aspx" element={
         <ProtectedRoute>
-          <CreateAnnualIndentPage />
+          <CreateAnnualIndentAyushPage />
         </ProtectedRoute>
       } />
       <Route path="/program-indent/list" element={
