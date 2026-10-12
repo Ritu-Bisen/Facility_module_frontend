@@ -2,10 +2,32 @@ import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../hooks/useAuth';
 
 export default function AnnualIndentDistributionPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Guard: Only allow CMHO role/facility
+  const userRole = (user?.roleName || localStorage.getItem('roleName') || '').toUpperCase();
+  const userFacType = (user?.facilityTypeCode || localStorage.getItem('facilityType') || '').toUpperCase();
+  const userFacTypeId = String(user?.facilityTypeId || localStorage.getItem('facilityTypeId') || '').trim();
+  const userFacTypeName = (user?.facilityTypeName || '').toUpperCase();
+  const isCmho = userRole.includes('CMHO') || 
+                 userFacType.includes('CMHO') || 
+                 userFacTypeName.includes('CHIEF MEDICAL') || 
+                 userFacTypeId === '353';
+
+  useEffect(() => {
+    if (user && !isCmho) {
+      toast.error('Access restricted to CMHO role only');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, isCmho, navigate]);
+
   const [items, setItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState('');
   const [searchTerm, setSearchTerm] = useState('');

@@ -21,10 +21,12 @@ export default function UploadForwardIndentPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Guard: Only allow HOD ID 2 (DME) or 3 (AYUSH)
+  // Guard: Allow AYUSH users or HOD ID 2, 3, 7
   const rawHodId = localStorage.getItem('hodId') || localStorage.getItem('hodid') || user?.hodId || user?.hodid;
   const currentHodId = rawHodId !== null && rawHodId !== undefined && rawHodId !== '' ? Number(rawHodId) : null;
-  const isAuthorized = currentHodId === 2 || currentHodId === 3;
+  const isAuthorized = [2, 3, 7].includes(currentHodId) || 
+                       (user?.roleName || '').toUpperCase().includes('AYUSH') ||
+                       (localStorage.getItem('roleName') || '').toUpperCase().includes('AYUSH');
 
   useEffect(() => {
     if (user && !isAuthorized) {

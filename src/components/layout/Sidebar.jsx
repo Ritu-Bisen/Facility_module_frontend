@@ -53,10 +53,22 @@ export default function Sidebar() {
                       userFacTypeName.includes('AYUSH') || 
                       localFacType.includes('AYUSH');
 
-  // HOD ID check: hodId 2 (DME) or 3 (AYUSH)
+  // CMHO role or facility check
+  const isCmhoUser = userRoleName.includes('CMHO') || 
+                     localRoleName.includes('CMHO') || 
+                     userFacTypeCode.includes('CMHO') || 
+                     localFacType.includes('CMHO') || 
+                     userFacTypeName.includes('CHIEF MEDICAL') || 
+                     localFacTypeId === '353' || 
+                     String(user?.facilityTypeId) === '353';
+
+  // HOD ID check:
+  // In MASHODS: 2 = DHS, 3 = DME, 7 = AYUSH (or 3 as requested for AYUSH)
   const rawHodId = localStorage.getItem('hodId') || localStorage.getItem('hodid') || user?.hodId || user?.hodid;
   const currentHodId = rawHodId !== null && rawHodId !== undefined && rawHodId !== '' ? Number(rawHodId) : null;
-  const isHod2Or3 = currentHodId === 2 || currentHodId === 3;
+  const isAyushHod = currentHodId === 7 || currentHodId === 3 || isAyushUser;
+  const isDmeHod = currentHodId === 3 || currentHodId === 2;
+  const isHod2Or3 = currentHodId === 2 || currentHodId === 3 || currentHodId === 7 || isAyushUser;
 
   const hardcodedModules = [
     ...(isAyushUser ? [
@@ -96,14 +108,12 @@ export default function Sidebar() {
       moduleId: 'annual_indent_module',
       moduleName: 'Annual Indent',
       screens: [
-        ...(isAyushUser ? [
-          ...(isHod2Or3 ? [
-            { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Ayush Upload and Forward Indent for Approval', canView: true }
-          ] : [])
+        ...(isAyushUser || currentHodId === 7 ? [
+          { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Ayush Upload and Forward Indent for Approval', canView: true }
         ] : [
           { screenId: 'ai_download_format', screenUrl: '/annual-indent/download-format', screenName: 'Download AI Format', canView: true }
         ]),
-        ...(isHod2Or3 ? [
+        ...(isHod2Or3 && !isAyushUser && currentHodId !== 7 ? [
           { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual Indent', canView: true }
         ] : []),
         ...(isDhDmeMcFacility ? [
@@ -132,15 +142,22 @@ export default function Sidebar() {
   ];
 
   const allModules = useMemo(() => {
-    // If user's HOD is not 2 or 3, filter out upload-forward from dynamic backend menus too
+    // Filter dynamic backend menus based on permissions (HOD and CMHO)
     const filteredMenus = (menus || []).map(m => {
       if (!m || !m.screens) return m;
       return {
         ...m,
         screens: m.screens.filter(s => {
+          const url = (s?.screenUrl || '').toLowerCase();
+          const name = (s?.screenName || '').toLowerCase();
+
+          // Annual Indent Distribution only allowed for CMHO
+          if (!isCmhoUser && (url.includes('distribution') || name.includes('distribution'))) {
+            return false;
+          }
+
+          // If user's HOD is not 2 or 3 or 7, filter out upload-forward
           if (!isHod2Or3) {
-            const url = (s?.screenUrl || '').toLowerCase();
-            const name = (s?.screenName || '').toLowerCase();
             if (url.includes('upload-forward') || name.includes('upload and forward') || name.includes('forward indent')) {
               return false;
             }
