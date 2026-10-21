@@ -7,7 +7,11 @@ import { toast } from 'react-hot-toast';
 
 
 
+import { useDispatch } from 'react-redux';
+import { fetchMyMenus } from '../features/menu/menuSlice';
+
 export default function RoleAccessManagementPage() {
+  const dispatch = useDispatch();
   const [selectedFacility, setSelectedFacility] = useState('');
   const [modules, setModules] = useState([]);
   const [facilityTypes, setFacilityTypes] = useState([]);
@@ -58,10 +62,21 @@ export default function RoleAccessManagementPage() {
   };
 
   const handleCheckboxChange = (moduleIndex, screenIndex, field) => {
-    const updatedModules = [...modules];
-    const screen = updatedModules[moduleIndex].screens[screenIndex];
-    screen[field] = !screen[field];
-    setModules(updatedModules);
+    setModules(prevModules => {
+      return prevModules.map((mod, mIdx) => {
+        if (mIdx !== moduleIndex) return mod;
+        return {
+          ...mod,
+          screens: (mod.screens || []).map((sc, sIdx) => {
+            if (sIdx !== screenIndex) return sc;
+            return {
+              ...sc,
+              [field]: !sc[field]
+            };
+          })
+        };
+      });
+    });
   };
 
   const handleSave = async () => {
@@ -79,12 +94,13 @@ export default function RoleAccessManagementPage() {
       
       if (res.data.success) {
         toast.success('Permissions saved successfully!');
-        // Reset the page to default empty state
-        setSelectedFacility('');
-        setModules([]);
+        // Re-fetch updated permissions from database so changes stay visible
+        await fetchPermissions(selectedFacility);
+        // Refresh sidebar menu permissions across the app
+        dispatch(fetchMyMenus());
       }
     } catch (err) {
-      toast.error('Failed to save permissions');
+      toast.error(err.response?.data?.message || 'Failed to save permissions');
       console.error(err);
     } finally {
       setSaving(false);

@@ -5,6 +5,7 @@ import Sidebar from '../../components/layout/Sidebar';
 import Footer from '../../components/layout/Footer';
 import axios from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
+import { generateAnnualIndentPDF } from '../../utils/annualIndentPdfGenerator';
 import {
   DocumentArrowUpIcon,
   PlusIcon,
@@ -32,6 +33,7 @@ export default function UploadForwardDhIndentPage() {
   const [finYears, setFinYears] = useState([]);
   const [selectedFinYear, setSelectedFinYear] = useState('548');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const [indentList, setIndentList] = useState([]);
   const [canAdd, setCanAdd] = useState(true);
@@ -138,76 +140,21 @@ export default function UploadForwardDhIndentPage() {
     return true;
   });
 
-  // Download Specific Indent File Handler
+  // Download Specific Indent PDF Handler
   const handleDownloadIndent = async (row) => {
+    if (row.status === 'Incomplete' || row.status === 'I') {
+      alert('Annual Indent must be completed before downloading PDF.');
+      return;
+    }
+    const key = row.nocId || row.indentId;
+    setDownloadingId(key);
     try {
-      const facTypeId = localStorage.getItem('facilityTypeId') || localStorage.getItem('facilitytypeid') || user?.facilityTypeId || user?.facilitytypeid;
-      const res = await axios.get('/annual-indent/download-format', {
-        params: { facilityTypeId: facTypeId || undefined }
-      });
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        const rows = res.data.data;
-
-        let tableHtml = `
-          <table border="1">
-            <thead>
-              <tr style="background-color: #065f46; color: #ffffff; font-weight: bold;">
-                <th>SLNO</th>
-                <th>ITEMCODE</th>
-                <th>ITEMNAME</th>
-                <th>FORMULATION</th>
-                <th>STRENGTH</th>
-                <th>GROUPNAME</th>
-                <th>EDL</th>
-                <th>COSUMPTION</th>
-                <th>CURRENT_STOCK</th>
-                <th>INDENT_26_27</th>
-                <th>RATE</th>
-                <th>PACKAGINGUNIT</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-
-        rows.forEach((r, index) => {
-          tableHtml += `
-            <tr>
-              <td style="text-align: center;">${index + 1}</td>
-              <td>${r.itemCode || ''}</td>
-              <td>${r.itemName || ''}</td>
-              <td>${r.formulation || ''}</td>
-              <td>${r.strength || ''}</td>
-              <td>${r.groupName || ''}</td>
-              <td style="text-align: center;">${r.edl || ''}</td>
-              <td style="text-align: right;">${r.cosumption || 0}</td>
-              <td style="text-align: right;">${r.currentStock || 0}</td>
-              <td style="text-align: right;">${r.indent2627 || 0}</td>
-              <td style="text-align: right;">${Number(r.rate || 0).toFixed(2)}</td>
-              <td style="text-align: center;">${r.packagingUnit || 1}</td>
-            </tr>
-          `;
-        });
-
-        tableHtml += `
-            </tbody>
-          </table>
-        `;
-
-        const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Medical_College_AnnualIndent_${(row.nocNumber || 'INDENT').replace(/\//g, '_')}.xls`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } else {
-        alert('Failed to generate Excel file');
-      }
+      await generateAnnualIndentPDF(row, user, selectedFinYear);
     } catch (err) {
-      console.error('Failed to download indent Excel:', err);
-      alert('Error downloading indent Excel file');
+      console.error('Failed to download indent PDF:', err);
+      alert('Error downloading indent PDF: ' + (err.message || 'Unknown error'));
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -375,13 +322,27 @@ export default function UploadForwardDhIndentPage() {
                               )}
                             </td>
                             <td className="py-3 px-4 text-center">
-                              {row.status !== 'Incomplete' ? (
+                              {row.status === 'Completed' || row.status === 'C' ? (
                                 <button
                                   onClick={() => handleDownloadIndent(row)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-emerald-400 font-bold rounded-lg transition-all text-xs border border-emerald-200 dark:border-slate-700 shadow-sm"
+                                  disabled={downloadingId === (row.nocId || row.indentId)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-emerald-400 font-bold rounded-lg transition-all text-xs border border-emerald-200 dark:border-slate-700 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                                  title="Download saved Annual Indent PDF"
                                 >
-                                  <ArrowDownTrayIcon className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Download</span>
+                                  {downloadingId === (row.nocId || row.indentId) ? (
+                                    <>
+                                      <svg className="animate-spin w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                      </svg>
+                                      <span>Downloading...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ArrowDownTrayIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                      <span>Download</span>
+                                    </>
+                                  )}
                                 </button>
                               ) : (
                                 <span className="text-slate-400 text-xs font-semibold">-</span>

@@ -69,8 +69,14 @@ import PoAgainstNocPage from '../pages/local-purchase/PoAgainstNocPage';
 import McHospitalAiVsIssuancePage from '../pages/annual-indent/McHospitalAiVsIssuancePage';
 import MedicalCollegeAiPage from '../pages/annual-indent/MedicalCollegeAiPage';
 import DownloadAiFormatPage from '../pages/annual-indent/DownloadAiFormatPage';
+import DownloadNonEdlFormatPage from '../pages/annual-indent/DownloadNonEdlFormatPage';
+import DownloadReagentNonEdlFormatPage from '../pages/annual-indent/DownloadReagentNonEdlFormatPage';
 import UploadForwardIndentPage from '../pages/annual-indent/UploadForwardIndentPage';
 import UploadForwardDhIndentPage from '../pages/annual-indent/UploadForwardDhIndentPage';
+import UploadForwardNonEdlIndentPage from '../pages/annual-indent/UploadForwardNonEdlIndentPage';
+import UploadForwardReagentIndentPage from '../pages/annual-indent/UploadForwardReagentIndentPage';
+import CreateReagentAnnualIndentPage from '../pages/annual-indent/CreateReagentAnnualIndentPage';
+import CreateNonEdlAnnualIndentPage from '../pages/annual-indent/CreateNonEdlAnnualIndentPage';
 import CreateAnnualIndentPage from '../pages/annual-indent/CreateAnnualIndentPage';
 import CreateAnnualIndentAyushPage from '../pages/annual-indent/CreateAnnualIndentAyushPage';
 import CreateAnnualIndentDhPage from '../pages/annual-indent/CreateAnnualIndentDhPage';
@@ -516,6 +522,136 @@ export default function AppRoutes() {
       <Route path="/annual-indent/download-format" element={
         <ProtectedRoute>
           <DownloadAiFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/non-edl-annual-indent/download-format" element={
+        <ProtectedRoute>
+          <DownloadNonEdlFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/DownloadNonEdlFormat.aspx" element={
+        <ProtectedRoute>
+          <DownloadNonEdlFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/DownloadNonEdlFormat.aspx" element={
+        <ProtectedRoute>
+          <DownloadNonEdlFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/non-edl-annual-indent/download-reagent-format" element={
+        <ProtectedRoute>
+          <DownloadReagentNonEdlFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/AnualindentDownloadExcelRegeant.aspx" element={
+        <ProtectedRoute>
+          <DownloadReagentNonEdlFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualindentDownloadExcelRegeant.aspx" element={
+        <ProtectedRoute>
+          <DownloadReagentNonEdlFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/AnualindentDownloadExcelRegeant.aspx" element={
+        <ProtectedRoute>
+          <DownloadReagentNonEdlFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/DownloadReagentNonEdlFormat.aspx" element={
+        <ProtectedRoute>
+          <DownloadReagentNonEdlFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/DownloadReagentNonEdlFormat.aspx" element={
+        <ProtectedRoute>
+          <DownloadReagentNonEdlFormatPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/non-edl-annual-indent/upload-forward" element={
+        <ProtectedRoute>
+          <UploadForwardNonEdlIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/NONEDLAnualindentMain.aspx" element={
+        <ProtectedRoute>
+          <UploadForwardNonEdlIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/NONEDLAnualindentMain.aspx" element={
+        <ProtectedRoute>
+          <UploadForwardNonEdlIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/non-edl-annual-indent/create" element={
+        <ProtectedRoute>
+          <CreateNonEdlAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/NONEDLAnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateNonEdlAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/NONEDLAnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateNonEdlAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/NONEDLAnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateNonEdlAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/non-edl-annual-indent/upload-forward-reagent" element={
+        <ProtectedRoute>
+          <UploadForwardReagentIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/REAGENTAnualindentMain.aspx" element={
+        <ProtectedRoute>
+          <UploadForwardReagentIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/REAGENTAnualindentMain.aspx" element={
+        <ProtectedRoute>
+          <UploadForwardReagentIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/REAGENTAnualindentMain.aspx" element={
+        <ProtectedRoute>
+          <UploadForwardReagentIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/non-edl-annual-indent/create-reagent" element={
+        <ProtectedRoute>
+          <CreateReagentAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/REAGENTAnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateReagentAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/REAGENTAnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateReagentAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/REAGENTAnualItemIndent.aspx" element={
+        <ProtectedRoute>
+          <CreateReagentAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/REAGENTAnualItemIndentDHS.aspx" element={
+        <ProtectedRoute>
+          <CreateReagentAnnualIndentPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/REAGENTAnualItemIndentDHS.aspx" element={
+        <ProtectedRoute>
+          <CreateReagentAnnualIndentPage />
         </ProtectedRoute>
       } />
       <Route path="/annual-indent/upload-forward" element={

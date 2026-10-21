@@ -122,6 +122,36 @@ export default function Sidebar() {
         ] : [])
       ]
     },
+    {
+      moduleId: 'non_edl_annual_indent_module',
+      moduleName: 'NON EDL Annual Indent',
+      screens: [
+        {
+          screenId: 'non_edl_download_format',
+          screenUrl: '/non-edl-annual-indent/download-format',
+          screenName: 'Download Non EDL Indent Format',
+          canView: true
+        },
+        {
+          screenId: 'non_edl_upload_forward',
+          screenUrl: '/non-edl-annual-indent/upload-forward',
+          screenName: 'Upload and forward NON EDL indent for approval',
+          canView: true
+        },
+        {
+          screenId: 'non_edl_download_reagent_format',
+          screenUrl: '/non-edl-annual-indent/download-reagent-format',
+          screenName: 'Download Reagent/Non EDL Consumables and Kits Format',
+          canView: true
+        },
+        {
+          screenId: 'non_edl_upload_forward_reagent',
+          screenUrl: '/non-edl-annual-indent/upload-forward-reagent',
+          screenName: 'Upload and forward Reagent/Non EDL Consumables and Kits',
+          canView: true
+        }
+      ]
+    },
     ...(isMcFacility ? [{
       moduleId: 'reagent_indent_module',
       moduleName: 'Reagent Indent',
@@ -142,12 +172,26 @@ export default function Sidebar() {
   ];
 
   const allModules = useMemo(() => {
-    // Filter dynamic backend menus based on permissions (HOD and CMHO)
+    // Collect URLs and names that are explicitly disabled (canView === false) from dynamic menus
+    const disabledUrls = new Set();
+    (menus || []).forEach(m => {
+      (m?.screens || []).forEach(s => {
+        if (s?.canView === false) {
+          if (s?.screenUrl) disabledUrls.add(s.screenUrl.toLowerCase());
+          if (s?.screenName) disabledUrls.add(s.screenName.toLowerCase());
+        }
+      });
+    });
+
+    // Filter dynamic backend menus based on permissions (canView, HOD, and CMHO)
     const filteredMenus = (menus || []).map(m => {
       if (!m || !m.screens) return m;
       return {
         ...m,
         screens: m.screens.filter(s => {
+          // If screen is explicitly deselected/disallowed
+          if (s.canView === false) return false;
+
           const url = (s?.screenUrl || '').toLowerCase();
           const name = (s?.screenName || '').toLowerCase();
 
@@ -167,7 +211,17 @@ export default function Sidebar() {
       };
     }).filter(m => (m?.screens?.length || 0) > 0);
 
-    const combined = [...filteredMenus, ...hardcodedModules];
+    // Filter hardcoded modules so they don't resurrect screens that were deselected
+    const cleanedHardcoded = hardcodedModules.map(m => ({
+      ...m,
+      screens: (m.screens || []).filter(s => {
+        const url = (s?.screenUrl || '').toLowerCase();
+        const name = (s?.screenName || '').toLowerCase();
+        return !disabledUrls.has(url) && !disabledUrls.has(name);
+      })
+    })).filter(m => (m?.screens?.length || 0) > 0);
+
+    const combined = [...filteredMenus, ...cleanedHardcoded];
     const moduleMap = new Map();
 
     combined.forEach((module) => {
@@ -175,16 +229,29 @@ export default function Sidebar() {
       const name = module.moduleName ? String(module.moduleName).trim() : '';
       if (!name) return;
 
+      const normalizedScreens = (module.screens || []).map(s => {
+        if (!s) return s;
+        const sUrl = (s.screenUrl || '').toLowerCase();
+        const sName = (s.screenName || '').toLowerCase();
+        if (sUrl.includes('anualindentdownloadexcelregeant') || sName.includes('download reagent/non edl')) {
+          return { ...s, screenUrl: '/non-edl-annual-indent/download-reagent-format' };
+        }
+        if (sUrl.includes('reagentanualindentmain') || sName.includes('upload and forward reagent') || sUrl.includes('reagentanualitemindent')) {
+          return { ...s, screenUrl: '/non-edl-annual-indent/upload-forward-reagent' };
+        }
+        return s;
+      });
+
       if (!moduleMap.has(name)) {
         moduleMap.set(name, {
           ...module,
           moduleName: name,
-          screens: [...(module.screens || [])]
+          screens: [...normalizedScreens]
         });
       } else {
         const existing = moduleMap.get(name);
         const existingUrls = new Set((existing.screens || []).map((s) => s?.screenUrl).filter(Boolean));
-        (module.screens || []).forEach((screen) => {
+        normalizedScreens.forEach((screen) => {
           if (screen && screen.screenUrl && !existingUrls.has(screen.screenUrl)) {
             existing.screens.push(screen);
             existingUrls.add(screen.screenUrl);

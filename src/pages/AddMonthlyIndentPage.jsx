@@ -130,7 +130,7 @@ export default function AddMonthlyIndentPage() {
   const [programsList, setProgramsList] = useState([]);
   const [itemCategories, setItemCategories] = useState([]);
   const [itemTypesData, setItemTypesData] = useState([]);
-  const [loadingFilters, setLoadingFilters] = useState(false);
+  const [loadingFilters, setLoadingFilters] = useState(true);
 
   const [form, setForm] = useState({
     finYear: '',
@@ -163,7 +163,7 @@ export default function AddMonthlyIndentPage() {
     if (facilityId) {
       loadFilters();
     }
-  }, [facilityId]);
+  }, [facilityId, editNocId]);
 
   useEffect(() => {
     api.get('/monthly-indent/item-categories').then(res => setItemCategories(res.data || [])).catch(e => console.error(e));
@@ -337,6 +337,30 @@ export default function AddMonthlyIndentPage() {
             programId: noc.PROGRAMID || noc.programId
           });
         }
+      } else {
+        // If creating new, check if an incomplete NOC already exists
+        try {
+          const incRes = await api.get('/monthly-indent/incomplete');
+          if (incRes.data && incRes.data.NOCID) {
+            const incNoc = incRes.data;
+            alert(`An incomplete Monthly Indent (${incNoc.NOCNUMBER || ''}) already exists for this facility. Opening the existing incomplete indent.`);
+            setRequestNo(incNoc.NOCNUMBER || incNoc.nocNumber);
+            setEditNocIdInternal(incNoc.NOCID);
+            const nocRes = await api.get(`/monthly-indent/${incNoc.NOCID}`);
+            const noc = nocRes.data;
+            if (noc) {
+              setForm({
+                finYear: noc.ACCYRSETID || noc.accYrSetId,
+                reqDate: parseToIsoDate(noc.NOCDATE || noc.nocDate) || today,
+                programId: noc.PROGRAMID || noc.programId
+              });
+            }
+            navigate(`?nocId=${incNoc.NOCID}`, { replace: true });
+            return;
+          }
+        } catch (incErr) {
+          console.error('Failed to check incomplete indent:', incErr);
+        }
       }
     } catch (e) {
       console.error('Failed to load initial data:', e);
@@ -389,12 +413,23 @@ export default function AddMonthlyIndentPage() {
       }
     } catch (error) {
       console.error("Failed to generate Request No", error);
+      const errorMsg = 
+        error.response?.data?.error || 
+        error.response?.data?.message || 
+        (typeof error.response?.data === 'string' && error.response.data.length < 300 ? error.response.data : null) || 
+        'An incomplete Monthly Indent already exists. Please delete or complete it before creating a new one.';
+
       if (error.response?.status === 409) {
-        alert(error.response.data.error);
+        alert(errorMsg);
         setRequestNo('');
-        navigate('/indent/warehouse');
+        const existingNocId = error.response?.data?.nocId;
+        if (existingNocId) {
+          navigate(`?nocId=${existingNocId}`, { replace: true });
+        } else {
+          navigate('/indent/warehouse');
+        }
       } else {
-        alert('Failed to generate request number or create indent. Please try again.');
+        alert(errorMsg || 'Failed to generate request number or create indent. Please try again.');
       }
     } finally {
       setIsGenerating(false);
@@ -572,7 +607,19 @@ const getEdlCategoryLabel = (rawEdl) => {
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar />
         
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+          {loadingFilters && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-50/85 backdrop-blur-sm">
+              <div className="flex flex-col items-center bg-white px-8 py-6 rounded-2xl shadow-xl border border-slate-100">
+                <div className="relative">
+                  <div className="w-12 h-12 border-4 border-slate-200 rounded-full"></div>
+                  <div className="w-12 h-12 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div>
+                </div>
+                <p className="mt-4 text-sm font-bold text-slate-700 tracking-wide">Loading Indent Details...</p>
+                <p className="text-xs text-slate-400 mt-1 font-medium">Please wait while we load the data</p>
+              </div>
+            </div>
+          )}
           <main className="flex-1 overflow-y-auto p-4 md:p-6">
             <div className="w-full space-y-4">
               

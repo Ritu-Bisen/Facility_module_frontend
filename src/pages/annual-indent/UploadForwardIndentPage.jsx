@@ -5,6 +5,8 @@ import Sidebar from '../../components/layout/Sidebar';
 import Footer from '../../components/layout/Footer';
 import axios from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
+import { generateAnnualIndentPDF } from '../../utils/annualIndentPdfGenerator';
+import { getDynamicIndentHeaders } from '../../utils/indentYearHelper';
 import {
   DocumentArrowUpIcon,
   PlusIcon,
@@ -45,6 +47,7 @@ export default function UploadForwardIndentPage() {
   const [canAdd, setCanAdd] = useState(true);
   const [loading, setLoading] = useState(false);
   const [downloadingCategory, setDownloadingCategory] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [dropdownLoading, setDropdownLoading] = useState(true);
   const [error, setError] = useState('');
   const [categoryError, setCategoryError] = useState('');
@@ -175,6 +178,10 @@ export default function UploadForwardIndentPage() {
         const catObj = categories.find(c => String(c.subcatId || c.categoryId) === String(selectedCategory));
         const catNameName = catObj ? catObj.categoryName.replace(/\s+/g, '_') : 'Category';
 
+        const { currYr, nextYr1, nextYr2 } = getDynamicIndentHeaders();
+        const consHeader = `COSUMPTION_From_1APR_${currYr}`;
+        const indHeader = `INDENT_${nextYr1}_${nextYr2}`;
+
         let tableHtml = `
           <table border="1">
             <thead>
@@ -187,9 +194,9 @@ export default function UploadForwardIndentPage() {
                 <th>UNIT</th>
                 <th>edl</th>
                 <th>categoryname</th>
-                <th>COSUMPTION_From_1APR_25</th>
+                <th>${consHeader}</th>
                 <th>CurStock</th>
-                <th>INDENT_26_27</th>
+                <th>${indHeader}</th>
                 <th>Rates</th>
               </tr>
             </thead>
@@ -240,78 +247,21 @@ export default function UploadForwardIndentPage() {
     }
   };
 
-  // Download Specific Indent File Handler
+  // Download Specific Indent PDF Handler
   const handleDownloadIndent = async (row) => {
+    if (row.status === 'Incomplete' || row.status === 'I') {
+      alert('Annual Indent must be completed before downloading PDF.');
+      return;
+    }
+    const key = row.nocId || row.indentId;
+    setDownloadingId(key);
     try {
-      const res = await axios.get('/annual-indent/ayush/download-format', {
-        params: {
-          subCatId: row.aiCategoryId || row.categoryId || selectedCategory || 8,
-          facilityId: user?.facilityId || '29609'
-        }
-      });
-      if (res.data?.success && Array.isArray(res.data.data)) {
-        const rows = res.data.data;
-
-        let tableHtml = `
-          <table border="1">
-            <thead>
-              <tr style="background-color: #1e3a8a; color: #ffffff; font-weight: bold;">
-                <th>SlNo</th>
-                <th>itemcode</th>
-                <th>itemname</th>
-                <th>Formulation</th>
-                <th>Strength</th>
-                <th>UNIT</th>
-                <th>edl</th>
-                <th>categoryname</th>
-                <th>COSUMPTION_From_1APR_25</th>
-                <th>CurStock</th>
-                <th>INDENT_26_27</th>
-                <th>Rates</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-
-        rows.forEach((r, index) => {
-          tableHtml += `
-            <tr>
-              <td style="text-align: center;">${index + 1}</td>
-              <td>${r.itemCode || ''}</td>
-              <td>${r.itemName || ''}</td>
-              <td>${r.formulation || ''}</td>
-              <td>${r.strength || ''}</td>
-              <td style="text-align: center;">${r.unit || '-'}</td>
-              <td style="text-align: center;">${r.edl || ''}</td>
-              <td>${r.categoryName || ''}</td>
-              <td style="text-align: right;">${r.cosumptionFrom1Apr25 || 0}</td>
-              <td style="text-align: right;">${r.curStock || 0}</td>
-              <td style="text-align: right;">${r.indent2627 || 0}</td>
-              <td style="text-align: right;">${Number(r.rates || 0).toFixed(2)}</td>
-            </tr>
-          `;
-        });
-
-        tableHtml += `
-            </tbody>
-          </table>
-        `;
-
-        const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `AnnualIndent_${(row.nocNumber || row.indentNo || 'AYUSH').replace(/\//g, '_')}.xls`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } else {
-        alert('Failed to generate Excel file');
-      }
+      await generateAnnualIndentPDF(row, user, row.accYrSetId || selectedFinYear);
     } catch (err) {
-      console.error('Failed to download indent Excel:', err);
-      alert('Error downloading indent Excel file');
+      console.error('Failed to download indent PDF:', err);
+      alert('Error downloading indent PDF: ' + (err.message || 'Unknown error'));
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -529,13 +479,27 @@ export default function UploadForwardIndentPage() {
                               )}
                             </td>
                             <td className="py-3 px-4 text-center">
-                              {row.status !== 'Incomplete' ? (
+                              {row.status === 'Completed' || row.status === 'C' ? (
                                 <button
                                   onClick={() => handleDownloadIndent(row)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-blue-400 font-bold rounded-lg transition-all text-xs border border-blue-200 dark:border-slate-700 shadow-sm"
+                                  disabled={downloadingId === (row.nocId || row.indentId)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-blue-400 font-bold rounded-lg transition-all text-xs border border-blue-200 dark:border-slate-700 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                                  title="Download saved Annual Indent PDF"
                                 >
-                                  <ArrowDownTrayIcon className="w-3.5 h-3.5 text-blue-600" />
-                                  <span>Download</span>
+                                  {downloadingId === (row.nocId || row.indentId) ? (
+                                    <>
+                                      <svg className="animate-spin w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                      </svg>
+                                      <span>Downloading...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ArrowDownTrayIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                      <span>Download</span>
+                                    </>
+                                  )}
                                 </button>
                               ) : (
                                 <span className="text-slate-400 text-xs font-semibold">-</span>
