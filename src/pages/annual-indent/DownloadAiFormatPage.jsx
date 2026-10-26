@@ -5,6 +5,7 @@ import Footer from '../../components/layout/Footer';
 import axios from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
 import * as XLSX from 'xlsx';
+import { isDmeFacility } from '../../utils/deliveredReceiptRestriction';
 import {
   DocumentArrowDownIcon,
   ArrowPathIcon,
@@ -82,6 +83,8 @@ export default function DownloadAiFormatPage() {
     });
   }, [itemsData, searchQuery, selectedCategory]);
 
+  const isDme = useMemo(() => isDmeFacility(user), [user]);
+
   const handleDownloadExcel = async () => {
     setDownloading(true);
     setError('');
@@ -101,22 +104,37 @@ export default function DownloadAiFormatPage() {
         const facId = user?.facilityId || '22595';
 
         // Prepare XLSX worksheet data matching the exact query columns
-        const worksheetData = exportRows.map((row, index) => ({
-          'SlNo': index + 1,
-          'itemcode': row.itemCode || '',
-          'itemname': row.itemName || '',
-          'Formulation': row.formulation || '',
-          'Strength': row.strength || '',
-          'GroupName': row.groupName || '',
-          'edl': row.edl || '',
-          'Issued_From_WH_01_Apr_25_to_31st_Oct_25': Number(row.issuedFromWh !== undefined ? row.issuedFromWh : 0),
-          'Actual_Consumption_From_01_April_25_to_31st_Oct_25': Number(row.actualConsumption !== undefined ? row.actualConsumption : 0),
-          'Estimated_Consumption_For_One_Year_From_01_April_25_to_31st_March_26': Number(row.estimatedConsumption !== undefined ? row.estimatedConsumption : 0),
-          'Current_Stock': Number(row.currentStock !== undefined ? row.currentStock : 0),
-          'ANNUAL_INDENT_26_27': Number(row.annualIndent2627 !== undefined ? row.annualIndent2627 : 0),
-          'Rate': Number(row.rate !== undefined ? row.rate : 0),
-          'categoryname': row.categoryName || ''
-        }));
+        const worksheetData = isDme
+          ? exportRows.map((row, index) => ({
+              'SlNo': index + 1,
+              'itemcode': row.itemCode || '',
+              'itemname': row.itemName || '',
+              'Formulation': row.formulation || '',
+              'Strength': row.strength || '',
+              'GroupName': row.groupName || '',
+              'edl': row.edl || '',
+              'COSUMPTION_From_1APR_26': Number(row.cosumptionFrom1Apr26 !== undefined ? row.cosumptionFrom1Apr26 : (row.issuedFromWh || 0)),
+              'Current_Stock': Number(row.currentStock !== undefined ? row.currentStock : 0),
+              'INDENT_27_28': Number(row.indent2728 !== undefined ? row.indent2728 : (row.annualIndent2627 || 0)),
+              'Rate': Number(row.rate !== undefined ? row.rate : 0),
+              'PACKAGINGUNIT': Number(row.packagingUnit !== undefined ? row.packagingUnit : 1)
+            }))
+          : exportRows.map((row, index) => ({
+              'SlNo': index + 1,
+              'itemcode': row.itemCode || '',
+              'itemname': row.itemName || '',
+              'Formulation': row.formulation || '',
+              'Strength': row.strength || '',
+              'GroupName': row.groupName || '',
+              'edl': row.edl || '',
+              'Issued_From_WH_01_Apr_26_to_31st_Oct_27': Number(row.issuedFromWh !== undefined ? row.issuedFromWh : 0),
+              'Actual_Consumption_From_01_April_26_to_31st_Oct_26': Number(row.actualConsumption !== undefined ? row.actualConsumption : 0),
+              'Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27': Number(row.estimatedConsumption !== undefined ? row.estimatedConsumption : 0),
+              'Current_Stock': Number(row.currentStock !== undefined ? row.currentStock : 0),
+              'ANNUAL_INDENT_27_28': Number(row.annualIndent2728 !== undefined ? row.annualIndent2728 : (row.annualIndent2627 || 0)),
+              'Rate': Number(row.rate !== undefined ? row.rate : 0),
+              'categoryname': row.categoryName || ''
+            }));
 
         const worksheet = XLSX.utils.json_to_sheet(worksheetData);
         const workbook = XLSX.utils.book_new();
@@ -162,7 +180,7 @@ export default function DownloadAiFormatPage() {
                       Download Annual Indent Format in Excel File for Offline Preparation
                     </h1>
                     <p className="text-[11px] text-emerald-200/80 font-medium">
-                      Facility ID: <span className="font-bold text-emerald-300">{user?.facilityId || '22595'}</span> | Annual Indent FY 2026-27 Template
+                      Facility ID: <span className="font-bold text-emerald-300">{user?.facilityId || '22595'}</span> | Annual Indent FY 2027-28 Template
                     </p>
                   </div>
                 </div>
@@ -211,7 +229,9 @@ export default function DownloadAiFormatPage() {
               <div className="px-3.5 py-2.5 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs font-bold flex items-center gap-2.5 shadow-sm">
                 <ExclamationTriangleIcon className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
                 <span className="leading-snug">
-                  नोट : Drugs एवं Consumables के Consumption , Current Stock व Annual Indent FY 2026-27 में संख्या टेबलेट/केप्सूल/वायल/एमपुल/सिरप/बाटल में प्रतिनग के अनुसार भरेंगे |
+                  {isDme
+                    ? 'नोट : Drugs एवं Consumables के Consumption , Current Stock व Annual Indent FY 2027-28 में संख्या टेबलेट/केप्सूल/वायल/एमपुल/सिरप/बाटल में प्रतिनग के अनुसार भरेंगे |'
+                    : 'नोट : Drugs एवं Consumables के Consumption , Current Stock व Annual Indent FY 2027-28 में संख्या टेबलेट/केप्सूल/वायल/एमपुल/सिरप/बाटल में प्रतिनग के अनुसार भरेंगे |'}
                 </span>
               </div>
 
@@ -252,7 +272,11 @@ export default function DownloadAiFormatPage() {
                     <div className="flex gap-2.5 items-start bg-blue-50/50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-blue-200 dark:border-slate-700 hover:bg-blue-50 transition-colors bg-blue-50/80">
                       <span className="px-1.5 py-0.5 rounded bg-blue-600 text-white text-[10px] font-bold shrink-0 mt-0.5">5</span>
                       <p className="font-bold text-blue-950 dark:text-blue-200">
-                        प्रत्येक स्वास्थ्य केंद्र केवल Excel File में कॉलम नंबर 8 (ISSUED_FROM_WH_01_APR_25_TO_31ST_OCT_25) ,कॉलम नंबर 9 (ACTUAL_CONSUMPTION_FROM_01_APRIL_25_TO_31ST_OCT_25) ,कॉलम नंबर 10 (ESTIMATED_CONSUMPTION_FOR_ONE_YEAR_FROM_01_APRIL_25_TO_31ST_MARCH_26) ,कॉलम नंबर 11 (CURRENT_STOCK) एवं कॉलम नंबर 12 (ANNUAL_INDENT_26_27) में ही भरेंगे |
+                        {isDme ? (
+                          'प्रत्येक स्वास्थ्य केंद्र केवल Excel File में कॉलम नंबर 8 (COSUMPTION_From_1APR_26) ,कॉलम नंबर 9 (Current_Stock) एवं कॉलम नंबर 10 (INDENT_27_28) में ही भरेंगे |'
+                        ) : (
+                          'प्रत्येक स्वास्थ्य केंद्र केवल Excel File में कॉलम नंबर 8 (ISSUED_FROM_WH_01_APR_26_TO_31ST_OCT_27) ,कॉलम नंबर 9 (ACTUAL_CONSUMPTION_FROM_01_APRIL_26_TO_31ST_OCT_26) ,कॉलम नंबर 10 (ESTIMATED_CONSUMPTION_FOR_ONE_YEAR_FROM_01_APRIL_26_TO_31ST_MARCH_27) ,कॉलम नंबर 11 (CURRENT_STOCK) एवं कॉलम नंबर 12 (ANNUAL_INDENT_27_28) में ही भरेंगे |'
+                        )}
                       </p>
                     </div>
 
@@ -381,13 +405,25 @@ export default function DownloadAiFormatPage() {
                             <th className="p-2 border-b border-slate-700">STRENGTH</th>
                             <th className="p-2 border-b border-slate-700">GROUPNAME</th>
                             <th className="p-2 border-b border-slate-700 text-center">EDL</th>
-                            <th className="p-2 border-b border-slate-700 text-right">WH_ISSUE</th>
-                            <th className="p-2 border-b border-slate-700 text-right">ACTUAL_CONS</th>
-                            <th className="p-2 border-b border-slate-700 text-right">EST_CONS</th>
-                            <th className="p-2 border-b border-slate-700 text-right">CUR_STOCK</th>
-                            <th className="p-2 border-b border-slate-700 text-right">INDENT_26_27</th>
-                            <th className="p-2 border-b border-slate-700 text-right">RATE</th>
-                            <th className="p-2 border-b border-slate-700">CATEGORY</th>
+                            {isDme ? (
+                              <>
+                                <th className="p-2 border-b border-slate-700 text-right">COSUMPTION_From_1APR_26</th>
+                                <th className="p-2 border-b border-slate-700 text-right">CUR_STOCK</th>
+                                <th className="p-2 border-b border-slate-700 text-right">INDENT_27_28</th>
+                                <th className="p-2 border-b border-slate-700 text-right">RATE</th>
+                                <th className="p-2 border-b border-slate-700 text-center">PACKAGINGUNIT</th>
+                              </>
+                            ) : (
+                              <>
+                                <th className="p-2 border-b border-slate-700 text-right">WH_ISSUE</th>
+                                <th className="p-2 border-b border-slate-700 text-right">ACTUAL_CONS</th>
+                                <th className="p-2 border-b border-slate-700 text-right">EST_CONS</th>
+                                <th className="p-2 border-b border-slate-700 text-right">CUR_STOCK</th>
+                                <th className="p-2 border-b border-slate-700 text-right">INDENT_27_28</th>
+                                <th className="p-2 border-b border-slate-700 text-right">RATE</th>
+                                <th className="p-2 border-b border-slate-700">CATEGORY</th>
+                              </>
+                            )}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-slate-800 dark:text-slate-200">
@@ -404,13 +440,25 @@ export default function DownloadAiFormatPage() {
                                   {row.edl}
                                 </span>
                               </td>
-                              <td className="p-2 text-right font-mono">{row.issuedFromWh || 0}</td>
-                              <td className="p-2 text-right font-mono text-slate-400">{row.actualConsumption || 0}</td>
-                              <td className="p-2 text-right font-mono text-slate-400">{row.estimatedConsumption || 0}</td>
-                              <td className="p-2 text-right font-mono font-bold text-blue-700 dark:text-blue-400">{row.currentStock || 0}</td>
-                              <td className="p-2 text-right font-mono text-slate-400">{row.annualIndent2627 || 0}</td>
-                              <td className="p-2 text-right font-mono text-emerald-700 dark:text-emerald-400">₹{Number(row.rate || 0).toFixed(2)}</td>
-                              <td className="p-2 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase">{row.categoryName}</td>
+                              {isDme ? (
+                                <>
+                                  <td className="p-2 text-right font-mono text-slate-600 dark:text-slate-300">{row.cosumptionFrom1Apr26 || 0}</td>
+                                  <td className="p-2 text-right font-mono font-bold text-blue-700 dark:text-blue-400">{row.currentStock || 0}</td>
+                                  <td className="p-2 text-right font-mono text-slate-400">{row.indent2728 || 0}</td>
+                                  <td className="p-2 text-right font-mono text-emerald-700 dark:text-emerald-400">₹{Number(row.rate || 0).toFixed(2)}</td>
+                                  <td className="p-2 text-center font-mono text-slate-600 dark:text-slate-400">{row.packagingUnit || 1}</td>
+                                </>
+                              ) : (
+                                <>
+                                  <td className="p-2 text-right font-mono">{row.issuedFromWh || 0}</td>
+                                  <td className="p-2 text-right font-mono text-slate-400">{row.actualConsumption || 0}</td>
+                                  <td className="p-2 text-right font-mono text-slate-400">{row.estimatedConsumption || 0}</td>
+                                  <td className="p-2 text-right font-mono font-bold text-blue-700 dark:text-blue-400">{row.currentStock || 0}</td>
+                                  <td className="p-2 text-right font-mono text-slate-400">{row.annualIndent2728 || row.annualIndent2627 || 0}</td>
+                                  <td className="p-2 text-right font-mono text-emerald-700 dark:text-emerald-400">₹{Number(row.rate || 0).toFixed(2)}</td>
+                                  <td className="p-2 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase">{row.categoryName}</td>
+                                </>
+                              )}
                             </tr>
                           ))}
                         </tbody>

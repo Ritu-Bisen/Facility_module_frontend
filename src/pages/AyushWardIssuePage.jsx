@@ -1,3 +1,4 @@
+import { getDefaultFinYearId } from '../utils/indentYearHelper';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
@@ -56,7 +57,7 @@ export default function AyushWardIssuePage() {
       );
       setAccYears(mappedYears);
       if (mappedYears.length > 0) {
-        setSelectedYear(mappedYears[0].AccYrSetID);
+        setSelectedYear(getDefaultFinYearId(mappedYears, 'AccYrSetID', 'SHAccYear'));
       }
     } catch (e) {
       console.error('Failed to load filter options:', e);

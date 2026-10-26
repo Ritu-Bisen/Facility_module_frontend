@@ -4,6 +4,7 @@ import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getFinancialYears, getWarehouseIndents, getReceiptsByIndent, createWarehouseReceipt } from '../api/warehouseReceiptApi';
+import { getDefaultFinYearId } from '../utils/indentYearHelper';
 import { ChevronDownIcon, ChevronUpIcon, PlusCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
@@ -18,6 +19,7 @@ export default function WarehouseReceiptFAC() {
     const [creatingId, setCreatingId] = useState(null);
     
     const [filterPending, setFilterPending] = useState(location.state?.filterPending || false);
+    const [filterIndentNo, setFilterIndentNo] = useState(location.state?.filterIndentNo || null);
 
     useEffect(() => {
         fetchFinYears();
@@ -30,38 +32,23 @@ export default function WarehouseReceiptFAC() {
     }, [selectedYear]);
 
     const fetchFinYears = async () => {
+        setLoading(true);
         try {
             const res = await getFinancialYears();
             if (res.success) {
                 setFinYears(res.data);
                 if (res.data.length > 0) {
-                    const today = new Date();
-                    const currentYear = today.getFullYear();
-                    const currentMonth = today.getMonth(); // 0 = Jan, 3 = Apr
-                    
-                    let finYearString;
-                    if (currentMonth >= 3) { // April onwards
-                        finYearString = `${currentYear}-${currentYear + 1}`;
-                    } else { // Jan-March
-                        finYearString = `${currentYear - 1}-${currentYear}`;
-                    }
-                    
-                    // Match either "2026-2027" or "26-27" format
-                    const defaultYearObj = res.data.find(y => 
-                        y.year === finYearString || 
-                        y.year === finYearString.replace(/20/g, '') ||
-                        y.year.includes(finYearString.split('-')[0].slice(-2) + '-' + finYearString.split('-')[1].slice(-2))
-                    );
-
-                    if (defaultYearObj) {
-                        setSelectedYear(defaultYearObj.id);
-                    } else {
-                        setSelectedYear(res.data[0].id);
-                    }
+                    const defaultYear = location.state?.selectedYearId || getDefaultFinYearId(res.data, 'id', 'year');
+                    setSelectedYear(defaultYear);
+                } else {
+                    setLoading(false);
                 }
+            } else {
+                setLoading(false);
             }
         } catch (error) {
             toast.error("Failed to load financial years");
+            setLoading(false);
         }
     };
 
@@ -117,9 +104,15 @@ export default function WarehouseReceiptFAC() {
     };
 
     const displayedIndents = useMemo(() => {
-        if (!filterPending) return indents;
-        return indents.filter(i => i.receiptStatus === 'Yet to be Received' || i.receiptStatus === 'Partial Receipt' || i.receiptStatus === 'Incomplete');
-    }, [indents, filterPending]);
+        let list = indents;
+        if (filterPending) {
+            list = list.filter(i => i.receiptStatus === 'Yet to be Received' || i.receiptStatus === 'Partial Receipt' || i.receiptStatus === 'Incomplete');
+        }
+        if (filterIndentNo) {
+            list = list.filter(i => String(i.indentNo || '').toLowerCase() === String(filterIndentNo).toLowerCase());
+        }
+        return list;
+    }, [indents, filterPending, filterIndentNo]);
 
     return (
     <div className="flex flex-col h-screen bg-slate-50 font-sans">
@@ -139,6 +132,12 @@ export default function WarehouseReceiptFAC() {
                             <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800 ring-1 ring-inset ring-orange-600/20">
                                 Pending Filter Active
                                 <button onClick={() => setFilterPending(false)} className="ml-1.5 text-orange-600 hover:text-orange-900 font-bold">&times;</button>
+                            </span>
+                        )}
+                        {filterIndentNo && (
+                            <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 ring-1 ring-inset ring-blue-600/20">
+                                Indent: {filterIndentNo}
+                                <button onClick={() => setFilterIndentNo(null)} className="ml-1.5 text-blue-600 hover:text-blue-900 font-bold">&times;</button>
                             </span>
                         )}
                     </div>
@@ -186,6 +185,7 @@ export default function WarehouseReceiptFAC() {
                                     <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Indent Date</th>
                                     <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">WH Issue No</th>
                                     <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">WH Issue Date</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Delivery Date</th>
                                     <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Receipt No</th>
                                     <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Receipt Date</th>
                                     <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Status</th>
@@ -195,7 +195,7 @@ export default function WarehouseReceiptFAC() {
                             <tbody className="divide-y divide-slate-200 bg-white">
                                 {displayedIndents.length === 0 ? (
                                     <tr>
-                                        <td colSpan="10" className="px-4 py-8 text-center text-sm text-slate-500">
+                                        <td colSpan="11" className="px-4 py-8 text-center text-sm text-slate-500">
                                             No indents found for the selected financial year.
                                         </td>
                                     </tr>
@@ -209,6 +209,7 @@ export default function WarehouseReceiptFAC() {
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs text-slate-600">{indent.indentDate}</td>
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs text-slate-600">{indent.whIssueNo || '-'}</td>
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs text-slate-600">{indent.whIssueDate || '-'}</td>
+                                                <td className="whitespace-nowrap px-2 py-3 text-xs text-slate-600">{indent.deliveryDate || indent.dropDate1 || indent.dropDateTime || '-'}</td>
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs font-medium text-slate-900">{indent.receiptNo || '-'}</td>
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs text-slate-600">{indent.receiptDate || '-'}</td>
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs">

@@ -1,3 +1,4 @@
+import { getDefaultFinYearId } from '../utils/indentYearHelper';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
@@ -58,7 +59,7 @@ export default function AddIndentToOtherFacilityPage() {
           : { AccYrSetID: y.id || y.ACCYRSETID, SHAccYear: y.year || y.AccYear }
       );
       setAccYears(mapped);
-      if (mapped.length > 0 && !isEditMode) setSelectedYear(mapped[0].AccYrSetID);
+      if (mapped.length > 0 && !isEditMode) setSelectedYear(getDefaultFinYearId(mapped, 'AccYrSetID', 'SHAccYear'));
     }).catch(console.error);
   }, []);
 

@@ -25,7 +25,6 @@ export default function Sidebar() {
     }
   }, [user, isLoaded, loading, dispatch]);
 
-  // Read facilityType, facilityTypeId, and role values from localStorage & user state
   const localFacType = (localStorage.getItem('facilityType') || '').trim().toUpperCase();
   const localFacTypeId = (localStorage.getItem('facilityTypeId') || '').trim();
   const localRoleName = (localStorage.getItem('roleName') || '').trim().toUpperCase();
@@ -48,10 +47,20 @@ export default function Sidebar() {
   const isMcFacility = isDhDmeMcFacility;
   const isCmeUser = isDhDmeMcFacility;
 
-  const isAyushUser = userRoleName.includes('AYUSH') || 
+  const userRoleId = Number(user?.roleId || user?.roleID || localStorage.getItem('roleId') || 0);
+  const isDaoAyushFac = 
+    userRoleId === 475 ||
+    userRoleName === 'DAO AYUSH FAC' ||
+    localRoleName === 'DAO AYUSH FAC' ||
+    userRoleName.includes('DAO AYUSH FAC') ||
+    localRoleName.includes('DAO AYUSH FAC') ||
+    (userRoleName.includes('DAO') && userRoleName.includes('AYUSH')) ||
+    (localRoleName.includes('DAO') && localRoleName.includes('AYUSH'));
+
+  const isAyushUser = (userRoleName.includes('AYUSH') || 
                       localRoleName.includes('AYUSH') || 
                       userFacTypeName.includes('AYUSH') || 
-                      localFacType.includes('AYUSH');
+                      localFacType.includes('AYUSH')) && !isDaoAyushFac;
 
   // CMHO role or facility check
   const isCmhoUser = userRoleName.includes('CMHO') || 
@@ -108,18 +117,39 @@ export default function Sidebar() {
       moduleId: 'annual_indent_module',
       moduleName: 'Annual Indent',
       screens: [
-        ...(isAyushUser || currentHodId === 7 ? [
-          { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Ayush Upload and Forward Indent for Approval', canView: true }
+        ...(isDaoAyushFac ? [
+          {
+            screenId: 'ai_dao_approval',
+            screenUrl: '/annual-indent/dao-approval',
+            screenName: 'Approval Of Forwarded Indent(DAO)',
+            canView: true
+          },
+          {
+            screenId: 'ai_dao_status_report',
+            screenUrl: '/annual-indent/dao-status-report',
+            screenName: 'Status Report for Uploaded and Forwarded Indents(Only for DAO)',
+            canView: true
+          },
+          {
+            screenId: 'ai_dao_item_wise_ai',
+            screenUrl: '/annual-indent/dao-item-wise-ai',
+            screenName: 'Item Wise AI Details(DAO)',
+            canView: true
+          }
         ] : [
-          { screenId: 'ai_download_format', screenUrl: '/annual-indent/download-format', screenName: 'Download AI Format', canView: true }
-        ]),
-        ...(isHod2Or3 && !isAyushUser && currentHodId !== 7 ? [
-          { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual Indent', canView: true }
-        ] : []),
-        ...(isDhDmeMcFacility ? [
-          { screenId: 'ai_mc_ai', screenUrl: '/annual-indent/medical-college-ai', screenName: 'Medical College AI', canView: true },
-          { screenId: 'ai_mc_vs_issuance', screenUrl: '/annual-indent/mc-hospital-ai-vs-issuance', screenName: 'Medical College/Hospital AI vs Issuance', canView: true }
-        ] : [])
+          ...(isAyushUser || currentHodId === 7 ? [
+            { screenId: 'ai_upload_forward', screenUrl: '/annual-indent/upload-forward', screenName: 'Ayush Upload and Forward Indent for Approval', canView: true }
+          ] : [
+            { screenId: 'ai_download_format', screenUrl: '/annual-indent/download-format', screenName: 'Download AI Format', canView: true }
+          ]),
+          ...(isHod2Or3 && !isAyushUser && currentHodId !== 7 ? [
+            { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual Indent', canView: true }
+          ] : []),
+          ...(isDhDmeMcFacility ? [
+            { screenId: 'ai_mc_ai', screenUrl: '/annual-indent/medical-college-ai', screenName: 'Medical College AI', canView: true },
+            { screenId: 'ai_mc_vs_issuance', screenUrl: '/annual-indent/mc-hospital-ai-vs-issuance', screenName: 'Medical College/Hospital AI vs Issuance', canView: true }
+          ] : [])
+        ])
       ]
     },
     {
@@ -200,6 +230,27 @@ export default function Sidebar() {
             return false;
           }
 
+          // DAO specific screens: show ONLY if isDaoAyushFac
+          const isDaoScreen = url.includes('daoapproval') || 
+                              url.includes('ayushdaoannualindentstatus') || 
+                              url.includes('ayushdrugwiseaireport') ||
+                              url.includes('dao-approval') ||
+                              url.includes('dao-status-report') ||
+                              url.includes('dao-item-wise-ai') ||
+                              name.includes('approval of forwarded indent(dao)') ||
+                              name.includes('status report for uploaded and forwarded indents(only for dao)') ||
+                              name.includes('item wise ai details(dao)') ||
+                              (name.includes('(dao)') && (name.includes('approval') || name.includes('status') || name.includes('ai details')));
+
+          if (!isDaoAyushFac && isDaoScreen) {
+            return false;
+          }
+
+          // If DAO user, under annual indent don't show regular facility upload/download screens
+          if (isDaoAyushFac && (url.includes('upload-forward') || url.includes('download-format') || name.includes('upload and forward') || name.includes('download ai format'))) {
+            return false;
+          }
+
           // If user's HOD is not 2 or 3 or 7, filter out upload-forward
           if (!isHod2Or3) {
             if (url.includes('upload-forward') || name.includes('upload and forward') || name.includes('forward indent')) {
@@ -239,6 +290,15 @@ export default function Sidebar() {
         if (sUrl.includes('reagentanualindentmain') || sName.includes('upload and forward reagent') || sUrl.includes('reagentanualitemindent')) {
           return { ...s, screenUrl: '/non-edl-annual-indent/upload-forward-reagent' };
         }
+        if (sUrl.includes('daoapproval') || sName.includes('approval of forwarded indent(dao)')) {
+          return { ...s, screenName: 'Approval Of Forwarded Indent(DAO)', screenUrl: '/annual-indent/dao-approval' };
+        }
+        if (sUrl.includes('ayushdaoannualindentstatus') || sName.includes('status report for uploaded and forwarded indents(only for dao)')) {
+          return { ...s, screenName: 'Status Report for Uploaded and Forwarded Indents(Only for DAO)', screenUrl: '/annual-indent/dao-status-report' };
+        }
+        if (sUrl.includes('ayushdrugwiseaireport') || sName.includes('item wise ai details(dao)')) {
+          return { ...s, screenName: 'Item Wise AI Details(DAO)', screenUrl: '/annual-indent/dao-item-wise-ai' };
+        }
         return s;
       });
 
@@ -261,7 +321,7 @@ export default function Sidebar() {
     });
 
     return Array.from(moduleMap.values());
-  }, [menus, hardcodedModules, isHod2Or3]);
+  }, [menus, hardcodedModules, isHod2Or3, isCmhoUser, isDaoAyushFac]);
 
   useEffect(() => {
     // Keep parent menu open when navigating to one of its sub-items

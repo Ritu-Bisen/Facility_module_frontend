@@ -1,3 +1,4 @@
+import { getDefaultFinYearId } from '../utils/indentYearHelper';
 import React, { useState, useEffect } from 'react';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
@@ -103,7 +104,7 @@ export default function InterFacilityIssueAgainstOnlineIndentPage() {
                 );
                 setAccYears(mappedYears);
                 if (mappedYears.length > 0) {
-                    setFilters(prev => ({ ...prev, yearId: mappedYears[0].id }));
+                    setFilters(prev => ({ ...prev, yearId: getDefaultFinYearId(mappedYears, 'id', 'year') }));
                 }
             } catch (err) {
                 console.error("Failed to load financial years", err);

@@ -1,3 +1,4 @@
+import { getDefaultFinYearId } from '../utils/indentYearHelper';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
@@ -263,7 +264,7 @@ export default function AddMonthlyIndentMCPage() {
       if (mappedYears.length > 0) {
         const defaultProgram = mappedPrograms.find(p => p.ProgramName && p.ProgramName.toLowerCase().replace(/\s+/g, '') === 'regularsupply');
         const defaultProgramId = defaultProgram ? defaultProgram.ProgramID : (mappedPrograms.length > 0 ? mappedPrograms[0].ProgramID : '');
-        setForm(prev => ({ ...prev, finYear: mappedYears[0].AccYrSetID, programId: defaultProgramId }));
+        setForm(prev => ({ ...prev, finYear: getDefaultFinYearId(mappedYears, 'AccYrSetID', 'SHAccYear'), programId: defaultProgramId }));
       }
 
       if (editNocId) {

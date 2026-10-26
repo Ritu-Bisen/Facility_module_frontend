@@ -1,3 +1,4 @@
+import { getDefaultFinYearId } from '../utils/indentYearHelper';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -49,7 +50,7 @@ export default function IndentToOtherFacilityPage() {
       );
       setAccYears(mappedYears);
       if (mappedYears.length > 0) {
-        setSelectedYear(mappedYears[0].AccYrSetID);
+        setSelectedYear(getDefaultFinYearId(mappedYears, 'AccYrSetID', 'SHAccYear'));
       }
     } catch (err) {
       console.error(err);

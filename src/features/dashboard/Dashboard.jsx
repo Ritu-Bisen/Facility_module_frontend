@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useSelector } from 'react-redux';
 import DashboardCard from '../../components/dashboard/DashboardCard';
 import { storeAPI } from '../store/storeAPI';
 import { getFinancialYears, getWarehouseIndents } from '../../api/warehouseReceiptApi';
+import { getDefaultFinYearId } from '../../utils/indentYearHelper';
 import { getIndentsToOtherFacility } from '../../api/indentToOtherFacilityApi';
 import { getShcIndents } from '../../api/shcIndentApi';
 import api from '../../api/axios';
+import { isDmeFacility, calculateWorkingDaysSinceDelivery } from '../../utils/deliveredReceiptRestriction';
 
 export default function Dashboard() { 
   const { user } = useAuth();
@@ -15,6 +17,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { menus } = useSelector((state) => state.menu);
   const [showToast, setShowToast] = useState(false);
+  const [showDeliveredWarningModal, setShowDeliveredWarningModal] = useState(false);
 
   const hasMenuAccess = (url) => {
     if (user?.emailId === 'admink@gnail.com') return true;
@@ -35,9 +38,15 @@ export default function Dashboard() {
   const [nearExpiryData, setNearExpiryData] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [showList, setShowList] = useState(false);
+  const [expirySearchTerm, setExpirySearchTerm] = useState('');
 
   const [pendingReceiptsCount, setPendingReceiptsCount] = useState(0);
   const [loadingPendingReceipts, setLoadingPendingReceipts] = useState(true);
+  const [pendingReceiptsList, setPendingReceiptsList] = useState([]);
+  const [pendingReceiptsYearId, setPendingReceiptsYearId] = useState(null);
+  const [showReceiptsModal, setShowReceiptsModal] = useState(false);
+  const [receiptsModalFilter, setReceiptsModalFilter] = useState('all'); // 'all', 'delivered', 'not_delivered'
+  const [receiptsSearchTerm, setReceiptsSearchTerm] = useState('');
 
   const [pendingIndentsCount, setPendingIndentsCount] = useState(0);
   const [loadingPendingIndents, setLoadingPendingIndents] = useState(true);
@@ -49,14 +58,14 @@ export default function Dashboard() {
     // Check if we navigated here with the showWelcome state
     if (location.state?.showWelcome) {
       setShowToast(true);
-      // Clear the state so it doesn't show again on manual page refresh
-      navigate('.', { replace: true, state: {} });
-      
       // Auto-hide toast after 5 seconds
       const timer = setTimeout(() => setShowToast(false), 5000);
       return () => clearTimeout(timer);
     }
-  }, [location, navigate]);
+  }, [location]);
+
+  // Once location.state is processed, we keep track of login flag for the delivered warning popup
+  const isFromLogin = Boolean(location.state?.showWelcome);
 
   useEffect(() => {
     if (user?.facilityId) {
@@ -96,13 +105,25 @@ export default function Dashboard() {
               (y.year && y.year.includes(finYearString.split('-')[0].slice(-2) + '-' + finYearString.split('-')[1].slice(-2))))
             );
             const yearId = defaultYearObj ? defaultYearObj.id : finRes.data[0].id;
+            setPendingReceiptsYearId(yearId);
 
             const indentsRes = await getWarehouseIndents(yearId);
             if (indentsRes.success && Array.isArray(indentsRes.data)) {
-              const pendingCount = indentsRes.data.filter(i => 
+              const pendingItems = indentsRes.data.filter(i => 
                 i && (i.receiptStatus === 'Yet to be Received' || i.receiptStatus === 'Partial Receipt' || i.receiptStatus === 'Incomplete')
-              ).length;
-              setPendingReceiptsCount(pendingCount);
+              );
+              setPendingReceiptsCount(pendingItems.length);
+              setPendingReceiptsList(pendingItems);
+
+              // Check delivered indents for login popup (non-DME only, only once on login)
+              if (!isDmeFacility(user) && isFromLogin) {
+                const hasDeliveredPending = pendingItems.some(i => Boolean(i.deliveryDate || i.dropDate1 || i.dropDateTime));
+                if (hasDeliveredPending) {
+                  setShowDeliveredWarningModal(true);
+                  // Clear login state after showing once
+                  navigate('.', { replace: true, state: {} });
+                }
+              }
             }
           }
         } catch (error) {
@@ -124,7 +145,7 @@ export default function Dashboard() {
             Array.isArray(y) ? { AccYrSetID: y[0], SHAccYear: y[1] } : { AccYrSetID: y?.id || y?.ACCYRSETID, SHAccYear: y?.year || y?.AccYear }
           );
           if (mappedYears.length > 0) {
-            const yearId = mappedYears[0].AccYrSetID;
+            const yearId = getDefaultFinYearId(mappedYears, 'AccYrSetID', 'SHAccYear');
             const indentsRes = await getIndentsToOtherFacility(yearId, 'I');
             if (indentsRes.success && Array.isArray(indentsRes.data)) {
               setPendingIndentsCount(indentsRes.data.length);
@@ -176,6 +197,59 @@ export default function Dashboard() {
     ? `${user.firstName} ${user.lastName}` 
     : 'User';
 
+  const filteredAndSortedExpiryData = useMemo(() => {
+    let list = [...nearExpiryData];
+
+    // Sort by item name alphabetically
+    list.sort((a, b) => {
+      const nameA = (a.ITEMNAME || a.itemname || '').toLowerCase();
+      const nameB = (b.ITEMNAME || b.itemname || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
+    // Search filter for item name and code
+    if (expirySearchTerm.trim()) {
+      const term = expirySearchTerm.toLowerCase().trim();
+      list = list.filter(item => {
+        const code = (item.ITEMCODE || item.itemcode || '').toLowerCase();
+        const name = (item.ITEMNAME || item.itemname || '').toLowerCase();
+        return code.includes(term) || name.includes(term);
+      });
+    }
+
+    return list;
+  }, [nearExpiryData, expirySearchTerm]);
+
+  // Delivered vs Not Delivered calculations for Pending Receipts
+  const deliveredReceipts = useMemo(() => {
+    return pendingReceiptsList.filter(item => Boolean(item.deliveryDate || item.dropDate1 || item.dropDateTime));
+  }, [pendingReceiptsList]);
+
+  const notDeliveredReceipts = useMemo(() => {
+    return pendingReceiptsList.filter(item => !Boolean(item.deliveryDate || item.dropDate1 || item.dropDateTime));
+  }, [pendingReceiptsList]);
+
+  const filteredPendingReceipts = useMemo(() => {
+    let list = pendingReceiptsList;
+    if (receiptsModalFilter === 'delivered') {
+      list = deliveredReceipts;
+    } else if (receiptsModalFilter === 'not_delivered') {
+      list = notDeliveredReceipts;
+    }
+
+    if (receiptsSearchTerm.trim()) {
+      const term = receiptsSearchTerm.toLowerCase().trim();
+      list = list.filter(item => {
+        const indentNo = (item.indentNo || '').toLowerCase();
+        const whIssueNo = (item.whIssueNo || '').toLowerCase();
+        const warehouse = (item.warehouse || '').toLowerCase();
+        return indentNo.includes(term) || whIssueNo.includes(term) || warehouse.includes(term);
+      });
+    }
+
+    return list;
+  }, [pendingReceiptsList, receiptsModalFilter, receiptsSearchTerm, deliveredReceipts, notDeliveredReceipts]);
+
   return (
     <>
       {/* Toast Notification Popup */}
@@ -199,6 +273,42 @@ export default function Dashboard() {
           </svg>
         </button>
       </div>
+
+      {/* Delivered Pending Receipts Warning Modal for First Login / Active Delivered Indents */}
+      {showDeliveredWarningModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-lg w-full p-6 shadow-2xl border-t-4 border-amber-500 relative transform transition-all">
+            <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-center text-slate-900 dark:text-white mb-3">
+              महत्वपूर्ण सूचना / Important Notice
+            </h3>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-relaxed text-center mb-6 bg-amber-50 dark:bg-amber-950/40 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50">
+              Warehouse से Issue किए गए Items/Indent की Delivery हो चुकी है , उन Items/Indent का Receipt (inwards) दर्ज करने का कष्ट करे ,अन्यथा भविष्य में कुछ Features का उपयोग बाधित हो जाएगा।
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                onClick={() => {
+                  setShowDeliveredWarningModal(false);
+                  navigate('/indent/warehouse-receipts');
+                }}
+                className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all focus:outline-none"
+              >
+                Go to Warehouse Receipts (Inwards)
+              </button>
+              <button
+                onClick={() => setShowDeliveredWarningModal(false)}
+                className="w-full sm:w-auto px-5 py-2.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs font-semibold rounded-lg shadow-sm transition-all focus:outline-none"
+              >
+                Dismiss / ठीक है
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-4 relative min-h-[calc(100vh-100px)]">
         {/* Sleek Dashboard Header */}
@@ -243,7 +353,10 @@ export default function Dashboard() {
         </div>
 
         <div 
-          onClick={() => navigate('/indent/warehouse-receipts', { state: { filterPending: true } })}
+          onClick={() => {
+            setReceiptsModalFilter('all');
+            setShowReceiptsModal(!showReceiptsModal);
+          }}
           className="bg-white dark:bg-[#1a1d24] rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col justify-between cursor-pointer hover:shadow-md hover:border-orange-200 transition-all group"
         >
           <div className="flex justify-between items-start">
@@ -256,9 +369,38 @@ export default function Dashboard() {
             {loadingPendingReceipts ? (
               <div className="h-8 w-16 bg-gray-200 animate-pulse rounded"></div>
             ) : (
-              <span className="text-3xl font-extrabold text-gray-900 dark:text-white">
-                {pendingReceiptsCount}
-              </span>
+              <div>
+                <span className="text-3xl font-extrabold text-gray-900 dark:text-white">
+                  {pendingReceiptsCount}
+                </span>
+                
+                {/* Delivered and Not Delivered count badges */}
+                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800/80 flex items-center gap-2 text-xs">
+                  <span 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReceiptsModalFilter('delivered');
+                      setShowReceiptsModal(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Delivered: <strong className="font-bold">{deliveredReceipts.length}</strong>
+                  </span>
+
+                  <span 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReceiptsModalFilter('not_delivered');
+                      setShowReceiptsModal(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    Not Delivered: <strong className="font-bold">{notDeliveredReceipts.length}</strong>
+                  </span>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -311,28 +453,65 @@ export default function Dashboard() {
       {/* Expired Items List */}
       {showList && (
         <div className="bg-white dark:bg-[#1a1d24] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
-            <h3 className="font-bold text-gray-800 dark:text-white">Items Expiring in &lt;= 90 Days</h3>
-            <button onClick={() => setShowList(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h3 className="font-bold text-gray-800 dark:text-white whitespace-nowrap">Items Expiring in &lt;= 90 Days</h3>
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              {/* Search Bar on the Right Side */}
+              <div className="relative w-full sm:w-64">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search item name or code..."
+                  value={expirySearchTerm}
+                  onChange={(e) => setExpirySearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-8 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors"
+                />
+                {expirySearchTerm && (
+                  <button
+                    onClick={() => setExpirySearchTerm('')}
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <button 
+                onClick={() => {
+                  setShowList(false);
+                  setExpirySearchTerm('');
+                }} 
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
           </div>
           <div className="max-h-96 overflow-y-auto">
-            {nearExpiryData.length > 0 ? (
+            {filteredAndSortedExpiryData.length > 0 ? (
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 sticky top-0 z-10">
                   <tr>
                     <th className="px-6 py-3 font-semibold text-xs uppercase">Item Code</th>
                     <th className="px-6 py-3 font-semibold text-xs uppercase">Item Name</th>
+                    <th className="px-6 py-3 font-semibold text-xs uppercase">Type</th>
+                    <th className="px-6 py-3 font-semibold text-xs uppercase text-right">Qty</th>
                     <th className="px-6 py-3 font-semibold text-xs uppercase">Exp Date</th>
                     <th className="px-6 py-3 font-semibold text-xs uppercase">Batch No</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {nearExpiryData.map((item, idx) => (
+                  {filteredAndSortedExpiryData.map((item, idx) => (
                     <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="px-6 py-3 font-mono text-xs">{item.ITEMCODE || item.itemcode}</td>
                       <td className="px-6 py-3 font-medium">{item.ITEMNAME || item.itemname}</td>
+                      <td className="px-6 py-3 text-xs text-gray-600 dark:text-gray-300">{item.ITEMTYPENAME || item.itemtypename || item.ITEMTYPE || item.itemtype || '-'}</td>
+                      <td className="px-6 py-3 text-xs font-semibold text-right text-gray-800 dark:text-gray-200">{item.BATCHSTOCK ?? item.batchstock ?? 0}</td>
                       <td className="px-6 py-3 text-red-600 font-bold">{item.EXPDATEDDMMYY || item.expdateddmmyy || item.expdate}</td>
                       <td className="px-6 py-3 font-mono text-xs text-gray-500">{item.BATCHNO || item.batchno}</td>
                     </tr>
@@ -340,7 +519,188 @@ export default function Dashboard() {
                 </tbody>
               </table>
             ) : (
-              <div className="p-8 text-center text-gray-500">No items expiring within 90 days.</div>
+              <div className="p-8 text-center text-gray-500">
+                {expirySearchTerm ? 'No matching items found.' : 'No items expiring within 90 days.'}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pending Receipts Details Table / Modal */}
+      {showReceiptsModal && (
+        <div className="bg-white dark:bg-[#1a1d24] rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-bold text-gray-800 dark:text-white mr-2">Pending Receipts Breakdown</h3>
+              <div className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-0.5 bg-gray-50 dark:bg-gray-800 text-xs font-medium">
+                <button
+                  onClick={() => setReceiptsModalFilter('all')}
+                  className={`px-2.5 py-1 rounded-md transition-colors ${
+                    receiptsModalFilter === 'all'
+                      ? 'bg-white dark:bg-[#252830] text-gray-900 dark:text-white shadow-sm font-semibold'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  All ({pendingReceiptsList.length})
+                </button>
+                <button
+                  onClick={() => setReceiptsModalFilter('delivered')}
+                  className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 ${
+                    receiptsModalFilter === 'delivered'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 shadow-sm font-semibold'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-emerald-600'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Delivered ({deliveredReceipts.length})
+                </button>
+                <button
+                  onClick={() => setReceiptsModalFilter('not_delivered')}
+                  className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5 ${
+                    receiptsModalFilter === 'not_delivered'
+                      ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 shadow-sm font-semibold'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-amber-600'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  Not Delivered ({notDeliveredReceipts.length})
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              {/* Search input for Pending Receipts */}
+              <div className="relative w-full md:w-64">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder="Search indent no, WH issue no..."
+                  value={receiptsSearchTerm}
+                  onChange={(e) => setReceiptsSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-8 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-colors"
+                />
+                {receiptsSearchTerm && (
+                  <button
+                    onClick={() => setReceiptsSearchTerm('')}
+                    className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <button 
+                onClick={() => {
+                  setShowReceiptsModal(false);
+                  setReceiptsSearchTerm('');
+                }} 
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors flex-shrink-0"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-96 overflow-y-auto">
+            {filteredPendingReceipts.length > 0 ? (
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold text-xs uppercase">Sl. No.</th>
+                    {/* <th className="px-4 py-3 font-semibold text-xs uppercase">Warehouse</th> */}
+                    <th className="px-4 py-3 font-semibold text-xs uppercase">Indent No</th>
+                    <th className="px-4 py-3 font-semibold text-xs uppercase">Indent Date</th>
+                    <th className="px-4 py-3 font-semibold text-xs uppercase">WH Issue No</th>
+                    <th className="px-4 py-3 font-semibold text-xs uppercase">WH Issue Date</th>
+                    {/* <th className="px-4 py-3 font-semibold text-xs uppercase">Delivery Status</th> */}
+                    <th className="px-4 py-3 font-semibold text-xs uppercase">Delivery Date</th>
+                    <th className="px-4 py-3 font-semibold text-xs uppercase">Days Since Not Receipts</th>
+                    <th className="px-4 py-3 font-semibold text-xs uppercase">Receipts Status</th>
+                    <th className="px-4 py-3 font-semibold text-xs uppercase text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {filteredPendingReceipts.map((indent, idx) => {
+                    const isDelivered = Boolean(indent.deliveryDate || indent.dropDate1 || indent.dropDateTime);
+                    const delDateVal = indent.deliveryDate || indent.dropDate1 || indent.dropDateTime;
+                    const daysSince = isDelivered ? calculateWorkingDaysSinceDelivery(delDateVal) : '-';
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="px-4 py-3 font-medium text-xs text-center">{idx + 1}</td>
+                        {/* <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300">{indent.warehouse || '-'}</td> */}
+                        <td className="px-4 py-3 font-mono text-xs font-semibold text-gray-900 dark:text-gray-100">{indent.indentNo || '-'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300">{indent.indentDate || '-'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300">{indent.whIssueNo || '-'}</td>
+                        <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-300">{indent.whIssueDate || '-'}</td>
+                        {/* <td className="px-4 py-3 text-xs">
+                          {isDelivered ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              Delivered
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/50">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                              Not Delivered
+                            </span>
+                          )}
+                        </td> */}
+                        <td className="px-4 py-3 text-xs font-medium text-gray-800 dark:text-gray-200">
+                          {indent.deliveryDate || indent.dropDate1 || indent.dropDateTime || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-center">
+                          {isDelivered && daysSince !== '-' ? (
+                            <span className="inline-flex items-center justify-center font-bold px-2 py-0.5 rounded text-xs bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-300">
+                              {daysSince} day{daysSince === 1 ? '' : 's'}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          <span className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-medium ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-600/20">
+                            {indent.receiptStatus || 'Pending'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-center">
+                          <button
+                            onClick={() => {
+                              if (indent.receiptId) {
+                                navigate(`/indent/warehouse-receipts/view/${indent.receiptId}`);
+                              } else {
+                                navigate('/indent/warehouse-receipts', { 
+                                  state: { 
+                                    filterPending: true,
+                                    filterIndentNo: indent.indentNo,
+                                    selectedYearId: pendingReceiptsYearId
+                                  } 
+                                });
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                {receiptsSearchTerm ? 'No matching receipts found.' : 'No pending receipts for this category.'}
+              </div>
             )}
           </div>
         </div>

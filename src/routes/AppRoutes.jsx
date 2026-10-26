@@ -80,6 +80,9 @@ import CreateNonEdlAnnualIndentPage from '../pages/annual-indent/CreateNonEdlAnn
 import CreateAnnualIndentPage from '../pages/annual-indent/CreateAnnualIndentPage';
 import CreateAnnualIndentAyushPage from '../pages/annual-indent/CreateAnnualIndentAyushPage';
 import CreateAnnualIndentDhPage from '../pages/annual-indent/CreateAnnualIndentDhPage';
+import DaoApprovalPage from '../pages/annual-indent/DaoApprovalPage';
+import DaoStatusReportPage from '../pages/annual-indent/DaoStatusReportPage';
+import DaoItemWiseAiPage from '../pages/annual-indent/DaoItemWiseAiPage';
 import CgmscReceiptDrugWisePage from '../pages/reports/CgmscReceiptDrugWisePage';
 import CgmscReceiptBatchWisePage from '../pages/reports/CgmscReceiptBatchWisePage';
 import DateWiseFacilityIssuePage from '../pages/reports/DateWiseFacilityIssuePage';
@@ -657,6 +660,37 @@ export default function AppRoutes() {
       <Route path="/annual-indent/upload-forward" element={
         <ProtectedRoute>
           <UploadForwardIndentPage />
+        </ProtectedRoute>
+      } />
+      {/* DAO Annual Indent Routes */}
+      <Route path="/annual-indent/dao-approval" element={
+        <ProtectedRoute>
+          <DaoApprovalPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/DAOApproval.aspx" element={
+        <ProtectedRoute>
+          <DaoApprovalPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/dao-status-report" element={
+        <ProtectedRoute>
+          <DaoStatusReportPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/Reports/AyushDAOAnnualIndentStatus.aspx" element={
+        <ProtectedRoute>
+          <DaoStatusReportPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/annual-indent/dao-item-wise-ai" element={
+        <ProtectedRoute>
+          <DaoItemWiseAiPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Anualindent/Reports/AyushDrugWiseAIReport.aspx" element={
+        <ProtectedRoute>
+          <DaoItemWiseAiPage />
         </ProtectedRoute>
       } />
       <Route path="/annual-indent/upload-forward-dh" element={

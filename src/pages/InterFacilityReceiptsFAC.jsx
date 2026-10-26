@@ -1,3 +1,4 @@
+import { getDefaultFinYearId } from '../utils/indentYearHelper';
 import React, { useState, useEffect } from 'react';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
@@ -36,7 +37,7 @@ export default function InterFacilityReceiptsFAC() {
       );
       setFinYears(mappedYears);
       if (mappedYears.length > 0) {
-        setSelectedFinYear(mappedYears[0].id);
+        setSelectedFinYear(getDefaultFinYearId(mappedYears, 'id', 'name'));
       }
     } catch (error) {
       console.error('Error fetching financial years:', error);

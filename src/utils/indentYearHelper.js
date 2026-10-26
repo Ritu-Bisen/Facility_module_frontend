@@ -30,3 +30,26 @@ export function getDynamicIndentHeaders() {
     futureFullYearRange
   };
 }
+
+/**
+ * Utility to find default financial year ID matching current financial year
+ */
+export function getDefaultFinYearId(yearsList = [], idKey = 'id', nameKey = 'year') {
+  if (!Array.isArray(yearsList) || yearsList.length === 0) return '';
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0 = Jan, 3 = Apr
+  const finYearString = currentMonth >= 3 
+    ? `${currentYear}-${currentYear + 1}` 
+    : `${currentYear - 1}-${currentYear}`;
+
+  const defaultYearObj = yearsList.find(y => {
+    if (!y) return false;
+    const val = String(y[nameKey] || '');
+    return val === finYearString ||
+      val === finYearString.replace(/20/g, '') ||
+      val.includes(finYearString.split('-')[0].slice(-2) + '-' + finYearString.split('-')[1].slice(-2));
+  });
+
+  return defaultYearObj ? defaultYearObj[idKey] : yearsList[0]?.[idKey] || '';
+}
