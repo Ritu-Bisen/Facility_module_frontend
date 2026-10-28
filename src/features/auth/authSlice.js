@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../../api/axios';
 
 // Rehydrate state from localStorage on app load
 const storedUser = localStorage.getItem('user');
@@ -9,12 +9,9 @@ const storedMenus = localStorage.getItem('menus');
 
 export const fetchUserMenus = createAsyncThunk(
   'auth/fetchUserMenus',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const token = getState().auth.accessToken;
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/users/me/menus`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/users/me/menus');
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch menus');
@@ -24,14 +21,9 @@ export const fetchUserMenus = createAsyncThunk(
 
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
-  async (_, { dispatch, getState }) => {
+  async (_, { dispatch }) => {
     try {
-      const token = getState().auth.accessToken || localStorage.getItem('accessToken');
-      if (token) {
-        await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      }
+      await api.post('/auth/logout', {});
     } catch (error) {
       // Ignore API errors during logout so client cleanup always succeeds
     } finally {

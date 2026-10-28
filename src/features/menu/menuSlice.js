@@ -1,16 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
+import api from '../../api/axios';
 
 export const fetchMyMenus = createAsyncThunk(
   'menu/fetchMyMenus',
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) throw new Error('No token found');
-      
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/facility-access/my-menus`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get('/facility-access/my-menus');
       return response.data; // { success, menus, facilityType }
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);

@@ -1,6 +1,14 @@
 import api from './axios';
 
 /**
+ * Fetch Financial Years list for dropdown
+ */
+export const getFinancialYears = async () => {
+  const response = await api.get('/reagent-indent/fin-years');
+  return response.data;
+};
+
+/**
  * Fetch Medical Colleges list for dropdown
  */
 export const getMedicalColleges = async () => {

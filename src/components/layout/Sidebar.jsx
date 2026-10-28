@@ -10,6 +10,7 @@ import {
   ArrowRightStartOnRectangleIcon,
   Cog6ToothIcon
 } from '@heroicons/react/24/outline';
+import { isMedicalCollegeOrDmeFacility } from '../../utils/reagentIndentHelper';
 
 export default function Sidebar() {
   const { user } = useAuth();
@@ -44,7 +45,7 @@ export default function Sidebar() {
     ['364', '378'].includes(localFacTypeId) || ['364', '378'].includes(user?.facilityTypeId) || ['364', '378'].includes(user?.facilityTypeID) ||
     user?.emailId === 'admink@gnail.com';
 
-  const isMcFacility = isDhDmeMcFacility;
+  const isMcFacility = isMedicalCollegeOrDmeFacility(user);
   const isCmeUser = isDhDmeMcFacility;
 
   const userRoleId = Number(user?.roleId || user?.roleID || localStorage.getItem('roleId') || 0);
@@ -145,14 +146,14 @@ export default function Sidebar() {
           ...(isHod2Or3 && !isAyushUser && currentHodId !== 7 ? [
             { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual Indent', canView: true }
           ] : []),
-          ...(isDhDmeMcFacility ? [
+          ...(isMcFacility ? [
             { screenId: 'ai_mc_ai', screenUrl: '/annual-indent/medical-college-ai', screenName: 'Medical College AI', canView: true },
             { screenId: 'ai_mc_vs_issuance', screenUrl: '/annual-indent/mc-hospital-ai-vs-issuance', screenName: 'Medical College/Hospital AI vs Issuance', canView: true }
           ] : [])
         ])
       ]
     },
-    {
+    ...(isMcFacility ? [{
       moduleId: 'non_edl_annual_indent_module',
       moduleName: 'NON EDL Annual Indent',
       screens: [
@@ -181,7 +182,7 @@ export default function Sidebar() {
           canView: true
         }
       ]
-    },
+    }] : []),
     ...(isMcFacility ? [{
       moduleId: 'reagent_indent_module',
       moduleName: 'Reagent Indent',
@@ -214,7 +215,13 @@ export default function Sidebar() {
     });
 
     // Filter dynamic backend menus based on permissions (canView, HOD, and CMHO)
-    const filteredMenus = (menus || []).map(m => {
+    const filteredMenus = (menus || []).filter(m => {
+      const modName = (m?.moduleName || '').toLowerCase();
+      if (!isMedicalCollegeOrDmeFacility(user) && (modName.includes('reagent') || modName.includes('reagent indent') || modName.includes('non edl') || modName.includes('non-edl'))) {
+        return false;
+      }
+      return true;
+    }).map(m => {
       if (!m || !m.screens) return m;
       return {
         ...m,
@@ -224,6 +231,11 @@ export default function Sidebar() {
 
           const url = (s?.screenUrl || '').toLowerCase();
           const name = (s?.screenName || '').toLowerCase();
+
+          // Reagent Indent screens: show ONLY to Medical College and DME facilities
+          if (!isMedicalCollegeOrDmeFacility(user) && (url.includes('reagent-indent') || name.includes('reagent indent') || url.includes('freez-rc-details') || name.includes('reagent') || url.includes('non-edl') || name.includes('non edl') || name.includes('non-edl') || url.includes('medical-college') || name.includes('medical college') || url.includes('mc-hospital') || name.includes('mc/hospital'))) {
+            return false;
+          }
 
           // Annual Indent Distribution only allowed for CMHO
           if (!isCmhoUser && (url.includes('distribution') || name.includes('distribution'))) {
@@ -299,6 +311,12 @@ export default function Sidebar() {
         if (sUrl.includes('ayushdrugwiseaireport') || sName.includes('item wise ai details(dao)')) {
           return { ...s, screenName: 'Item Wise AI Details(DAO)', screenUrl: '/annual-indent/dao-item-wise-ai' };
         }
+        if (sUrl.includes('spfacilityreceiptsother') || sUrl.includes('spfacilityreceiptother') || sName.toLowerCase() === 'special receipt') {
+          return { ...s, screenName: 'Special Receipt', screenUrl: '/special-receipt' };
+        }
+        if (sUrl.includes('expiresfac') || sUrl.includes('expirefac') || sName.toLowerCase().includes('expire items list') || sName.toLowerCase().includes('expiry voucher') || sName.toLowerCase() === 'expired') {
+          return { ...s, screenName: 'Expiry Voucher', screenUrl: '/expiry-voucher' };
+        }
         return s;
       });
 
@@ -372,6 +390,8 @@ export default function Sidebar() {
   const baseMenus = [
     { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
     { path: '/opening-stock', label: 'Opening Stock', Icon: ClipboardDocumentListIcon },
+    { path: '/special-receipt', label: 'Special Receipt', Icon: ClipboardDocumentListIcon },
+    { path: '/expiry-voucher', label: 'Expiry Voucher', Icon: ClipboardDocumentListIcon },
     { path: '/return-to-warehouse', label: 'Return to Warehouse', Icon: ClipboardDocumentListIcon },
     { path: '/Facility/Reports/FacHoldBatchReport.aspx', label: 'Hold Batches Report', Icon: ClipboardDocumentListIcon }
   ];

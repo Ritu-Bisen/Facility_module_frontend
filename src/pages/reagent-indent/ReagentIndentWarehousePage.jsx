@@ -7,7 +7,8 @@ import Footer from '../../components/layout/Footer';
 import { toast } from 'react-hot-toast';
 import { 
   getReagentWarehouseIndents,
-  checkIncompleteIndent 
+  checkIncompleteIndent,
+  getFinancialYears
 } from '../../api/reagentIndentApi';
 import { 
   generateReagentAnnualIndentPDF, 
@@ -16,13 +17,19 @@ import {
 import { 
   PlusIcon, 
   DocumentArrowDownIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ShieldExclamationIcon
 } from '@heroicons/react/24/outline';
+import { 
+  isMedicalCollegeOrDmeFacility, 
+  isCurrentOrFutureFinYear 
+} from '../../utils/reagentIndentHelper';
 
 export default function ReagentIndentWarehousePage() {
   const navigate = useNavigate();
   const user = useSelector((s) => s.auth.user);
 
+  const [finYears, setFinYears] = useState([]);
   const [finYear, setFinYear] = useState('2026-2027');
   const [statusFilter, setStatusFilter] = useState('All');
   const [loading, setLoading] = useState(true);
@@ -30,7 +37,27 @@ export default function ReagentIndentWarehousePage() {
   const [hasIncompleteEntry, setHasIncompleteEntry] = useState(false);
 
   useEffect(() => {
-    loadWarehouseIndents();
+    async function fetchFinYears() {
+      try {
+        const res = await getFinancialYears();
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setFinYears(res.data);
+          const current = res.data.find(y => y.isCurrent) || res.data[0];
+          if (current) {
+            setFinYear(current.accYear);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load financial years:', err);
+      }
+    }
+    fetchFinYears();
+  }, []);
+
+  useEffect(() => {
+    if (finYear) {
+      loadWarehouseIndents();
+    }
   }, [finYear, statusFilter]);
 
   const loadWarehouseIndents = async () => {
@@ -55,7 +82,7 @@ export default function ReagentIndentWarehousePage() {
   };
 
   const handleAddNewIndent = () => {
-    navigate('/reagent-indent/warehouse-indent/add?Mode=Create');
+    navigate(`/reagent-indent/warehouse-indent/add?Mode=Create&finYear=${encodeURIComponent(finYear)}`);
   };
 
   const handleDownloadAnnualIndent = (indent) => {
@@ -78,6 +105,37 @@ export default function ReagentIndentWarehousePage() {
     if (statusFilter === 'C') return statusCode === 'C';
     return true;
   });
+
+  const isAuthorized = isMedicalCollegeOrDmeFacility(user);
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex flex-col h-screen bg-slate-50 font-sans">
+        <Header />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden items-center justify-center p-6 bg-slate-50">
+            <div className="max-w-md w-full bg-white border border-slate-200 shadow-sm rounded-xl p-8 text-center">
+              <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShieldExclamationIcon className="w-8 h-8" />
+              </div>
+              <h2 className="text-base font-bold text-slate-800 mb-2">Access Restricted</h2>
+              <p className="text-xs text-slate-600 mb-6 leading-relaxed">
+                This page is only accessible to Medical College and DME facilities.
+              </p>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 font-sans">
@@ -105,21 +163,30 @@ export default function ReagentIndentWarehousePage() {
                     onChange={(e) => setFinYear(e.target.value)}
                     className="border-slate-300 shadow-sm rounded-md text-xs font-medium py-1.5 px-3 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                   >
-                    <option value="2026-2027">2026-2027</option>
-                    <option value="2025-2026">2025-2026</option>
+                    {finYears.length === 0 ? (
+                      <option value={finYear}>{finYear}</option>
+                    ) : (
+                      finYears.map(fy => (
+                        <option key={fy.accYrSetId || fy.accYear} value={fy.accYear}>
+                          {fy.accYear}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span>Add New REAGENT Annual Indent:</span>
-                  <button 
-                    onClick={handleAddNewIndent}
-                    className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition shadow-sm hover:shadow active:scale-95 flex items-center justify-center"
-                    title="Add new Reagent Annual Indent"
-                  >
-                    <PlusIcon className="w-4 h-4 stroke-[3]" />
-                  </button>
-                </div>
+                {isCurrentOrFutureFinYear(finYear, finYears) && (
+                  <div className="flex items-center gap-2">
+                    <span>Add New REAGENT Annual Indent:</span>
+                    <button 
+                      onClick={handleAddNewIndent}
+                      className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition shadow-sm hover:shadow active:scale-95 flex items-center justify-center"
+                      title="Add new Reagent Annual Indent"
+                    >
+                      <PlusIcon className="w-4 h-4 stroke-[3]" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Grid Table */}

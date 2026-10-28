@@ -16,7 +16,8 @@ import {
   sendOtpApi,
   freezeIndentApi,
   deleteIndentApi,
-  deleteReagentItemApi
+  deleteReagentItemApi,
+  getFinancialYears
 } from '../../api/reagentIndentApi';
 import { 
   generateReagentAnnualIndentPDF, 
@@ -30,8 +31,13 @@ import {
   PaperAirplaneIcon,
   CheckCircleIcon,
   BeakerIcon,
-  CalendarIcon
+  CalendarIcon,
+  ShieldExclamationIcon
 } from '@heroicons/react/24/outline';
+import { 
+  isMedicalCollegeOrDmeFacility, 
+  filterCurrentAndFutureFinYears 
+} from '../../utils/reagentIndentHelper';
 
 export default function AddReagentIndentPage() {
   const navigate = useNavigate();
@@ -42,6 +48,7 @@ export default function AddReagentIndentPage() {
   const user = useSelector((s) => s.auth.user);
 
   // Form Header State
+  const [finYears, setFinYears] = useState([]);
   const [finYear, setFinYear] = useState('2026-2027');
   const [accYrSetId, setAccYrSetId] = useState(547);
   const [indentId, setIndentId] = useState(nocIdParam || '');
@@ -79,6 +86,39 @@ export default function AddReagentIndentPage() {
   const [dispatchNo, setDispatchNo] = useState('');
   const [dispatchDate, setDispatchDate] = useState('');
   const [letterFile, setLetterFile] = useState(null);
+
+  useEffect(() => {
+    async function loadYears() {
+      try {
+        const res = await getFinancialYears();
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const filteredYears = filterCurrentAndFutureFinYears(res.data);
+          const finalYears = filteredYears.length > 0 ? filteredYears : res.data;
+          setFinYears(finalYears);
+          const finYearParam = searchParams.get('finYear');
+          const matched = finYearParam 
+            ? finalYears.find(y => y.accYear === finYearParam)
+            : finalYears.find(y => y.isCurrent) || finalYears[0];
+          if (matched) {
+            setFinYear(matched.accYear);
+            setAccYrSetId(matched.accYrSetId);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading financial years in AddReagentIndent:', err);
+      }
+    }
+    loadYears();
+  }, [searchParams]);
+
+  const handleFinYearChange = (e) => {
+    const selectedYear = e.target.value;
+    setFinYear(selectedYear);
+    const matched = finYears.find(y => y.accYear === selectedYear);
+    if (matched) {
+      setAccYrSetId(matched.accYrSetId);
+    }
+  };
 
   useEffect(() => {
     loadInitialDropdowns();
@@ -522,6 +562,37 @@ export default function AddReagentIndentPage() {
     return Array.from(map.values());
   }, [savedEquipmentsDdl, reagentItems]);
 
+  const isAuthorized = isMedicalCollegeOrDmeFacility(user);
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex flex-col h-screen bg-slate-50 font-sans">
+        <Header />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden items-center justify-center p-6 bg-slate-50">
+            <div className="max-w-md w-full bg-white border border-slate-200 shadow-sm rounded-xl p-8 text-center">
+              <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShieldExclamationIcon className="w-8 h-8" />
+              </div>
+              <h2 className="text-base font-bold text-slate-800 mb-2">Access Restricted</h2>
+              <p className="text-xs text-slate-600 mb-6 leading-relaxed">
+                This page is only accessible to Medical College and DME facilities.
+              </p>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-slate-50 font-sans">
       <Header />
@@ -558,13 +629,20 @@ export default function AddReagentIndentPage() {
                     <select
                       disabled={isGenerated}
                       value={finYear}
-                      onChange={(e) => setFinYear(e.target.value)}
+                      onChange={handleFinYearChange}
                       className={`px-3 py-1.5 border border-slate-300 rounded-md text-xs font-semibold ${
                         isGenerated ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500'
                       }`}
                     >
-                      <option value="2026-2027">2026-2027</option>
-                      <option value="2025-2026">2025-2026</option>
+                      {finYears.length === 0 ? (
+                        <option value={finYear}>{finYear}</option>
+                      ) : (
+                        finYears.map(fy => (
+                          <option key={fy.accYrSetId || fy.accYear} value={fy.accYear}>
+                            {fy.accYear}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
 

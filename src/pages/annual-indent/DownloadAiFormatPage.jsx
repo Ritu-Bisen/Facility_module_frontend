@@ -127,9 +127,9 @@ export default function DownloadAiFormatPage() {
               'Strength': row.strength || '',
               'GroupName': row.groupName || '',
               'edl': row.edl || '',
-              'Issued_From_WH_01_Apr_26_to_31st_Oct_27': Number(row.issuedFromWh !== undefined ? row.issuedFromWh : 0),
+              'Issued_From_WH_01_Apr_26_to_31st_Oct_26': Number(row.issuedFromWh !== undefined ? row.issuedFromWh : 0),
               'Actual_Consumption_From_01_April_26_to_31st_Oct_26': Number(row.actualConsumption !== undefined ? row.actualConsumption : 0),
-              'Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27': Number(row.estimatedConsumption !== undefined ? row.estimatedConsumption : 0),
+              'Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_26': Number(row.estimatedConsumption !== undefined ? row.estimatedConsumption : 0),
               'Current_Stock': Number(row.currentStock !== undefined ? row.currentStock : 0),
               'ANNUAL_INDENT_27_28': Number(row.annualIndent2728 !== undefined ? row.annualIndent2728 : (row.annualIndent2627 || 0)),
               'Rate': Number(row.rate !== undefined ? row.rate : 0),
@@ -275,7 +275,7 @@ export default function DownloadAiFormatPage() {
                         {isDme ? (
                           'प्रत्येक स्वास्थ्य केंद्र केवल Excel File में कॉलम नंबर 8 (COSUMPTION_From_1APR_26) ,कॉलम नंबर 9 (Current_Stock) एवं कॉलम नंबर 10 (INDENT_27_28) में ही भरेंगे |'
                         ) : (
-                          'प्रत्येक स्वास्थ्य केंद्र केवल Excel File में कॉलम नंबर 8 (ISSUED_FROM_WH_01_APR_26_TO_31ST_OCT_27) ,कॉलम नंबर 9 (ACTUAL_CONSUMPTION_FROM_01_APRIL_26_TO_31ST_OCT_26) ,कॉलम नंबर 10 (ESTIMATED_CONSUMPTION_FOR_ONE_YEAR_FROM_01_APRIL_26_TO_31ST_MARCH_27) ,कॉलम नंबर 11 (CURRENT_STOCK) एवं कॉलम नंबर 12 (ANNUAL_INDENT_27_28) में ही भरेंगे |'
+                          'प्रत्येक स्वास्थ्य केंद्र केवल Excel File में कॉलम नंबर 8 (ISSUED_FROM_WH_01_APR_26_TO_31ST_OCT_26) ,कॉलम नंबर 9 (ACTUAL_CONSUMPTION_FROM_01_APRIL_26_TO_31ST_OCT_26) ,कॉलम नंबर 10 (ESTIMATED_CONSUMPTION_FOR_ONE_YEAR_FROM_01_APRIL_26_TO_31ST_MARCH_26) ,कॉलम नंबर 11 (CURRENT_STOCK) एवं कॉलम नंबर 12 (ANNUAL_INDENT_27_28) में ही भरेंगे |'
                         )}
                       </p>
                     </div>

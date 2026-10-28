@@ -95,6 +95,10 @@ import ProgramIndentListPage from '../pages/program-indent/ProgramIndentListPage
 import CreateProgramIndentPage from '../pages/program-indent/CreateProgramIndentPage';
 import OpeningStockPage from '../pages/OpeningStockPage';
 import FacilityReceiptManualPage from '../pages/FacilityReceiptManualPage';
+import SpecialReceiptListPage from '../pages/SpecialReceiptListPage';
+import SpecialReceiptEntryPage from '../pages/SpecialReceiptEntryPage';
+import ExpiryVoucherListPage from '../pages/ExpiryVoucherListPage';
+import ExpiryVoucherEntryPage from '../pages/ExpiryVoucherEntryPage';
 
 function PlaceholderPage({ title, description, children }) {
   return (
@@ -841,6 +845,71 @@ export default function AppRoutes() {
       <Route path="/Facility/OpStock.aspx" element={
         <ProtectedRoute>
           <FacilityReceiptManualPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/special-receipt" element={
+        <ProtectedRoute>
+          <SpecialReceiptListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/special-receipt/entry" element={
+        <ProtectedRoute>
+          <SpecialReceiptEntryPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/special-receipt-entry" element={
+        <ProtectedRoute>
+          <SpecialReceiptEntryPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/SPFacilityReceiptsOther.aspx" element={
+        <ProtectedRoute>
+          <SpecialReceiptListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/SPFacilityReceiptsOther.aspx" element={
+        <ProtectedRoute>
+          <SpecialReceiptListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/SPFacilityReceiptOther.aspx" element={
+        <ProtectedRoute>
+          <SpecialReceiptEntryPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/SPFacilityReceiptOther.aspx" element={
+        <ProtectedRoute>
+          <SpecialReceiptEntryPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/expiry-voucher" element={
+        <ProtectedRoute>
+          <ExpiryVoucherListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/expiry-voucher/entry" element={
+        <ProtectedRoute>
+          <ExpiryVoucherEntryPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/ExpiresFAC.aspx" element={
+        <ProtectedRoute>
+          <ExpiryVoucherListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/ExpiresFAC.aspx" element={
+        <ProtectedRoute>
+          <ExpiryVoucherListPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/ExpireFAC.aspx" element={
+        <ProtectedRoute>
+          <ExpiryVoucherEntryPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/ExpireFAC.aspx" element={
+        <ProtectedRoute>
+          <ExpiryVoucherEntryPage />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />

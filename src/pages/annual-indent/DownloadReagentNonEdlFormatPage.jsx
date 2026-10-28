@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
 import Footer from '../../components/layout/Footer';
@@ -16,10 +17,13 @@ import {
   MagnifyingGlassIcon,
   TableCellsIcon,
   XMarkIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ShieldExclamationIcon
 } from '@heroicons/react/24/outline';
+import { isMedicalCollegeOrDmeFacility } from '../../utils/reagentIndentHelper';
 
 export default function DownloadReagentNonEdlFormatPage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [downloading, setDownloading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -137,6 +141,37 @@ export default function DownloadReagentNonEdlFormatPage() {
       setDownloading(false);
     }
   };
+
+  const isAuthorized = isMedicalCollegeOrDmeFacility(user);
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex flex-col h-screen bg-[#f8fafc] font-sans">
+        <Header />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar />
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden items-center justify-center p-6 bg-slate-50">
+            <div className="max-w-md w-full bg-white border border-slate-200 shadow-sm rounded-xl p-8 text-center">
+              <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShieldExclamationIcon className="w-8 h-8" />
+              </div>
+              <h2 className="text-base font-bold text-slate-800 mb-2">Access Restricted</h2>
+              <p className="text-xs text-slate-600 mb-6 leading-relaxed">
+                This page is only accessible to Medical College and DME facilities.
+              </p>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-[#f8fafc] dark:bg-[#0f172a] font-sans overflow-hidden">
