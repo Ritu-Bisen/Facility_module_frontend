@@ -117,7 +117,8 @@ export default function DownloadAiFormatPage() {
               'Current_Stock': Number(row.currentStock !== undefined ? row.currentStock : 0),
               'INDENT_27_28': Number(row.indent2728 !== undefined ? row.indent2728 : (row.annualIndent2627 || 0)),
               'Rate': Number(row.rate !== undefined ? row.rate : 0),
-              'PACKAGINGUNIT': Number(row.packagingUnit !== undefined ? row.packagingUnit : 1)
+              'PACKAGINGUNIT': Number(row.packagingUnit !== undefined ? row.packagingUnit : 1),
+              'EDL Type': (row.edlType === 'EDL' || row.edlType === 'Yes' || row.edlType === 'Y') ? 'EDL' : 'Non EDL'
             }))
           : exportRows.map((row, index) => ({
               'SlNo': index + 1,
@@ -129,11 +130,12 @@ export default function DownloadAiFormatPage() {
               'edl': row.edl || '',
               'Issued_From_WH_01_Apr_26_to_31st_Oct_26': Number(row.issuedFromWh !== undefined ? row.issuedFromWh : 0),
               'Actual_Consumption_From_01_April_26_to_31st_Oct_26': Number(row.actualConsumption !== undefined ? row.actualConsumption : 0),
-              'Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_26': Number(row.estimatedConsumption !== undefined ? row.estimatedConsumption : 0),
+              'Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27': Number(row.estimatedConsumption !== undefined ? row.estimatedConsumption : 0),
               'Current_Stock': Number(row.currentStock !== undefined ? row.currentStock : 0),
               'ANNUAL_INDENT_27_28': Number(row.annualIndent2728 !== undefined ? row.annualIndent2728 : (row.annualIndent2627 || 0)),
               'Rate': Number(row.rate !== undefined ? row.rate : 0),
-              'categoryname': row.categoryName || ''
+              'categoryname': row.categoryName || '',
+              'EDL Type': (row.edlType === 'EDL' || row.edlType === 'Yes' || row.edlType === 'Y') ? 'EDL' : 'Non EDL'
             }));
 
         const worksheet = XLSX.utils.json_to_sheet(worksheetData);
@@ -275,7 +277,7 @@ export default function DownloadAiFormatPage() {
                         {isDme ? (
                           'प्रत्येक स्वास्थ्य केंद्र केवल Excel File में कॉलम नंबर 8 (COSUMPTION_From_1APR_26) ,कॉलम नंबर 9 (Current_Stock) एवं कॉलम नंबर 10 (INDENT_27_28) में ही भरेंगे |'
                         ) : (
-                          'प्रत्येक स्वास्थ्य केंद्र केवल Excel File में कॉलम नंबर 8 (ISSUED_FROM_WH_01_APR_26_TO_31ST_OCT_26) ,कॉलम नंबर 9 (ACTUAL_CONSUMPTION_FROM_01_APRIL_26_TO_31ST_OCT_26) ,कॉलम नंबर 10 (ESTIMATED_CONSUMPTION_FOR_ONE_YEAR_FROM_01_APRIL_26_TO_31ST_MARCH_26) ,कॉलम नंबर 11 (CURRENT_STOCK) एवं कॉलम नंबर 12 (ANNUAL_INDENT_27_28) में ही भरेंगे |'
+                          'प्रत्येक स्वास्थ्य केंद्र केवल Excel File में कॉलम नंबर 8 (ISSUED_FROM_WH_01_APR_26_TO_31ST_OCT_26) ,कॉलम नंबर 9 (ACTUAL_CONSUMPTION_FROM_01_APRIL_26_TO_31ST_OCT_26) ,कॉलम नंबर 10 (ESTIMATED_CONSUMPTION_FOR_ONE_YEAR_FROM_01_APRIL_26_TO_31ST_MARCH_27) ,कॉलम नंबर 11 (CURRENT_STOCK) एवं कॉलम नंबर 12 (ANNUAL_INDENT_27_28) में ही भरेंगे |'
                         )}
                       </p>
                     </div>
@@ -412,6 +414,7 @@ export default function DownloadAiFormatPage() {
                                 <th className="p-2 border-b border-slate-700 text-right">INDENT_27_28</th>
                                 <th className="p-2 border-b border-slate-700 text-right">RATE</th>
                                 <th className="p-2 border-b border-slate-700 text-center">PACKAGINGUNIT</th>
+                                <th className="p-2 border-b border-slate-700 text-center">EDL TYPE</th>
                               </>
                             ) : (
                               <>
@@ -422,6 +425,7 @@ export default function DownloadAiFormatPage() {
                                 <th className="p-2 border-b border-slate-700 text-right">INDENT_27_28</th>
                                 <th className="p-2 border-b border-slate-700 text-right">RATE</th>
                                 <th className="p-2 border-b border-slate-700">CATEGORY</th>
+                                <th className="p-2 border-b border-slate-700 text-center">EDL TYPE</th>
                               </>
                             )}
                           </tr>
@@ -447,6 +451,11 @@ export default function DownloadAiFormatPage() {
                                   <td className="p-2 text-right font-mono text-slate-400">{row.indent2728 || 0}</td>
                                   <td className="p-2 text-right font-mono text-emerald-700 dark:text-emerald-400">₹{Number(row.rate || 0).toFixed(2)}</td>
                                   <td className="p-2 text-center font-mono text-slate-600 dark:text-slate-400">{row.packagingUnit || 1}</td>
+                                  <td className="p-2 text-center">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.edlType === 'EDL' || row.edlType === 'Yes' || row.edlType === 'Y' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
+                                      {(row.edlType === 'EDL' || row.edlType === 'Yes' || row.edlType === 'Y') ? 'EDL' : 'Non EDL'}
+                                    </span>
+                                  </td>
                                 </>
                               ) : (
                                 <>
@@ -457,6 +466,11 @@ export default function DownloadAiFormatPage() {
                                   <td className="p-2 text-right font-mono text-slate-400">{row.annualIndent2728 || row.annualIndent2627 || 0}</td>
                                   <td className="p-2 text-right font-mono text-emerald-700 dark:text-emerald-400">₹{Number(row.rate || 0).toFixed(2)}</td>
                                   <td className="p-2 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase">{row.categoryName}</td>
+                                  <td className="p-2 text-center">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${row.edlType === 'EDL' || row.edlType === 'Yes' || row.edlType === 'Y' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'}`}>
+                                      {(row.edlType === 'EDL' || row.edlType === 'Yes' || row.edlType === 'Y') ? 'EDL' : 'Non EDL'}
+                                    </span>
+                                  </td>
                                 </>
                               )}
                             </tr>
