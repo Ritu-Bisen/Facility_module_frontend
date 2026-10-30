@@ -226,18 +226,9 @@ export default function AddReagentIndentPage() {
       }
     } catch (err) {
       console.error('Generate Header error:', err);
-      const facId = user?.facilityId || '23558';
-      const fallbackId = Date.now();
-      const fallbackNo = `${facId}/RG00002/26-27`;
-      const fallbackDate = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-
-      setIndentId(fallbackId);
-      setIndentNo(fallbackNo);
-      setIndentDate(fallbackDate);
-      setIsGenerated(true);
-      setLblMsg({ text: 'Saved Successfully', color: 'green' });
-      toast.success(`Saved Successfully: ${fallbackNo}`);
-      await loadReagentItemsData(fallbackId);
+      const errorMsg = err.response?.data?.message || err.message || 'Error generating indent header';
+      setLblMsg({ text: errorMsg, color: 'red' });
+      toast.error(errorMsg);
     }
   };
 

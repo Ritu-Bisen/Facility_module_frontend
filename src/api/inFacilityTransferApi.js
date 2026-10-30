@@ -118,7 +118,11 @@ export const generateAndSaveInFacilityTransferIssueNo = async (facilityId, paylo
   try {
     const response = await api.post(`/issues/generate-and-save/${facilityId}`, payload);
     if (response.data && response.data.success) {
-      return { success: true, issueNo: response.data.issueNo };
+      return { 
+        success: true, 
+        issueNo: response.data.issueNo,
+        issueId: response.data.issueId 
+      };
     } else {
       return { success: false, message: response.data?.message || 'Failed to generate and save issue no' };
     }

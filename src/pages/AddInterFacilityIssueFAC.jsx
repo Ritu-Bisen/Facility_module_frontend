@@ -117,7 +117,7 @@ export default function AddInterFacilityIssueFAC() {
     toFacility: '',
     remarks: '',
     issueDate: today,
-    category: ''
+    category: localStorage.getItem('currentInFacIssueCategory') || ''
   });
   
   const [facilities, setFacilities] = useState([]);
@@ -157,12 +157,26 @@ export default function AddInterFacilityIssueFAC() {
     const res = await getInFacilityTransferIssueById(issueId);
     setIsLoadingData(false);
     if (res.success && res.issue) {
+      let cat = res.issue.Category || '';
+      if (!cat) {
+        if (Number(res.issue.IssueEDL) === 2) {
+          cat = 'EDL of higher category';
+        } else if (Number(res.issue.IssueEDL) === 1) {
+          cat = 'EDL category';
+        } else {
+          cat = localStorage.getItem('currentInFacIssueCategory') || '';
+        }
+      }
+
       setForm({
         toFacility: res.issue.ToFacilityID || '',
         issueDate: res.issue.IssueDate ? String(res.issue.IssueDate).substring(0, 10) : today,
-        category: '', 
+        category: cat, 
         remarks: res.issue.Remarks || ''
       });
+      if (cat) {
+        localStorage.setItem('currentInFacIssueCategory', cat);
+      }
       setIssueNo(res.issue.IssueNo || '');
       setParentIssueId(res.issue.IssueID || id);
       setHeaderSaved(true);
@@ -227,24 +241,32 @@ export default function AddInterFacilityIssueFAC() {
       alert('Please select Transfer Facility');
       return;
     }
+    if (!form.category) {
+      alert('Please select Issue Category / Higher EDL Category');
+      return;
+    }
     if (!form.issueDate) {
       alert('Please select Issue Date');
       return;
     }
     
     setIsGenerating(true);
+    const issueEdl = form.category === 'EDL of higher category' ? 2 : 1;
     try {
       if (parentIssueId) {
         const payload = {
           toFacilityId: form.toFacility,
           issueDate: form.issueDate,
-          remarks: form.remarks || ''
+          remarks: form.remarks || '',
+          category: form.category,
+          issueEdl
         };
         const res = await updateInFacilityTransferIssueHeader(parentIssueId, payload);
         
         if (res.success) {
           setHeaderSaved(true);
           localStorage.setItem('currentInFacIssueHeaderSaved', 'true');
+          localStorage.setItem('currentInFacIssueCategory', form.category);
           alert("Header updated successfully");
         } else {
           alert(res.message || "Failed to update header");
@@ -255,7 +277,9 @@ export default function AddInterFacilityIssueFAC() {
           issueDate: form.issueDate,
           issueType: 'SP',
           requestBy: form.remarks || '',
-          remarks: form.remarks || ''
+          remarks: form.remarks || '',
+          category: form.category,
+          issueEdl
         };
         const res = await generateAndSaveInFacilityTransferIssueNo(facilityId, payload);
         if (res.success) {
@@ -263,6 +287,7 @@ export default function AddInterFacilityIssueFAC() {
           setHeaderSaved(true);
           localStorage.setItem('currentInFacIssueNo', res.issueNo);
           localStorage.setItem('currentInFacIssueHeaderSaved', 'true');
+          localStorage.setItem('currentInFacIssueCategory', form.category);
           
           if (res.issueId || res.data?.issueId) {
             const newId = res.issueId || res.data.issueId;
@@ -296,6 +321,7 @@ export default function AddInterFacilityIssueFAC() {
       localStorage.removeItem('currentInFacIssueId');
       localStorage.removeItem('currentInFacIssueNo');
       localStorage.removeItem('currentInFacIssueHeaderSaved');
+      localStorage.removeItem('currentInFacIssueCategory');
       navigate('/inter-facility-issue');
     } catch (e) {
       console.error(e);
@@ -318,6 +344,7 @@ export default function AddInterFacilityIssueFAC() {
       localStorage.removeItem('currentInFacIssueId');
       localStorage.removeItem('currentInFacIssueNo');
       localStorage.removeItem('currentInFacIssueHeaderSaved');
+      localStorage.removeItem('currentInFacIssueCategory');
       navigate('/inter-facility-issue');
     } catch (e) {
       console.error(e);
@@ -330,6 +357,9 @@ export default function AddInterFacilityIssueFAC() {
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setForm(p => ({ ...p, [name]: value }));
+    if (name === 'category') {
+      localStorage.setItem('currentInFacIssueCategory', value);
+    }
   };
 
   const handleAddRow = () => {
