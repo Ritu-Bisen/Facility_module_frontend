@@ -402,7 +402,7 @@ export default function ExpiryVoucherEntryPage() {
                     )}
 
                     <table className="w-full text-xs text-left border-collapse border border-gray-300">
-                      <thead>
+                      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                         <tr className="bg-[#1e40af] text-white">
                           <th className="py-2 px-2 text-center font-bold border border-blue-900 w-12">
                             Sl. No.

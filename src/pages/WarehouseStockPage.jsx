@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { storeAPI } from '../features/store/storeAPI';
 import * as XLSX from 'xlsx';
@@ -6,6 +6,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {
   FolderOpenIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
@@ -19,6 +20,9 @@ export default function WarehouseStockPage() {
   const [allData, setAllData] = useState([]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const [error, setError] = useState(null);
 
   // Filter states
@@ -29,26 +33,64 @@ export default function WarehouseStockPage() {
   const [selectedItemType, setSelectedItemType] = useState('');
   const [selectedMassCategory, setSelectedMassCategory] = useState('');
 
+  const scrollContainerRef = useRef(null);
+
   useEffect(() => {
     if (facilityId) {
-      loadStockData();
+      loadInitialStockData();
     }
   }, [facilityId]);
 
-  const loadStockData = async () => {
+  const loadInitialStockData = async () => {
     if (!facilityId) return;
     setLoading(true);
     setError(null);
+    setPage(1);
+    setHasMore(true);
     try {
-      const result = await storeAPI.getWarehouseStock(facilityId);
-      setAllData(result || []);
+      const result = await storeAPI.getWarehouseStock(facilityId, 1, 20);
+      const rows = result || [];
+      setAllData(rows);
       setDataLoaded(true);
+      if (rows.length < 20) {
+        setHasMore(false);
+      }
     } catch (e) {
       console.error('Failed to load stock data:', e);
       setError('Failed to fetch stock data. Please try again.');
       setAllData([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMoreStockData = useCallback(async () => {
+    if (!facilityId || loading || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const result = await storeAPI.getWarehouseStock(facilityId, nextPage, 20);
+      const rows = result || [];
+      if (rows.length > 0) {
+        setAllData(prev => [...prev, ...rows]);
+        setPage(nextPage);
+      }
+      if (rows.length < 20) {
+        setHasMore(false);
+      }
+    } catch (e) {
+      console.error('Failed to load more stock data:', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [facilityId, loading, loadingMore, hasMore, page]);
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 150) {
+      if (hasMore && !loadingMore && !loading) {
+        loadMoreStockData();
+      }
     }
   };
 
@@ -118,6 +160,7 @@ export default function WarehouseStockPage() {
     'Sl. No': idx + 1,
     'Item Code': row.ITEMCODE || row.itemcode || '—',
     'Item Name': row.ITEMNAME || row.itemname || '—',
+    'Item Type': row.ITEMTYPENAME || row.itemtypename || '—',
     'Strength': row.STRENGTH1 || row.strength1 || '—',
     'Unit': row.UNIT || row.unit || '—',
     'Ready Qty': row.READYQTY || row.readyqty || '0',
@@ -318,9 +361,13 @@ export default function WarehouseStockPage() {
                       Showing <span className="text-blue-600 font-bold">{filteredData.length}</span> records
                     </span>
                   </div>
-                  <div className="overflow-x-auto overflow-y-auto max-h-[550px]">
+                  <div 
+                    ref={scrollContainerRef}
+                    onScroll={handleScroll}
+                    className="overflow-x-auto overflow-y-auto max-h-[550px]"
+                  >
                     <table className="w-full text-sm text-left whitespace-nowrap">
-                      <thead>
+                      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                         <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider sticky top-0 z-10">
                           <th className="px-4 py-3 text-center w-10">S.No.</th>
                           <th className="px-4 py-3">Code</th>
@@ -399,6 +446,12 @@ export default function WarehouseStockPage() {
                       </tbody>
                     </table>
                   </div>
+                  {loadingMore && (
+                    <div className="flex items-center justify-center py-3 text-xs text-blue-600 gap-2 bg-slate-50 border-t border-slate-100">
+                      <ArrowPathIcon className="w-4 h-4 animate-spin text-blue-600" />
+                      <span className="font-medium">Loading next 20 items...</span>
+                    </div>
+                  )}
                 </div>
               )}
 

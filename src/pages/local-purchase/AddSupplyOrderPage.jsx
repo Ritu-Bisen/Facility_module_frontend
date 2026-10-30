@@ -819,9 +819,9 @@ export default function AddSupplyOrderPage() {
                             </button>
                           </div>
                           
-                          <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                          <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm overflow-y-auto max-h-[calc(100vh-260px)]">
                             <table className="w-full text-left text-sm whitespace-nowrap">
-                              <thead className="bg-slate-50 text-slate-600 uppercase font-semibold text-xs border-b border-slate-200">
+                              <thead className="sticky top-0 z-10 shadow-xs bg-slate-50 text-slate-600 uppercase font-semibold text-xs border-b border-slate-200">
                                 <tr>
                                   <th className="px-4 py-3">Sl. No.</th>
                                   <th className="px-4 py-3">Item Code & Description</th>

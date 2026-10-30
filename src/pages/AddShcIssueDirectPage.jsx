@@ -614,7 +614,7 @@ export default function AddInterFacilityIssueFAC() {
 
                   <div className="overflow-visible">
                     <table className="w-full text-xs text-left">
-                      <thead>
+                      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                         <tr className="text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
                           <th className="px-5 py-4 text-center w-12">SL.</th>
                           <th className="px-5 py-4 w-72">ITEM CODE & DESCRIPTION</th>
@@ -760,7 +760,7 @@ export default function AddInterFacilityIssueFAC() {
                             <td className="px-5 py-6">
                               {row.issueItemId ? (
                                 <table className="w-full text-[10px] text-center border-collapse border border-slate-200 shadow-sm">
-                                  <thead className="bg-[#1e40af] text-white font-bold">
+                                  <thead className="sticky top-0 z-10 shadow-xs bg-[#1e40af] text-white font-bold">
                                     <tr>
                                       <th className="p-1.5 border-r border-slate-600/30">Sl.<br/>No.</th>
                                       <th className="p-1.5 border-r border-slate-600/30">Batch<br/>No.</th>
@@ -887,7 +887,7 @@ export default function AddInterFacilityIssueFAC() {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Items to Issue ({rows.filter((r) => r.issueItemId).length})</h4>
                 <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
-                    <thead>
+                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                       <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
                         <th className="px-4 py-2.5 text-center w-12">Sl.</th>
                         <th className="px-4 py-2.5">Item Code &amp; Name</th>

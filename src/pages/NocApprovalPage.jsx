@@ -171,7 +171,7 @@ export default function NocApprovalPage() {
                   <div className="w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="w-full">
                       <table className="w-full text-[11px] text-left table-auto">
-                        <thead className="bg-[#0f172a] text-slate-100 leading-tight">
+                        <thead className="sticky top-0 z-10 shadow-xs bg-[#0f172a] text-slate-100 leading-tight">
                           <tr>
                             <th className="px-1.5 py-2 font-semibold uppercase">S.No</th>
                             <th className="px-1.5 py-2 font-semibold uppercase text-center">Sel</th>
@@ -293,7 +293,7 @@ export default function NocApprovalPage() {
                           ) : (
                             <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm bg-white">
                               <table className="w-full text-sm text-left">
-                                <thead className="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                <thead className="sticky top-0 z-10 shadow-xs bg-slate-100 text-slate-700 border-b border-slate-200">
                                   <tr>
                                     <th className="px-4 py-3 font-semibold text-center">S.No</th>
                                     <th className="px-4 py-3 font-semibold">Facility</th>

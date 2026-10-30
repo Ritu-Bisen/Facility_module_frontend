@@ -224,9 +224,9 @@ export default function StockRegisterPage() {
                       <p className="text-slate-500 text-sm max-w-sm">There is no stock movement data available for this item in the selected date range.</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                       <table className="w-full text-left border-collapse min-w-[800px]">
-                        <thead>
+                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                           <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 text-sm font-semibold tracking-wide">
                             <th className="px-4 py-4 w-16 text-center border-r border-slate-200">S.No</th>
                             <th className="px-4 py-4 border-r border-slate-200">Opening</th>

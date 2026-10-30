@@ -223,12 +223,27 @@ export default function CreateReagentAnnualIndentPage() {
           // Col 6: currentStock
           // Col 7: nonEdlIndent2627
           // Col 8: rate
+          // Header matching (case insensitive, supporting dynamic names, ignoring EDL Type)
           const headerRow = rows[0].map(c => String(c || '').trim().toLowerCase());
-          const codeIdx = headerRow.findIndex(h => h.includes('itemcode') || h.includes('item_code') || h === 'item code');
-          const consIdx = headerRow.findIndex(h => h.includes('cosumption') || h.includes('consumption'));
-          const stockIdx = headerRow.findIndex(h => h.includes('current_stock') || h.includes('current stock') || h.includes('stock'));
-          const qtyIdx = headerRow.findIndex(h => h.includes('non_edl_indent') || h.includes('indent') || h.includes('qty'));
-          const rateIdx = headerRow.findIndex(h => h.includes('rate'));
+          const codeIdx = headerRow.findIndex(h => 
+            (h.includes('itemcode') || h.includes('item_code') || h === 'item code' || h === 'code') &&
+            !h.includes('type') && !h.includes('edl')
+          );
+          const consIdx = headerRow.findIndex(h => 
+            (h.includes('cosumption') || h.includes('consumption')) &&
+            !h.includes('type') && !h.includes('edl')
+          );
+          const stockIdx = headerRow.findIndex(h => 
+            (h.includes('current_stock') || h.includes('current stock') || h.includes('stock')) &&
+            !h.includes('type') && !h.includes('edl')
+          );
+          const qtyIdx = headerRow.findIndex(h => 
+            (h.includes('non_edl_indent') || h.includes('non edl indent') || h.includes('facilityindentqty') || h.includes('indent') || h.includes('qty')) &&
+            !h.includes('consumption') && !h.includes('type') && !h.includes('rate')
+          );
+          const rateIdx = headerRow.findIndex(h => 
+            h.includes('rate') && !h.includes('type') && !h.includes('edl')
+          );
 
           const parsedItems = [];
           const missingRateCodes = [];

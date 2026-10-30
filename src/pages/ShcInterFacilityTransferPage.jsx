@@ -158,9 +158,9 @@ export default function ShcInterFacilityTransferPage() {
                 </div>
               ) : (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                     <table className="w-full text-sm text-left">
-                      <thead>
+                      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                         <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
                           <th className="px-5 py-3.5 text-center w-14">Sl.</th>
                           <th className="px-5 py-3.5 text-left">Facility</th>
@@ -213,7 +213,7 @@ export default function ShcInterFacilityTransferPage() {
                                   ) : (
                                     <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
                                       <table className="w-full text-[10px]">
-                                        <thead>
+                                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                                           <tr className="bg-slate-100 text-slate-500 uppercase tracking-wider">
                                             <th className="px-3 py-1.5 text-center font-semibold">Issue No</th>
                                             <th className="px-3 py-1.5 text-center font-semibold">Issue Date</th>

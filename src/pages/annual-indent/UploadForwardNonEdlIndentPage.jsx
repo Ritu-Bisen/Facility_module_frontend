@@ -241,9 +241,9 @@ export default function UploadForwardNonEdlIndentPage() {
 
               {/* Data Grid Table (matching Image 2 gvItemLst) */}
               <div className="bg-white dark:bg-[#1e293b] rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                   <table className="w-full text-left border-collapse text-xs">
-                    <thead className="bg-[#1e3a6a] text-white font-bold border-b border-[#2563eb]/20">
+                    <thead className="sticky top-0 z-10 shadow-xs bg-[#1e3a6a] text-white font-bold border-b border-[#2563eb]/20">
                       <tr>
                         <th className="py-2.5 px-3 text-center w-16">Sl. No.</th>
                         <th className="py-2.5 px-4 text-center">Indent No.</th>

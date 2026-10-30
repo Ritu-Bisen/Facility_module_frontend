@@ -235,13 +235,14 @@ export default function CreateAnnualIndentDhPage() {
       }
 
       const headers = rawRows[headerRowIndex].map(h => String(h).trim().toUpperCase());
-      const itemCodeIdx = headers.findIndex(h => h.includes('ITEMCODE') || h.includes('ITEM CODE'));
-      const conIdx = headers.findIndex(h => h.includes('ISSUED_FROM_WH') || h.includes('CONSUMPTION'));
+      const itemCodeIdx = headers.findIndex(h => h.includes('ITEMCODE') || h.includes('ITEM CODE') || h.includes('DRUGCODE'));
+      const conIdx = headers.findIndex(h => (h.includes('ISSUED_FROM_WH') || h.includes('CONSUMPTION')) && !h.includes('ACTUAL') && !h.includes('ESTIMATED') && !h.includes('PROJECTED'));
       const actConIdx = headers.findIndex(h => h.includes('ACTUAL_CONSUMPTION'));
       const estConIdx = headers.findIndex(h => h.includes('ESTIMATED_CONSUMPTION') || h.includes('PROJECTED'));
       const curStockIdx = headers.findIndex(h => h.includes('CURRENT_STOCK') || h.includes('STOCK'));
-      const indQtyIdx = headers.findIndex(h => h.includes('ANNUALINDENT') || h.includes('INDENT') || h.includes('QTY'));
-      const rateIdx = headers.findIndex(h => h.includes('RATE') || h.includes('PRICE'));
+      // Indent quantity column - ignore any column containing EDL or TYPE
+      const indQtyIdx = headers.findIndex(h => (h.includes('ANNUALINDENT') || h.includes('INDENT') || h.includes('QTY')) && !h.includes('EDL') && !h.includes('TYPE'));
+      const rateIdx = headers.findIndex(h => (h.includes('RATE') || h.includes('PRICE')) && !h.includes('EDL') && !h.includes('TYPE'));
 
       if (itemCodeIdx === -1) {
         alert('Could not find ITEMCODE column in the Excel file.');
@@ -323,11 +324,12 @@ export default function CreateAnnualIndentDhPage() {
           setAproxIndentValue(itemsRes.data.data.aproxIndentValue || '0.00');
         }
       } else {
-        setError('Failed to process Excel file on server');
+        setError(uploadRes.data?.error || uploadRes.data?.message || 'Failed to process Excel file on server');
       }
     } catch (err) {
       console.error('Error uploading Excel file:', err);
-      setError('Error parsing or processing Excel file');
+      const serverMsg = err.response?.data?.error || err.response?.data?.message || err.message;
+      setError(serverMsg ? `Error: ${serverMsg}` : 'Error parsing or processing Excel file');
     } finally {
       setUploading(false);
     }
@@ -390,7 +392,7 @@ export default function CreateAnnualIndentDhPage() {
         const rows = res.data.data;
         let tableHtml = `
           <table border="1">
-            <thead>
+            <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
               <tr style="background-color: #065f46; color: #ffffff; font-weight: bold;">
                 <th>SlNo</th>
                 <th>ITEMCODE</th>
@@ -454,7 +456,7 @@ export default function CreateAnnualIndentDhPage() {
     const currentFyText = finYears.find(fy => String(fy.accYrSetId) === String(selectedFinYear))?.accYear || '';
     let tableHtml = `
       <table border="1">
-        <thead>
+        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
           <tr>
             <th colspan="7" style="font-weight: bold; text-align: center;">CHHATTISGARH MEDICAL SERVICES CORPORATION</th>
           </tr>
@@ -805,9 +807,9 @@ export default function CreateAnnualIndentDhPage() {
                   )}
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                   <table className="w-full text-xs text-left border-collapse">
-                    <thead>
+                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                       <tr className="bg-emerald-900 text-white font-bold text-center border-b border-emerald-800">
                         <th className="py-3 px-3 border-r border-emerald-800 w-12 text-center">Sl. No.</th>
                         <th className="py-3 px-3 border-r border-emerald-800 text-center w-24">Item Code</th>

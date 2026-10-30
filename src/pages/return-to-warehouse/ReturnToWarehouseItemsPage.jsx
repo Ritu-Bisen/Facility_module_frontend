@@ -551,7 +551,7 @@ function ItemRow({ row, index, facilityId, issueId, allItems, rows, onUpdate, on
         {row.issueItemId && batches.length > 0 ? (
           <div className="overflow-hidden border border-slate-200 rounded-lg shadow-sm">
             <table className="w-full text-[10px] text-left text-slate-600 border-collapse border border-slate-300">
-              <thead>
+              <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                 <tr className="bg-[#1e3e2c] text-white text-[9.5px] font-bold tracking-wider">
                   <th className="px-1.5 py-1 text-center border border-slate-300">Sl. No.</th>
                   <th className="px-1.5 py-1 border border-slate-300">Batch No.</th>
@@ -1106,7 +1106,7 @@ export default function ReturnToWarehouseItemsPage({ mode }) {
                 {/* Table */}
                 <div className="overflow-x-auto overflow-y-auto max-h-[500px] relative">
                   <table className="w-full text-sm min-w-[820px]">
-                    <thead>
+                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                       <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
                         <th className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-center w-14">Sl.</th>
                         <th className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-5 py-3.5 text-left">Item Code &amp; Description</th>
@@ -1264,7 +1264,7 @@ export default function ReturnToWarehouseItemsPage({ mode }) {
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">Items to Issue ({rows.filter((r) => r.issueItemId).length})</h4>
                 <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                   <table className="w-full text-left text-xs">
-                    <thead>
+                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                       <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
                         <th className="px-4 py-2.5 text-center w-12">Sl.</th>
                         <th className="px-4 py-2.5">Item Code &amp; Name</th>

@@ -3,9 +3,9 @@ import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getFinancialYears, getWarehouseIndents, getReceiptsByIndent, createWarehouseReceipt } from '../api/warehouseReceiptApi';
+import { getFinancialYears, getWarehouseIndents, getReceiptsByIndent, createWarehouseReceipt, deleteWarehouseReceipt } from '../api/warehouseReceiptApi';
 import { getDefaultFinYearId } from '../utils/indentYearHelper';
-import { ChevronDownIcon, ChevronUpIcon, PlusCircleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, ChevronUpIcon, PlusCircleIcon, ArrowPathIcon, TrashIcon, XMarkIcon, CalendarDaysIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
 export default function WarehouseReceiptFAC() {
@@ -16,10 +16,37 @@ export default function WarehouseReceiptFAC() {
     const [selectedYear, setSelectedYear] = useState('');
     const [indents, setIndents] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [creatingId, setCreatingId] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
     
+    // Modal states for creating receipt
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [selectedIndent, setSelectedIndent] = useState(null);
+    const [receiptDate, setReceiptDate] = useState('');
+    const [minReceiptDate, setMinReceiptDate] = useState('');
+    const [maxReceiptDate, setMaxReceiptDate] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
     const [filterPending, setFilterPending] = useState(location.state?.filterPending || false);
     const [filterIndentNo, setFilterIndentNo] = useState(location.state?.filterIndentNo || null);
+
+    const getTodayYMD = () => {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const parseDateToYMD = (dateStr) => {
+        if (!dateStr || dateStr === '-') return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+            const [day, month, year] = parts;
+            return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        return '';
+    };
 
     useEffect(() => {
         fetchFinYears();
@@ -35,19 +62,27 @@ export default function WarehouseReceiptFAC() {
         setLoading(true);
         try {
             const res = await getFinancialYears();
-            if (res.success) {
+            if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
                 setFinYears(res.data);
-                if (res.data.length > 0) {
-                    const defaultYear = location.state?.selectedYearId || getDefaultFinYearId(res.data, 'id', 'year');
-                    setSelectedYear(defaultYear);
-                } else {
-                    setLoading(false);
-                }
+                const defaultYear = location.state?.selectedYearId || getDefaultFinYearId(res.data, 'id', 'year');
+                setSelectedYear(defaultYear);
             } else {
-                setLoading(false);
+                const fallback = [
+                    { id: 2, year: '2026-2027' },
+                    { id: 1, year: '2025-2026' }
+                ];
+                setFinYears(fallback);
+                setSelectedYear(location.state?.selectedYearId || 2);
             }
         } catch (error) {
-            toast.error("Failed to load financial years");
+            console.error("Failed to load financial years, using default:", error);
+            const fallback = [
+                { id: 2, year: '2026-2027' },
+                { id: 1, year: '2025-2026' }
+            ];
+            setFinYears(fallback);
+            setSelectedYear(location.state?.selectedYearId || 2);
+        } finally {
             setLoading(false);
         }
     };
@@ -66,13 +101,39 @@ export default function WarehouseReceiptFAC() {
         }
     };
 
-    const handleCreateReceipt = async (indentId) => {
-        setCreatingId(indentId);
+    const handleOpenCreateModal = (indent) => {
+        setSelectedIndent(indent);
+        const today = getTodayYMD();
+        const issueYMD = parseDateToYMD(indent.whIssueDate);
+        setMinReceiptDate(issueYMD || '');
+        setMaxReceiptDate(today);
+        // By default, set to current date
+        setReceiptDate(today);
+        setShowCreateModal(true);
+    };
+
+    const handleConfirmCreateReceipt = async () => {
+        if (!selectedIndent) return;
+        if (!receiptDate) {
+            toast.error('Please select a receipt date');
+            return;
+        }
+        if (minReceiptDate && receiptDate < minReceiptDate) {
+            toast.error(`Receipt date cannot be earlier than Warehouse Issue Date (${selectedIndent.whIssueDate})`);
+            return;
+        }
+        if (maxReceiptDate && receiptDate > maxReceiptDate) {
+            toast.error('Receipt date cannot be greater than current date');
+            return;
+        }
+
+        setSubmitting(true);
         const toastId = toast.loading('Creating receipt...');
         try {
-            const res = await createWarehouseReceipt(indentId);
+            const res = await createWarehouseReceipt(selectedIndent.indentId, receiptDate);
             if (res.success && res.data?.receiptId) {
                 toast.success('Receipt created successfully!', { id: toastId });
+                setShowCreateModal(false);
                 navigate(`/indent/warehouse-receipts/view/${res.data.receiptId}`);
             } else {
                 toast.error(res.message || 'Failed to create receipt', { id: toastId });
@@ -81,7 +142,30 @@ export default function WarehouseReceiptFAC() {
             console.error('Error creating receipt:', error);
             toast.error('Failed to create receipt', { id: toastId });
         } finally {
-            setCreatingId(null);
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteReceipt = async (receiptId, receiptNo) => {
+        if (!window.confirm(`Are you sure you want to delete incomplete receipt "${receiptNo || receiptId}"? This will allow you to create a new receipt.`)) {
+            return;
+        }
+
+        setDeletingId(receiptId);
+        const toastId = toast.loading('Deleting receipt...');
+        try {
+            const res = await deleteWarehouseReceipt(receiptId);
+            if (res.success) {
+                toast.success('Receipt deleted successfully!', { id: toastId });
+                fetchIndents(selectedYear);
+            } else {
+                toast.error(res.message || 'Failed to delete receipt', { id: toastId });
+            }
+        } catch (error) {
+            console.error('Error deleting receipt:', error);
+            toast.error(error?.response?.data?.message || 'Failed to delete receipt', { id: toastId });
+        } finally {
+            setDeletingId(null);
         }
     };
 
@@ -95,9 +179,9 @@ export default function WarehouseReceiptFAC() {
             case 'Partial Receipt':
                 return 'text-blue-600 bg-blue-50 ring-blue-600/20';
             case 'Completed':
-                return 'text-green-600';
+                return 'text-emerald-700 bg-emerald-50 ring-emerald-600/20';
             case 'Incomplete':
-                return 'text-red-600';
+                return 'text-amber-700 bg-amber-50 ring-amber-600/30';
             default:
                 return 'text-gray-600 bg-gray-50 ring-gray-500/10';
         }
@@ -169,7 +253,7 @@ export default function WarehouseReceiptFAC() {
                     </nav>
                 </div>
 
-                <div className="p-0 overflow-x-auto">
+                <div className="p-0 overflow-x-auto max-h-[calc(100vh-280px)] overflow-y-auto">
                     {loading ? (
                         <div className="flex justify-center items-center py-20">
                             <ArrowPathIcon className="w-8 h-8 text-emerald-500 animate-spin" />
@@ -177,19 +261,19 @@ export default function WarehouseReceiptFAC() {
                         </div>
                     ) : (
                         <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-100 text-slate-600">
+                            <thead className="bg-slate-100 text-slate-600 sticky top-0 z-10 shadow-sm">
                                 <tr>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Sl. No.</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Warehouse</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Indent No</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Indent Date</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">WH Issue No</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">WH Issue Date</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Delivery Date</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Receipt No</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Receipt Date</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider">Status</th>
-                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-center text-[11px] font-semibold tracking-wider">Action</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">Sl. No.</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">Warehouse</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">Indent No</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">Indent Date</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">WH Issue No</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">WH Issue Date</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">Delivery Date</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">Receipt No</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">Receipt Date</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-left text-[11px] font-semibold tracking-wider bg-slate-100">Status</th>
+                                    <th scope="col" className="whitespace-nowrap px-2 py-3 text-center text-[11px] font-semibold tracking-wider bg-slate-100">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 bg-white">
@@ -213,32 +297,53 @@ export default function WarehouseReceiptFAC() {
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs font-medium text-slate-900">{indent.receiptNo || '-'}</td>
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs text-slate-600">{indent.receiptDate || '-'}</td>
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs">
-                                                    <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] sm:text-xs font-medium ring-1 ring-inset ${getStatusColor(indent.receiptStatus)}`}>
-                                                        {indent.receiptStatus}
-                                                    </span>
+                                                    {indent.receiptStatus === 'Incomplete' && indent.receiptId ? (
+                                                        <button
+                                                            onClick={() => navigate(`/indent/warehouse-receipts/view/${indent.receiptId}`)}
+                                                            className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] sm:text-xs font-semibold ring-1 ring-inset transition-all hover:scale-105 cursor-pointer focus:outline-none ${getStatusColor(indent.receiptStatus)}`}
+                                                            title="Click to complete receipt"
+                                                        >
+                                                            {indent.receiptStatus}
+                                                        </button>
+                                                    ) : (
+                                                        <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] sm:text-xs font-medium ring-1 ring-inset ${getStatusColor(indent.receiptStatus)}`}>
+                                                            {indent.receiptStatus}
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="whitespace-nowrap px-2 py-3 text-xs text-center">
-                                                    {indent.receiptId ? (
+                                                    {indent.receiptStatus === 'Completed' && indent.receiptId ? (
                                                         <button 
                                                             onClick={() => navigate(`/indent/warehouse-receipts/view/${indent.receiptId}`)}
                                                             className="text-emerald-600 hover:text-emerald-800 hover:underline focus:outline-none font-bold"
                                                         >
                                                             View
                                                         </button>
-                                                    ) : (
+                                                    ) : indent.receiptStatus === 'Incomplete' && indent.receiptId ? (
                                                         <button 
-                                                            onClick={() => handleCreateReceipt(indent.indentId)}
-                                                            disabled={creatingId === indent.indentId}
-                                                            className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 px-2 py-1 rounded transition-colors border border-emerald-200 mx-auto"
+                                                            onClick={() => handleDeleteReceipt(indent.receiptId, indent.receiptNo)}
+                                                            disabled={deletingId === indent.receiptId}
+                                                            className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 px-2 py-1 rounded transition-colors border border-red-200"
+                                                            title="Delete incomplete receipt"
                                                         >
-                                                            {creatingId === indent.indentId ? (
+                                                            {deletingId === indent.receiptId ? (
                                                                 <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
                                                             ) : (
-                                                                <PlusCircleIcon className="w-3.5 h-3.5" />
+                                                                <TrashIcon className="w-3.5 h-3.5" />
                                                             )}
+                                                            Delete
+                                                        </button>
+                                                    ) : (!indent.receiptId ? (
+                                                        <button 
+                                                            onClick={() => handleOpenCreateModal(indent)}
+                                                            className="flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 px-2 py-1 rounded transition-colors border border-emerald-200 mx-auto"
+                                                        >
+                                                            <PlusCircleIcon className="w-3.5 h-3.5" />
                                                             New
                                                         </button>
-                                                    )}
+                                                    ) : (
+                                                        <span className="text-slate-400 font-medium">-</span>
+                                                    ))}
                                                 </td>
                                             </tr>
                                         </React.Fragment>
@@ -250,6 +355,96 @@ export default function WarehouseReceiptFAC() {
                 </div>
             </div>
         </div>
+
+        {/* Create Receipt Modal with Date Selection */}
+        {showCreateModal && selectedIndent && (
+            <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                    {/* Modal Header */}
+                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <PlusCircleIcon className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-slate-800">Create Warehouse Receipt</h3>
+                                <p className="text-xs text-slate-500">Enter receipt date against this indent</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setShowCreateModal(false)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                        >
+                            <XMarkIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Modal Body */}
+                    <div className="p-6 space-y-4">
+                        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 space-y-2 text-xs">
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Warehouse:</span>
+                                <span className="font-semibold text-slate-800">{selectedIndent.warehouse}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Indent No:</span>
+                                <span className="font-semibold text-slate-800 font-mono">{selectedIndent.indentNo}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">WH Issue No:</span>
+                                <span className="font-semibold text-slate-800 font-mono">{selectedIndent.whIssueNo || '-'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">WH Issue Date:</span>
+                                <span className="font-bold text-emerald-700">{selectedIndent.whIssueDate || '-'}</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
+                                Receipt Date <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="date"
+                                value={receiptDate}
+                                min={minReceiptDate || undefined}
+                                max={maxReceiptDate || undefined}
+                                onChange={(e) => setReceiptDate(e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+                                required
+                            />
+                            <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1">
+                                <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span>
+                                    Allowed from <strong>{selectedIndent.whIssueDate || 'Issue Date'}</strong> up to <strong>Today</strong>
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Modal Footer */}
+                    <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowCreateModal(false)}
+                            disabled={submitting}
+                            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-200/60 rounded-xl transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleConfirmCreateReceipt}
+                            disabled={submitting}
+                            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                        >
+                            {submitting && <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />}
+                            <span>Save &amp; Create</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
   
           </main>
           <Footer />

@@ -165,7 +165,7 @@ const NocCancellationItemsPage = () => {
                     </div>
                   ) : (
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-[#1e293b] text-white">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-[#1e293b] text-white">
                         <tr>
                           <th className="px-4 py-3 text-center border-r border-slate-600 w-12">
                             <input 

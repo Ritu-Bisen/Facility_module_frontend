@@ -761,9 +761,9 @@ export default function AddAyushWardIssuePage() {
                     </div>
 
                     {/* Added Items Grid */}
-                    <div className="overflow-x-auto border border-slate-200 rounded-2xl shadow-xs">
+                    <div className="overflow-x-auto border border-slate-200 rounded-2xl shadow-xs overflow-y-auto max-h-[calc(100vh-260px)]">
                       <table className="w-full text-xs text-left border-collapse">
-                        <thead className="bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200 text-[10px] tracking-wider">
+                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50 text-slate-500 font-bold uppercase border-b border-slate-200 text-[10px] tracking-wider">
                           <tr>
                             <th className="px-4 py-3.5 text-center w-12 border-r border-slate-100">Sl.</th>
                             <th className="px-4 py-3.5 border-r border-slate-100">Item code &amp; description</th>
@@ -854,7 +854,7 @@ export default function AddAyushWardIssuePage() {
                                   {batches.length > 0 ? (
                                     <div className="overflow-hidden border border-slate-200 rounded-xl shadow-2xs">
                                       <table className="w-full text-[11px] border-collapse">
-                                        <thead className="bg-slate-800 text-white font-bold">
+                                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-800 text-white font-bold">
                                           <tr>
                                             <th className="p-1.5 text-center border-r border-slate-700">Sl.</th>
                                             <th className="p-1.5 text-left border-r border-slate-700">Batch No.</th>

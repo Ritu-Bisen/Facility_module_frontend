@@ -610,7 +610,7 @@ export default function AddContractPage() {
                         
                         <div className="border border-slate-200 shadow-sm overflow-hidden">
                           <table className="w-full text-left text-[11px] min-w-full table-fixed">
-                            <thead className="bg-[#0b3b17] text-white uppercase font-semibold text-[10px] border-b border-slate-200">
+                            <thead className="sticky top-0 z-10 shadow-xs bg-[#0b3b17] text-white uppercase font-semibold text-[10px] border-b border-slate-200">
                               <tr>
                                 <th className="px-1 py-2 border-r border-[#155424] w-[3%] text-center">Sl.No</th>
                                 <th className="px-1 py-2 border-r border-[#155424] w-[20%]">Item code & description</th>

@@ -846,7 +846,7 @@ export default function AddAyushLocalPurchasePage() {
                         {/* Items List Table */}
                         <div className="border border-gray-300 rounded overflow-hidden">
                           <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-[#0f172a] text-white">
+                            <thead className="sticky top-0 z-10 shadow-xs bg-[#0f172a] text-white">
                               <tr>
                                 <th className="px-3 py-1.5 text-[11px] font-bold uppercase text-center border-r border-slate-700 w-12">Sl.</th>
                                 <th className="px-3 py-1.5 text-[11px] font-bold uppercase text-left border-r border-slate-700">Item Name / Code</th>

@@ -193,7 +193,7 @@ export default function FreezRcDetailsPage() {
                 ) : (
                   <div className="border border-emerald-600/60 rounded-lg overflow-hidden shadow-sm">
                     <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-[#0f172a] text-slate-100 uppercase tracking-wider text-[11px] font-bold">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-[#0f172a] text-slate-100 uppercase tracking-wider text-[11px] font-bold">
                         <tr className="divide-x divide-slate-800">
                           <th className="px-3 py-3 text-center w-14">S.No</th>
                           <th className="px-4 py-3">Equipment</th>

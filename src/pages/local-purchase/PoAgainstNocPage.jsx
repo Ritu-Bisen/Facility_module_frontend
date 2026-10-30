@@ -244,9 +244,9 @@ export default function PoAgainstNocPage() {
                     <p className="text-xs font-bold uppercase tracking-wider">No records found for selected criteria</p>
                   </div>
                 ) : (
-                  <div className="border border-slate-200 rounded-lg overflow-x-auto shadow-sm">
+                  <div className="border border-slate-200 rounded-lg overflow-x-auto shadow-sm overflow-y-auto max-h-[calc(100vh-260px)]">
                     <table className="w-full text-left text-xs border-collapse min-w-[1200px]">
-                      <thead className="bg-[#0f172a] text-slate-100 uppercase tracking-wider text-[11px] font-bold">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-[#0f172a] text-slate-100 uppercase tracking-wider text-[11px] font-bold">
                         <tr className="divide-x divide-slate-800">
                           <th className="px-3 py-3 text-center w-12">Sl.No.</th>
                           <th className="px-3 py-3">Category</th>

@@ -174,7 +174,7 @@ export default function InterFacilityIssueFAC() {
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative">
                   <table className="w-full text-sm text-left">
-                    <thead>
+                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                       <tr className="bg-[#0f172a] text-gray-100 text-[10px] uppercase font-bold tracking-wider">
                         <th className="sticky top-0 z-10 bg-[#0f172a] border-b border-[#1e293b] px-5 py-3.5 text-center w-14">Sl. No.</th>
                         <th className="sticky top-0 z-10 bg-[#0f172a] border-b border-[#1e293b] px-5 py-3.5 text-left">To Facility</th>

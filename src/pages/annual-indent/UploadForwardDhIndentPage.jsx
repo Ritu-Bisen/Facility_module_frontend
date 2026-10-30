@@ -264,9 +264,9 @@ export default function UploadForwardDhIndentPage() {
                   )}
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                   <table className="w-full text-xs text-left border-collapse">
-                    <thead>
+                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                       <tr className="bg-emerald-900 text-white font-bold text-center border-b border-emerald-800">
                         <th className="py-3 px-4 border-r border-emerald-800 w-16 text-center">Sl. No.</th>
                         <th className="py-3 px-4 border-r border-emerald-800 text-center">Indent No.</th>

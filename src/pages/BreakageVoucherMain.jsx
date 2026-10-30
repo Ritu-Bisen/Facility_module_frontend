@@ -175,9 +175,9 @@ export default function BreakageVoucherMain() {
 
             {/* Data Table */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                 <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-slate-50/80">
+                  <thead className="sticky top-0 z-10 shadow-xs bg-slate-50/80">
                     <tr>
                       <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Sl. No.</th>
                       <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Facility Name</th>

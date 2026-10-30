@@ -218,9 +218,9 @@ export default function ProgramIndentListPage() {
                     <p className="text-sm text-gray-500 mt-1">Click "Add Indent" above to create a new program indent.</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                     <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
-                      <thead className="bg-blue-900 text-white font-semibold">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-blue-900 text-white font-semibold">
                         <tr>
                           <th className="px-4 py-3 text-center w-16">#</th>
                           <th className="px-4 py-3">Indent No</th>

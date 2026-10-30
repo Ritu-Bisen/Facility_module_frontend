@@ -207,7 +207,7 @@ export default function LocalSupplierMaster() {
                         </div>
                       ) : (
                         <table className="min-w-full divide-y divide-gray-200 text-sm text-left">
-                          <thead className="bg-gray-50">
+                          <thead className="sticky top-0 z-10 shadow-xs bg-gray-50">
                             <tr>
                               <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center w-16">Sl.No</th>
                               <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center w-32">Code</th>

@@ -126,7 +126,7 @@ export default function McHospitalAiVsIssuancePage() {
 
     let tableHtml = `
       <table border="1">
-        <thead>
+        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
           <tr style="background-color: #000084; color: #ffffff; font-weight: bold;">
             <th>S.No</th>
             <th>Item Code</th>
@@ -397,9 +397,9 @@ export default function McHospitalAiVsIssuancePage() {
                 </div>
 
                 {/* Table Data matching GridView gvAindent1 */}
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                   <table className="w-full text-xs text-left border-collapse">
-                    <thead>
+                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                       <tr className="bg-[#000084] text-white font-bold text-center uppercase tracking-wider border-b border-blue-900">
                         <th className="py-3.5 px-3 border-r border-blue-900 w-12">S.No</th>
                         <th className="py-3.5 px-3 border-r border-blue-900 text-center font-bold">Item Code</th>

@@ -299,9 +299,9 @@ const ReceiptPage = () => {
                   {/* TAB 1: ITEMS */}
                   {activeTab === 0 && (
                     <div>
-                      <div className="overflow-x-auto border rounded-lg">
+                      <div className="overflow-x-auto border rounded-lg overflow-y-auto max-h-[calc(100vh-260px)]">
                         <table className="w-full text-left text-sm whitespace-nowrap">
-                          <thead className="bg-gray-50 text-gray-600 border-b">
+                          <thead className="sticky top-0 z-10 shadow-xs bg-gray-50 text-gray-600 border-b">
                             <tr>
                               <th className="p-3 font-medium">SNo</th>
                               <th className="p-3 font-medium">Item Code/Name</th>
@@ -365,9 +365,9 @@ const ReceiptPage = () => {
                             <div className="bg-gray-100 px-4 py-2 font-medium text-gray-800 border-b">
                               {itemGroup.itemName}
                             </div>
-                            <div className="p-0 overflow-x-auto">
+                            <div className="p-0 overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                               <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-600 border-b">
+                                <thead className="sticky top-0 z-10 shadow-xs bg-gray-50 text-gray-600 border-b">
                                   <tr>
                                     <th className="p-2 font-medium w-32">Mfg Date</th>
                                     <th className="p-2 font-medium w-32">Exp Date</th>

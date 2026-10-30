@@ -108,7 +108,7 @@ export default function MasBudget() {
         {/* Filter Section */}
         <div className="flex justify-center mb-8">
           <table className="w-full max-w-3xl border-collapse border border-gray-200">
-            <thead>
+            <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
               <tr className="bg-gray-50">
                 <th className="border border-gray-200 px-4 py-2 text-left"></th>
                 <th className="border border-gray-200 px-4 py-2 text-left"></th>
@@ -159,7 +159,7 @@ export default function MasBudget() {
               </div>
             ) : (
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="sticky top-0 z-10 shadow-xs bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center">Sl No</th>
                     <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center">Fund Head</th>

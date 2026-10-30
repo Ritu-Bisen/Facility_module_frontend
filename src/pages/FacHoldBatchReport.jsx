@@ -137,9 +137,9 @@ export default function FacHoldBatchReport() {
 
                                 {/* Data Grid */}
                                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                    <div className="overflow-x-auto">
+                                    <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                                         <table className="w-full min-w-max border-collapse">
-                                            <thead>
+                                            <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                                                 <tr className="bg-gradient-to-r from-slate-800 to-slate-900 text-white border-b border-slate-700">
                                                     <th className="p-4 text-center text-xs font-semibold uppercase tracking-wider">Sl. No.</th>
                                                     <th className="p-4 text-left text-xs font-semibold uppercase tracking-wider">Facility Name</th>

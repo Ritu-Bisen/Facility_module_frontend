@@ -804,7 +804,7 @@ export default function SpecialReceiptEntryPage() {
                         </div>
                       )}
                       <table className="w-full text-xs text-left border-collapse border border-gray-300">
-                        <thead>
+                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                           <tr className="bg-[#1e40af] text-white">
                             <th className="py-2 px-2 text-center font-bold border border-blue-900 w-12">
                               Sl. No.
@@ -941,7 +941,7 @@ export default function SpecialReceiptEntryPage() {
                                 <td className="p-2 border border-gray-300 bg-gray-50/40">
                                   <div className="space-y-2">
                                     <table className="w-full text-[11px] text-left border-collapse border border-gray-300 bg-white">
-                                      <thead>
+                                      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                                         <tr className="bg-[#1e40af] text-white">
                                           <th className="py-1 px-1.5 text-center font-bold border border-blue-900 w-8">
                                             Sl. No.

@@ -214,9 +214,9 @@ export default function ExpiryVoucherListPage() {
                   </div>
                 )}
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                   <table className="w-full text-xs text-left border-collapse">
-                    <thead>
+                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                       <tr className="bg-[#1e40af] text-white">
                         <th className="py-2.5 px-3 text-center font-bold border-r border-blue-900 w-16">
                           Sl. No.

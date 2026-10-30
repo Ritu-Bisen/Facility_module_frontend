@@ -739,9 +739,9 @@ export default function AddMonthlyIndentMCPage() {
                       <div className="flex justify-between items-center mb-2">
                         <h3 className="font-bold text-slate-700">Selected Item to Add</h3>
                       </div>
-                      <div className="overflow-x-auto border border-blue-200 rounded-md shadow-sm">
+                      <div className="overflow-x-auto border border-blue-200 rounded-md shadow-sm overflow-y-auto max-h-[calc(100vh-260px)]">
                         <table className="w-full text-xs text-left whitespace-nowrap">
-                          <thead className="bg-blue-50 text-slate-600 font-bold border-b border-blue-200">
+                          <thead className="sticky top-0 z-10 shadow-xs bg-blue-50 text-slate-600 font-bold border-b border-blue-200">
                             <tr>
                               <th className="px-2 py-2">Sl. No.</th>
                               <th className="px-2 py-2 min-w-[250px]">Item code & description</th>
@@ -810,9 +810,9 @@ export default function AddMonthlyIndentMCPage() {
                     <h3 className="font-bold text-slate-700">Saved Indent/NOC Items</h3>
                   </div>
                   
-                  <div className="overflow-x-auto border border-slate-200 rounded-md shadow-sm">
+                  <div className="overflow-x-auto border border-slate-200 rounded-md shadow-sm overflow-y-auto max-h-[calc(100vh-260px)]">
                     <table className="w-full text-xs text-left whitespace-nowrap">
-                      <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
                         <tr>
                           <th className="px-2 py-2">Sl. No.</th>
                           <th className="px-2 py-2 min-w-[250px]">Item code & description</th>

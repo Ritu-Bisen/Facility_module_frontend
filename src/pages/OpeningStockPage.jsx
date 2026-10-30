@@ -154,7 +154,7 @@ export default function OpeningStockPage() {
                     </div>
                   ) : (
                     <table className="w-full text-xs text-left divide-y divide-gray-200">
-                      <thead className="bg-gray-100 text-gray-700 uppercase font-semibold text-[11px]">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-gray-100 text-gray-700 uppercase font-semibold text-[11px]">
                         <tr>
                           <th className="py-3 px-4 text-center w-16">Sl. No.</th>
                           <th className="py-3 px-4">Opening Stock No.</th>

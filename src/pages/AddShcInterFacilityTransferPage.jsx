@@ -310,9 +310,9 @@ export default function AddShcInterFacilityTransferPage() {
                   </div>
 
                   <div className="border border-slate-300">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                       <table className="w-full text-xs text-left">
-                        <thead>
+                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                           <tr className="bg-[#0f3b17] text-white">
                             <th className="px-3 py-2 border-r border-[#1a5c26] text-center w-12">SL</th>
                             <th className="px-3 py-2 border-r border-[#1a5c26] text-center">Item Code</th>

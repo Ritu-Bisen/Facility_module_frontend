@@ -438,9 +438,9 @@ export default function AddInterFacilityReceiptFAC() {
                     <div className="bg-white rounded-b-2xl rounded-tr-2xl shadow-sm border border-slate-200 border-t-0 p-6 min-h-[400px]">
                         
                         {activeTab === 'items' && (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                         <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-100 text-slate-700">
+                            <thead className="sticky top-0 z-10 shadow-xs bg-slate-100 text-slate-700">
                                 <tr>
                                     <th scope="col" className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border-r border-slate-200">Sl. No.</th>
                                     <th scope="col" className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider border-r border-slate-200">Item code &amp; description</th>
@@ -552,7 +552,7 @@ export default function AddInterFacilityReceiptFAC() {
                                                                 </h4>
                                                                 <div className="overflow-hidden rounded border border-slate-200 bg-white">
                                                                     <table className="min-w-full divide-y divide-slate-200">
-                                                                        <thead className="bg-slate-200 text-slate-700">
+                                                                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-200 text-slate-700">
                                                                             <tr>
                                                                                 <th className="px-4 py-2 text-left text-xs font-bold">Batch No.</th>
                                                                                 <th className="px-4 py-2 text-left text-xs font-bold">Mfg date</th>

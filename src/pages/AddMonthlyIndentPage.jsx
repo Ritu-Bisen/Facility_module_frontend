@@ -1015,7 +1015,7 @@ const getEdlCategoryLabel = (rawEdl) => {
                       {savedItems.length > 0 && (
                         <div className="mt-8 border-t border-slate-200 pt-6">
                           <h3 className="text-lg font-bold text-slate-700 mb-4">Saved Indent Items</h3>
-                          <div className="overflow-x-auto border border-slate-200 rounded-xl relative shadow-sm">
+                          <div className="overflow-x-auto border border-slate-200 rounded-xl relative shadow-sm overflow-y-auto max-h-[calc(100vh-260px)]">
                             <table className="w-full text-xs text-left bg-white whitespace-nowrap">
                               <thead className="bg-slate-50 sticky top-0 z-10 shadow-sm">
                                 <tr className="text-slate-500 uppercase font-bold tracking-wider text-[10px]">

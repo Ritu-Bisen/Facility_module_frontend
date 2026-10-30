@@ -532,9 +532,9 @@ export default function CreateProgramIndentPage() {
                   </div>
 
                   {/* Items Table */}
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                     <table className="min-w-full divide-y divide-gray-200 text-left text-sm">
-                      <thead className="bg-gray-100 text-gray-700 font-bold uppercase text-xs">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-gray-100 text-gray-700 font-bold uppercase text-xs">
                         <tr>
                           <th className="px-4 py-3 text-center w-12">#</th>
                           <th className="px-4 py-3">Item Code</th>

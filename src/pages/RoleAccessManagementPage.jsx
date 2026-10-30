@@ -151,9 +151,9 @@ export default function RoleAccessManagementPage() {
                 </div>
               ) : selectedFacility ? (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                     <table className="w-full text-left border-collapse">
-                      <thead className="bg-slate-50 border-b border-slate-200">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50 border-b border-slate-200">
                         <tr>
                           <th className="p-4 font-semibold text-slate-700 w-2/3">Screen Name</th>
                           <th className="p-4 font-semibold text-slate-700 text-center">Assign Access</th>

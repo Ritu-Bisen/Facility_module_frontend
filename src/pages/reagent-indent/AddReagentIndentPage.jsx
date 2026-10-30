@@ -897,7 +897,7 @@ export default function AddReagentIndentPage() {
                         </div>
                       ) : (
                         <table className="w-full text-left text-xs border-collapse">
-                          <thead className="bg-[#0f172a] text-slate-100 uppercase tracking-wider text-[11px] font-bold">
+                          <thead className="sticky top-0 z-10 shadow-xs bg-[#0f172a] text-slate-100 uppercase tracking-wider text-[11px] font-bold">
                             <tr className="divide-x divide-slate-800">
                               <th className="px-3 py-3 text-center w-12">Sl. No.</th>
                               <th className="px-3 py-3">Equipment Name</th>

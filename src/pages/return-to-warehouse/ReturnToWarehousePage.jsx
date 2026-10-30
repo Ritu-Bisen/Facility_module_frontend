@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { getReturnToWarehouseList, getAccYears } from '../../api/returnToWarehouseApi';
+import { getDefaultFinYearId } from '../../utils/indentYearHelper';
 
 export default function ReturnToWarehousePage() {
   const navigate = useNavigate();
@@ -24,7 +25,8 @@ export default function ReturnToWarehousePage() {
         );
         setFinYearsList(mappedYears);
         if (mappedYears && mappedYears.length > 0) {
-          setFinYearId(mappedYears[0].id);
+          const defaultYearId = getDefaultFinYearId(mappedYears, 'id', 'finYear');
+          setFinYearId(defaultYearId);
         }
       } catch (err) {
         toast.error('Failed to load financial years');
@@ -114,9 +116,9 @@ export default function ReturnToWarehousePage() {
               {/* Content Grid */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                 <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-slate-50 text-slate-600 uppercase font-semibold text-xs border-b border-slate-200">
+                  <thead className="sticky top-0 z-10 shadow-xs bg-slate-50 text-slate-600 uppercase font-semibold text-xs border-b border-slate-200">
                     <tr>
                       <th className="px-4 py-3 text-center">Sl. No.</th>
                       <th className="px-4 py-3">Warehouse/Facility Name</th>

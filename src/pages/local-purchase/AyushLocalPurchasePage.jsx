@@ -171,7 +171,7 @@ export default function AyushLocalPurchasePage() {
                     </div>
                   ) : (
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-[#0f172a] text-white">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-[#0f172a] text-white">
                         <tr>
                           <th className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-center border-r border-slate-700 w-16">Sl. No.</th>
                           <th className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-left border-r border-slate-700">PO Number</th>

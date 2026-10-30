@@ -155,7 +155,7 @@ export default function CgmscReceiptBatchWisePage() {
 
     let tableHtml = `
       <table border="1">
-        <thead>
+        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
           <tr style="background-color: #15803d; color: #ffffff; font-weight: bold;">
             <th>Sl. No.</th>
             <th>Warehouse Name</th>
@@ -434,9 +434,9 @@ export default function CgmscReceiptBatchWisePage() {
                 </div>
 
                 {/* Table Data */}
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                   <table className="w-full text-xs text-left border-collapse">
-                    <thead>
+                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                       <tr className="bg-[#0f172a] text-slate-200 font-bold text-center uppercase tracking-wider border-b border-slate-800">
                         <th className="py-3.5 px-3 border-r border-slate-800 w-12">Sl. No.</th>
                         <th className="py-3.5 px-3 border-r border-slate-800 text-left">Warehouse Name</th>

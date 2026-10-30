@@ -124,6 +124,7 @@ export default function FacilityStockItemWisePage() {
     'Sl. No': idx + 1,
     'Item Code': row.UNIQUEITEMCODE || row.uniqueitemcode || '—',
     'Item Name': row.ITEMNAME || row.itemname || '—',
+    'Item Type': row.ITEMTYPENAME || row.itemtypename || '—',
     'Strength': row.STRENGTH1 || row.strength1 || '—',
     'Unit': row.UNIT || row.unit || '—',
     'Batch Stock': row.BATCHSTOCK || row.batchstock || '0',
@@ -323,7 +324,7 @@ export default function FacilityStockItemWisePage() {
                   </div>
                   <div className="overflow-x-auto overflow-y-auto max-h-[550px]">
                     <table className="w-full text-sm text-left whitespace-nowrap">
-                      <thead>
+                      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                         <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider sticky top-0 z-10">
                           <th className="px-4 py-3 text-center w-10">S.No.</th>
                           <th className="px-4 py-3">Code</th>

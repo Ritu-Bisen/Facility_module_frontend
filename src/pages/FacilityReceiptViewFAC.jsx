@@ -3,12 +3,13 @@ import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getReceiptDetails, getStockLocations, saveReceiptItem, getReceiptBatches, completeReceipt } from '../api/warehouseReceiptApi';
+import { getReceiptDetails, getStockLocations, saveReceiptItem, getReceiptBatches, completeReceipt, deleteWarehouseReceipt } from '../api/warehouseReceiptApi';
 import { 
     ArrowLeftIcon, 
     ArrowPathIcon,
     DocumentTextIcon,
-    PlusCircleIcon
+    PlusCircleIcon,
+    TrashIcon
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
@@ -78,6 +79,25 @@ export default function FacilityReceiptViewFAC() {
             }
         } catch (error) {
             toast.error(error?.response?.data?.message || 'Error completing receipt.', { id: toastId });
+        }
+    };
+
+    const handleDeleteReceipt = async () => {
+        if (!window.confirm(`Are you sure you want to delete this incomplete receipt (${details?.header?.facReceiptNo || receiptId})? This will allow you to re-create the receipt.`)) {
+            return;
+        }
+        const toastId = toast.loading('Deleting receipt...');
+        try {
+            const res = await deleteWarehouseReceipt(receiptId);
+            if (res.success) {
+                toast.success('Receipt deleted successfully!', { id: toastId });
+                navigate('/indent/warehouse-receipts');
+            } else {
+                toast.error(res.message || 'Failed to delete receipt', { id: toastId });
+            }
+        } catch (error) {
+            console.error('Error deleting receipt:', error);
+            toast.error(error?.response?.data?.message || 'Failed to delete receipt', { id: toastId });
         }
     };
 
@@ -220,27 +240,40 @@ export default function FacilityReceiptViewFAC() {
             {/* Header */}
             <div className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl shadow-lg p-6 text-white relative overflow-hidden">
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
-                <div className="relative z-10 flex items-start gap-4">
-                    <button
-                        onClick={() => navigate('/indent/warehouse-receipts')}
-                        className="mt-1 p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors focus:outline-none"
-                        title="Back to Receipts"
-                    >
-                        <ArrowLeftIcon className="w-6 h-6" />
-                    </button>
-                    <div>
-                        <h1 className="text-3xl font-extrabold tracking-tight">Receipt Details</h1>
-                        <div className="mt-2 text-emerald-50 font-medium flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                            <span className="bg-black/20 px-3 py-1 rounded-lg backdrop-blur-md">
-                                Fin. Year: <span className="font-bold text-white">{header.accYear}</span>
-                            </span>
-                            {header.sourceName && (
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                        <button
+                            onClick={() => navigate('/indent/warehouse-receipts')}
+                            className="mt-1 p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors focus:outline-none"
+                            title="Back to Receipts"
+                        >
+                            <ArrowLeftIcon className="w-6 h-6" />
+                        </button>
+                        <div>
+                            <h1 className="text-3xl font-extrabold tracking-tight">Receipt Details</h1>
+                            <div className="mt-2 text-emerald-50 font-medium flex flex-wrap gap-x-6 gap-y-2 text-sm">
                                 <span className="bg-black/20 px-3 py-1 rounded-lg backdrop-blur-md">
-                                    Source: <span className="font-bold text-white">{header.sourceName}</span>
+                                    Fin. Year: <span className="font-bold text-white">{header.accYear}</span>
                                 </span>
-                            )}
+                                {header.sourceName && (
+                                    <span className="bg-black/20 px-3 py-1 rounded-lg backdrop-blur-md">
+                                        Source: <span className="font-bold text-white">{header.sourceName}</span>
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
+
+                    {header.status !== 'C' && (
+                        <button
+                            onClick={handleDeleteReceipt}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all focus:outline-none self-start sm:self-center"
+                            title="Delete this incomplete receipt"
+                        >
+                            <TrashIcon className="w-4 h-4" />
+                            <span>Delete Receipt</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -290,9 +323,9 @@ export default function FacilityReceiptViewFAC() {
                         Total Items: {items.length}
                     </span>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                     <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-900 text-white">
+                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-900 text-white">
                             <tr>
                                 <th scope="col" className="px-4 py-3.5 text-left text-xs font-semibold tracking-wider">Sl. No.</th>
                                 <th scope="col" className="px-4 py-3.5 text-left text-xs font-semibold tracking-wider">Item code &amp; description</th>
@@ -395,7 +428,7 @@ export default function FacilityReceiptViewFAC() {
                                                             <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Batches</h4>
                                                             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                                                                 <table className="min-w-full divide-y divide-slate-200">
-                                                                    <thead className="bg-slate-800 text-slate-100">
+                                                                    <thead className="sticky top-0 z-10 shadow-xs bg-slate-800 text-slate-100">
                                                                         <tr>
                                                                             <th scope="col" className="px-4 py-2.5 text-left text-xs font-semibold">Sl. No.</th>
                                                                             <th scope="col" className="px-4 py-2.5 text-left text-xs font-semibold">Batch No.</th>

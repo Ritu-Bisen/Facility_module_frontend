@@ -479,9 +479,9 @@ export default function OnlineTransferItemsPage() {
                                         <div className="bg-[#0f172a] px-4 py-3">
                                             <h2 className="text-sm font-bold text-white tracking-wide">Items</h2>
                                         </div>
-                                        <div className="overflow-x-auto">
+                                        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                                             <table className="w-full text-left border-collapse">
-                                                <thead>
+                                                <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                                                     <tr className="bg-slate-50 text-slate-600 text-[10px] uppercase tracking-wider font-bold">
                                                         <th className="px-4 py-3 border-b border-slate-200 text-center w-12">Sl No</th>
                                                         <th className="px-4 py-3 border-b border-slate-200">Item Name</th>

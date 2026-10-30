@@ -202,9 +202,9 @@ export default function ShcIndentItemsFAC() {
             )}
 
             {/* Data Table */}
-            <div className="bg-white border border-gray-300 shadow-sm overflow-x-auto rounded-md">
+            <div className="bg-white border border-gray-300 shadow-sm overflow-x-auto rounded-md overflow-y-auto max-h-[calc(100vh-260px)]">
                     <table className="min-w-full text-sm text-left">
-                        <thead className="bg-slate-50 border-b border-slate-200">
+                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50 border-b border-slate-200">
                             <tr className="text-slate-500 text-[10px] uppercase font-bold tracking-wider">
                                 <th className="px-5 py-3.5 text-center w-20">Sl. No</th>
                                 <th className="px-5 py-3.5">Item Code</th>

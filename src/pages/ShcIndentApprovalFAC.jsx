@@ -231,7 +231,7 @@ export default function ShcIndentApprovalFAC() {
                         </div>
                     ) : (
                         <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-[#0f172a]">
+                            <thead className="sticky top-0 z-10 shadow-xs bg-[#0f172a]">
                                 <tr className="text-gray-100 text-[10px] uppercase font-bold tracking-wider">
                                     <th scope="col" className="whitespace-nowrap px-4 py-3 text-center">Sl. No.</th>
                                     <th scope="col" className="whitespace-nowrap px-4 py-3 text-left">District</th>

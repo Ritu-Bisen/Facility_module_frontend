@@ -1,5 +1,5 @@
 import { getDefaultFinYearId } from '../utils/indentYearHelper';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../api/axios';
@@ -8,7 +8,9 @@ import { generateIndentToOtherFacilityPDF } from '../utils/indentToOtherFacility
 import {
   PlusCircleIcon,
   FolderOpenIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
@@ -25,6 +27,7 @@ export default function IndentToOtherFacilityPage() {
   const [statusFilter, setStatusFilter] = useState(location.state?.statusFilter || 'All'); 
 
   const [indents, setIndents] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loadingFilters, setLoadingFilters] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
 
@@ -73,6 +76,16 @@ export default function IndentToOtherFacilityPage() {
     }
   };
 
+  const filteredIndents = useMemo(() => {
+    if (!searchTerm.trim()) return indents;
+    const term = searchTerm.trim().toLowerCase();
+    return indents.filter(item => {
+      const requestNo = String(item.NOCNumber || '').toLowerCase();
+      const facilityName = String(item.facilityname || '').toLowerCase();
+      return requestNo.includes(term) || facilityName.includes(term);
+    });
+  }, [indents, searchTerm]);
+
   return (
     <div className="flex flex-col h-screen bg-slate-50 font-sans">
       <Header />
@@ -120,6 +133,29 @@ export default function IndentToOtherFacilityPage() {
                       </select>
                     </div>
 
+                    <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
+
+                    {/* Search by Request No */}
+                    <div className="relative flex items-center px-2">
+                      <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 absolute left-4.5 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        placeholder="Search Request No..."
+                        className="bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block pl-8 pr-7 py-2 w-48 shadow-sm placeholder-slate-400"
+                      />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-4 text-slate-400 hover:text-slate-600 font-bold text-xs"
+                          title="Clear search"
+                        >
+                          <XMarkIcon className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
                     <div className="px-2">
                       <button
                         onClick={() => navigate('/indent-to-other-facility/add')}
@@ -144,9 +180,9 @@ export default function IndentToOtherFacilityPage() {
                 </div>
               ) : (
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                     <table className="w-full text-sm text-left">
-                      <thead>
+                      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                         <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
                           <th className="px-5 py-3.5 text-center w-14">Sl. No.</th>
                           <th className="px-5 py-3.5 text-left">Facility Name</th>
@@ -157,16 +193,18 @@ export default function IndentToOtherFacilityPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {indents.length === 0 ? (
+                        {filteredIndents.length === 0 ? (
                            <tr>
                              <td colSpan="6" className="px-5 py-12 text-center text-slate-400">
                                <FolderOpenIcon className="w-10 h-10 text-slate-300 mx-auto mb-2" />
                                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">No data found</p>
-                               <p className="text-xs mt-1">Select alternative filters.</p>
+                               <p className="text-xs mt-1">
+                                 {searchTerm ? `No requests matching "${searchTerm}"` : 'Select alternative filters.'}
+                               </p>
                              </td>
                            </tr>
                         ) : (
-                          indents.map((indent, idx) => {
+                          filteredIndents.map((indent, idx) => {
                             return (
                               <tr key={indent.NOCID} className="hover:bg-slate-50/50 align-middle">
                                 <td className="px-5 py-4 text-center font-bold text-slate-400">{idx + 1}</td>

@@ -278,9 +278,9 @@ export default function AnnualIndentDistributionPage() {
                       <p className="text-slate-500 font-medium">No facilities found for distribution for this item.</p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                       <table className="w-full text-left border-collapse min-w-[1000px]">
-                        <thead>
+                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                           <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 text-xs font-bold tracking-wide uppercase">
                             <th className="px-4 py-4 w-12 text-center">Sl. No.</th>
                             <th className="px-4 py-4">Facility Name</th>

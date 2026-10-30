@@ -134,7 +134,7 @@ export default function ContractsPage() {
                     </div>
                   ) : (
                     <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-[#003311] text-white">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-[#003311] text-white">
                         <tr>
                           <th className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-center border-r border-green-900">Sl. No.</th>
                           <th className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-left border-r border-green-900">Local Supplier</th>

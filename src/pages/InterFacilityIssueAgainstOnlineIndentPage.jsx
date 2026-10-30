@@ -50,7 +50,7 @@ const IssueDetailsCell = ({ indent }) => {
     return (
         <div className="p-1">
             <table className="w-full text-left text-xs bg-white border border-slate-200 shadow-sm rounded">
-                <thead>
+                <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                     <tr className="bg-[#0f172a] text-white">
                         <th className="px-2 py-1.5 border-b border-slate-300 text-center font-semibold">Issue No</th>
                         <th className="px-2 py-1.5 border-b border-slate-300 border-l text-center font-semibold">Issue Date</th>
@@ -197,9 +197,9 @@ export default function InterFacilityIssueAgainstOnlineIndentPage() {
                                     </div>
                                 )}
 
-                                <div className="overflow-x-auto">
+                                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                                     <table className="w-full text-left border-collapse">
-                                        <thead>
+                                        <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
                                             <tr className="bg-[#0f172a] text-white text-[10px] uppercase tracking-wider font-bold">
                                                 <th className="px-4 py-3 border-b border-slate-200 w-16 text-center border-r border-slate-700">Sl No</th>
                                                 <th className="px-4 py-3 border-b border-slate-200 border-r border-slate-700">Facility</th>

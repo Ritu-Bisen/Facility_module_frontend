@@ -473,7 +473,7 @@ export default function FacilityReceiptManualPage() {
                     </div>
                   ) : (
                     <table className="w-full text-xs text-left divide-y divide-gray-200">
-                      <thead className="bg-gray-100 text-gray-700 font-semibold uppercase text-[11px]">
+                      <thead className="sticky top-0 z-10 shadow-xs bg-gray-100 text-gray-700 font-semibold uppercase text-[11px]">
                         <tr>
                           <th className="py-2.5 px-3 text-center w-12">Sl. No.</th>
                           <th className="py-2.5 px-3">Item Code</th>

@@ -229,9 +229,9 @@ const LocalItemsPage = () => {
                   </select>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-[#0b3b17] text-white">
+                    <thead className="sticky top-0 z-10 shadow-xs bg-[#0b3b17] text-white">
                       <tr>
                         <th className="px-3 py-2 border-r border-[#155424] text-center w-[5%]">Sl.No</th>
                         <th className="px-3 py-2 border-r border-[#155424] text-center w-[10%]">Item Code</th>

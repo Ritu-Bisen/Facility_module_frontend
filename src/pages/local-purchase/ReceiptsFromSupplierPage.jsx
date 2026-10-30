@@ -175,7 +175,7 @@ const ReceiptsFromSupplierPage = () => {
                                 {so.receipts && so.receipts.length > 0 ? (
                                   <div className="border border-slate-200 overflow-hidden shadow-sm m-1">
                                     <table className="w-full text-left text-[9px]">
-                                      <thead className="bg-[#0b3b17] text-white">
+                                      <thead className="sticky top-0 z-10 shadow-xs bg-[#0b3b17] text-white">
                                         <tr>
                                           <th className="px-1 py-1 font-semibold border-r border-[#155424]">Receipt No</th>
                                           <th className="px-1 py-1 font-semibold border-r border-[#155424] text-center whitespace-nowrap">Receipt Date</th>

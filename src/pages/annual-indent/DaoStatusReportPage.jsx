@@ -9,7 +9,7 @@ import { ArrowPathIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 function downloadAsExcel(headers, rows, filename) {
   let tableHtml = `
     <table border="1" style="border-collapse:collapse; font-family:Arial,sans-serif; font-size:12px;">
-      <thead>
+      <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
         <tr style="background-color:#0f172a; color:white; font-weight:bold;">
           ${headers.map(h => `<th style="padding:6px 10px; border:1px solid #cbd5e1;">${h}</th>`).join('')}
         </tr>
@@ -223,7 +223,7 @@ export default function DaoStatusReportPage() {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
               <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-270px)]">
                 <table className="w-full text-sm text-left border-collapse">
-                  <thead className="sticky top-0 z-10 shadow-sm">
+                  <thead className="sticky top-0 z-10 shadow-sm bg-slate-50">
                     <tr className="bg-[#0f172a] text-white">
                       <th className="py-2.5 px-3 font-semibold text-center border-r border-slate-700 whitespace-nowrap w-16 bg-[#0f172a]">
                         Sr No
