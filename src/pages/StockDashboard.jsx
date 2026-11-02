@@ -29,27 +29,39 @@ export default function StockDashboard() {
         <script src="https://cgmscanalytics-cgmscee-bo.analytics.ocp.oraclecloud.com/public/dv/v1/embedding/standalone/embedding.js" type="application/javascript"></script>
         <script>
           var token = "";
+          function waitForRequire(callback) {
+            if (typeof requirejs !== "undefined") {
+              callback();
+            } else {
+              setTimeout(function() {
+                waitForRequire(callback);
+              }, 50);
+            }
+          }
+
           function fetchAndSetToken() {
             fetch("https://kcthepe5e6xwemxr36bzoz4xgq.apigateway.ap-mumbai-1.oci.customer-oci.com/oac/auth_token")
               .then(response => response.json())
               .then(data => {
                 token = data.access_token;
-                requirejs(["jquery", "knockout", "obitech-application/application","ojs/ojcore", "ojs/ojknockout", "ojs/ojcomposite", "jet-composites/oracle-dv/loader"], 
-                function($, ko, application) {
-                  application.setSecurityConfig("token", {
-                    tokenAuthFunction: function() { return token; }
-                  });
-                  if (!window.bindingsApplied) {
-                    function MyProject() {
-                      var self = this;
-                      self.projectPath = ko.observable("/@Catalog/users/sm.cgmsc@gmail.com/QC_Batches");
+                waitForRequire(function() {
+                  requirejs(["jquery", "knockout", "obitech-application/application","ojs/ojcore", "ojs/ojknockout", "ojs/ojcomposite", "jet-composites/oracle-dv/loader"], 
+                  function($, ko, application) {
+                    application.setSecurityConfig("token", {
+                      tokenAuthFunction: function() { return token; }
+                    });
+                    if (!window.bindingsApplied) {
+                      function MyProject() {
+                        var self = this;
+                        self.projectPath = ko.observable("/@Catalog/users/sm.cgmsc@gmail.com/QC_Batches");
+                      }
+                      ko.applyBindings(new MyProject());
+                      window.bindingsApplied = true;
+                      setTimeout(function() {
+                        window.parent.postMessage("OAC_LOADED", "*");
+                      }, 3000);
                     }
-                    ko.applyBindings(new MyProject());
-                    window.bindingsApplied = true;
-                    setTimeout(function() {
-                      window.parent.postMessage("OAC_LOADED", "*");
-                    }, 3000);
-                  }
+                  });
                 });
               });
           }
@@ -80,31 +92,43 @@ export default function StockDashboard() {
         <script src="https://cgmscanalytics-cgmscee-bo.analytics.ocp.oraclecloud.com/public/dv/v1/embedding/standalone/embedding.js" type="application/javascript"></script>
         <script>
           var token = "";
+          function waitForRequire(callback) {
+            if (typeof requirejs !== "undefined") {
+              callback();
+            } else {
+              setTimeout(function() {
+                waitForRequire(callback);
+              }, 50);
+            }
+          }
+
           function fetchAndSetToken() {
             fetch("https://kcthepe5e6xwemxr36bzoz4xgq.apigateway.ap-mumbai-1.oci.customer-oci.com/oac/auth_token")
               .then(response => response.json())
               .then(data => {
                 token = data.access_token;
-                requirejs(["jquery", "knockout", "obitech-application/application","ojs/ojcore", "ojs/ojknockout", "ojs/ojcomposite", "jet-composites/oracle-dv/loader"], 
-                function($, ko, application) {
-                  application.setSecurityConfig("token", {
-                    tokenAuthFunction: function() { return token; }
-                  });
-                  if (!window.bindingsApplied) {
-                    function MyProject() {
-                      var self = this;
-                      self.projectPath = ko.observable("/@Catalog/users/sm.cgmsc@gmail.com/QC_Sample_Tracking");
-                      self.parameters = ko.observable({
-                        "p1n": "PARAM_LABID",
-                        "p1v": "${user?.facilityId || 'LAB001'}"
-                      });
+                waitForRequire(function() {
+                  requirejs(["jquery", "knockout", "obitech-application/application","ojs/ojcore", "ojs/ojknockout", "ojs/ojcomposite", "jet-composites/oracle-dv/loader"], 
+                  function($, ko, application) {
+                    application.setSecurityConfig("token", {
+                      tokenAuthFunction: function() { return token; }
+                    });
+                    if (!window.bindingsApplied) {
+                      function MyProject() {
+                        var self = this;
+                        self.projectPath = ko.observable("/@Catalog/users/sm.cgmsc@gmail.com/QC_Sample_Tracking");
+                        self.parameters = ko.observable({
+                          "p1n": "PARAM_LABID",
+                          "p1v": "${user?.facilityId || 'LAB001'}"
+                        });
+                      }
+                      ko.applyBindings(new MyProject());
+                      window.bindingsApplied = true;
+                      setTimeout(function() {
+                        window.parent.postMessage("OAC_LOADED", "*");
+                      }, 3000);
                     }
-                    ko.applyBindings(new MyProject());
-                    window.bindingsApplied = true;
-                    setTimeout(function() {
-                      window.parent.postMessage("OAC_LOADED", "*");
-                    }, 3000);
-                  }
+                  });
                 });
               });
           }

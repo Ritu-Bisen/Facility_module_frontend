@@ -6,6 +6,7 @@ import Footer from '../../components/layout/Footer';
 import axios from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
 import * as XLSX from 'xlsx';
+import { generateAnnualIndentPDF } from '../../utils/annualIndentPdfGenerator';
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -16,6 +17,7 @@ import {
   CheckIcon,
   LockClosedIcon,
   ArrowUpTrayIcon,
+  ArrowDownTrayIcon,
   DocumentArrowDownIcon,
   DocumentChartBarIcon,
   CurrencyRupeeIcon
@@ -23,7 +25,7 @@ import {
 
 export default function CreateAnnualIndentDhPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const urlFinYear = searchParams.get('finYearId');
   const urlIndentId = searchParams.get('indentId');
 
@@ -90,6 +92,7 @@ export default function CreateAnnualIndentDhPage() {
   // Excel upload file state
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // Fetch Financial Years on Mount
   useEffect(() => {
@@ -133,8 +136,10 @@ export default function CreateAnnualIndentDhPage() {
     setLoading(true);
     setError('');
     try {
+      const currentFacId = user?.facilityId || localStorage.getItem('facilityId') || undefined;
       const headRes = await axios.get('/annual-indent/create/header', {
         params: {
+          facilityId: currentFacId,
           finYearId: selectedFinYear,
           indentId: urlIndentId || undefined
         }
@@ -146,8 +151,12 @@ export default function CreateAnnualIndentDhPage() {
         setHeaderEditMode(!hData.exists);
 
         if (hData.indentId && hData.indentId !== 0) {
+          if (hData.exists && searchParams.get('indentId') !== String(hData.indentId)) {
+            setSearchParams({ finYearId: selectedFinYear, indentId: String(hData.indentId) }, { replace: true });
+          }
           const itemsRes = await axios.get('/annual-indent/create/items', {
             params: {
+              facilityId: currentFacId,
               finYearId: selectedFinYear,
               indentId: hData.indentId
             }
@@ -181,13 +190,19 @@ export default function CreateAnnualIndentDhPage() {
     setGenerating(true);
     setError('');
     try {
+      const currentFacId = user?.facilityId || localStorage.getItem('facilityId') || undefined;
       const res = await axios.post('/annual-indent/create/generate-header', {
+        facilityId: currentFacId,
         finYearId: selectedFinYear
       });
 
       if (res.data?.success && res.data.data) {
-        setHeaderInfo(res.data.data);
+        const hData = res.data.data;
+        setHeaderInfo(hData);
         setHeaderEditMode(false);
+        if (hData.indentId) {
+          setSearchParams({ finYearId: selectedFinYear, indentId: String(hData.indentId) }, { replace: true });
+        }
         setMsg('Indent Header Generated Successfully!');
         setTimeout(() => setMsg(''), 4000);
       } else {
@@ -243,6 +258,8 @@ export default function CreateAnnualIndentDhPage() {
       // Indent quantity column - ignore any column containing EDL or TYPE
       const indQtyIdx = headers.findIndex(h => (h.includes('ANNUALINDENT') || h.includes('INDENT') || h.includes('QTY')) && !h.includes('EDL') && !h.includes('TYPE'));
       const rateIdx = headers.findIndex(h => (h.includes('RATE') || h.includes('PRICE')) && !h.includes('EDL') && !h.includes('TYPE'));
+      const edlIdx = headers.findIndex(h => h === 'EDL' || h === 'EDLCAT' || h === 'EDL_CAT');
+      const edlTypeIdx = headers.findIndex(h => h.includes('EDLTYPE') || h.includes('EDL TYPE') || (h.includes('EDL') && h.includes('TYPE')));
 
       if (itemCodeIdx === -1) {
         alert('Could not find ITEMCODE column in the Excel file.');
@@ -251,6 +268,7 @@ export default function CreateAnnualIndentDhPage() {
       }
 
       const parsedItems = [];
+      const excelEdlMap = new Map();
       for (let r = headerRowIndex + 1; r < rawRows.length; r++) {
         const row = rawRows[r];
         if (!row || row.length === 0) continue;
@@ -264,6 +282,16 @@ export default function CreateAnnualIndentDhPage() {
         const currentStock = curStockIdx !== -1 ? Number(row[curStockIdx]) || 0 : 0;
         const facilityIndentQty = indQtyIdx !== -1 ? Number(row[indQtyIdx]) || 0 : 0;
         const rate = rateIdx !== -1 ? Number(row[rateIdx]) || 0 : 0;
+
+        const edlVal = edlIdx !== -1 ? String(row[edlIdx] || '').trim() : '';
+        const rawEdlType = edlTypeIdx !== -1 ? String(row[edlTypeIdx] || '').trim() : '';
+        const edlTypeVal = rawEdlType.toUpperCase().includes('NON')
+          ? 'Non EDL'
+          : ((rawEdlType.toUpperCase() === 'EDL' || rawEdlType.toUpperCase() === 'YES' || rawEdlType.toUpperCase() === 'Y') ? 'EDL' : '');
+
+        if (edlTypeVal || edlVal) {
+          excelEdlMap.set(itemCode.toUpperCase(), { edlType: edlTypeVal, edl: edlVal });
+        }
 
         parsedItems.push({
           itemCode,
@@ -283,8 +311,10 @@ export default function CreateAnnualIndentDhPage() {
       }
 
       let activeIndentId = headerInfo.indentId;
+      const currentFacId = user?.facilityId || localStorage.getItem('facilityId') || undefined;
       if (!activeIndentId || activeIndentId === 0) {
         const genRes = await axios.post('/annual-indent/create/generate-header', {
+          facilityId: currentFacId,
           finYearId: selectedFinYear
         });
 
@@ -292,6 +322,7 @@ export default function CreateAnnualIndentDhPage() {
           activeIndentId = genRes.data.data.indentId;
           setHeaderInfo(genRes.data.data);
           setHeaderEditMode(false);
+          setSearchParams({ finYearId: selectedFinYear, indentId: String(activeIndentId) }, { replace: true });
         } else {
           alert('Failed to automatically create indent header for upload.');
           setUploading(false);
@@ -300,6 +331,7 @@ export default function CreateAnnualIndentDhPage() {
       }
 
       const uploadRes = await axios.post('/annual-indent/create/upload-excel', {
+        facilityId: currentFacId,
         finYearId: selectedFinYear,
         indentId: activeIndentId,
         items: parsedItems
@@ -309,17 +341,31 @@ export default function CreateAnnualIndentDhPage() {
         setMsg('Excel File Uploaded Successfully!');
 
         const headRes = await axios.get('/annual-indent/create/header', {
-          params: { finYearId: selectedFinYear, indentId: activeIndentId }
+          params: { facilityId: currentFacId, finYearId: selectedFinYear, indentId: activeIndentId }
         });
         if (headRes.data?.success && headRes.data.data) {
           setHeaderInfo(headRes.data.data);
+          setHeaderEditMode(false);
+          setSearchParams({ finYearId: selectedFinYear, indentId: String(headRes.data.data.indentId || activeIndentId) }, { replace: true });
         }
 
         const itemsRes = await axios.get('/annual-indent/create/items', {
-          params: { finYearId: selectedFinYear, indentId: activeIndentId }
+          params: { facilityId: currentFacId, finYearId: selectedFinYear, indentId: activeIndentId }
         });
         if (itemsRes.data?.success && itemsRes.data.data) {
-          setItems(itemsRes.data.data.items || []);
+          const fetchedItems = (itemsRes.data.data.items || []).map(item => {
+            const code = String(item.itemCode || '').trim().toUpperCase();
+            const fromExcel = excelEdlMap.get(code);
+            if (fromExcel) {
+              return {
+                ...item,
+                edlType: fromExcel.edlType || item.edlType,
+                edl: fromExcel.edl || item.edl
+              };
+            }
+            return item;
+          });
+          setItems(fetchedItems);
           setNoOfItems(itemsRes.data.data.noOfItems || 0);
           setAproxIndentValue(itemsRes.data.data.aproxIndentValue || '0.00');
         }
@@ -458,21 +504,27 @@ export default function CreateAnnualIndentDhPage() {
       <table border="1">
         <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
           <tr>
-            <th colspan="7" style="font-weight: bold; text-align: center;">CHHATTISGARH MEDICAL SERVICES CORPORATION</th>
+            <th colspan="15" style="font-weight: bold; text-align: center;">CHHATTISGARH MEDICAL SERVICES CORPORATION</th>
           </tr>
           <tr>
-            <th colspan="7" style="font-weight: bold; text-align: center;">Item(s) Indent For Financial Year: ${currentFyText}</th>
+            <th colspan="15" style="font-weight: bold; text-align: center;">Item(s) Indent For Financial Year: ${currentFyText}</th>
           </tr>
           <tr style="background-color: #065f46; color: #ffffff; font-weight: bold;">
             <th>SlNo</th>
             <th>ItemCode</th>
             <th>ItemName</th>
+            <th>Strength</th>
             <th>GroupName</th>
-            <th>Consumption</th>
-            <th>CurrentStock</th>
+            <th>EDL</th>
+            <th>WH_ISSUE</th>
+            <th>ACTUAL_CONS</th>
+            <th>EST_CONS</th>
+            <th>CUR_STOCK</th>
             <th>AnnualIndentQty</th>
             <th>Rate</th>
             <th>IndentValue</th>
+            <th>Category</th>
+            <th>EDLType</th>
           </tr>
         </thead>
         <tbody>
@@ -483,13 +535,19 @@ export default function CreateAnnualIndentDhPage() {
         <tr>
           <td style="text-align: center;">${idx + 1}</td>
           <td>${r.itemCode || ''}</td>
-          <td>${r.itemName || ''} ${r.strength || ''}</td>
+          <td>${r.itemName || ''}</td>
+          <td>${r.strength || ''}</td>
           <td>${r.groupName || ''}</td>
+          <td style="text-align: center;">${r.edl || '-'}</td>
           <td style="text-align: right;">${r.consumption || 0}</td>
+          <td style="text-align: right;">${r.actualConsumption || 0}</td>
+          <td style="text-align: right;">${r.projectedConsumption || 0}</td>
           <td style="text-align: right;">${r.currentStock || 0}</td>
           <td style="text-align: right;">${r.facilityIndentQty || 0}</td>
           <td style="text-align: right;">${Number(r.rate || 0).toFixed(2)}</td>
-          <td style="text-align: right;">${Number(r.indAprVal || 0).toFixed(2)}</td>
+          <td style="text-align: right;">${Number(r.indAprVal || ((r.facilityIndentQty || 0) * (r.rate || 0))).toFixed(2)}</td>
+          <td>${r.categoryName || 'DRUGS'}</td>
+          <td style="text-align: center;">${(r.edlType === 'EDL' || r.edlType === 'Yes' || r.edlType === 'Y') ? 'EDL' : 'Non EDL'}</td>
         </tr>
       `;
     });
@@ -506,16 +564,48 @@ export default function CreateAnnualIndentDhPage() {
     URL.revokeObjectURL(url);
   };
 
+  // Download PDF Handler
+  const handleDownloadPdf = async () => {
+    if (items.length === 0) {
+      alert('No items to generate PDF.');
+      return;
+    }
+    setDownloadingPdf(true);
+    try {
+      await generateAnnualIndentPDF(
+        {
+          nocId: headerInfo.indentId,
+          indentId: headerInfo.indentId,
+          nocNumber: headerInfo.indentNo,
+          indentNo: headerInfo.indentNo,
+          nocDate: headerInfo.indentDate,
+          indentDate: headerInfo.indentDate,
+          accYear: finYears.find(fy => String(fy.accYrSetId) === String(selectedFinYear))?.accYear,
+          status: headerInfo.status === 'C' ? 'Completed' : 'Draft',
+          categoryName: 'DRUGS',
+          facilityId: user?.facilityId
+        },
+        user,
+        selectedFinYear
+      );
+    } catch (err) {
+      console.error('Failed to download PDF:', err);
+      alert('Failed to generate PDF: ' + (err.message || 'Unknown error'));
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   // Start Row Edit
   const handleStartEdit = (row) => {
     setEditingId(row.anualIndentId);
     setEditForm({
-      consumption: row.consumption,
-      actualConsumption: row.actualConsumption,
-      projectedConsumption: row.projectedConsumption,
-      currentStock: row.currentStock,
-      facilityIndentQty: row.facilityIndentQty,
-      rate: row.rate
+      consumption: row.consumption || 0,
+      actualConsumption: row.actualConsumption || 0,
+      projectedConsumption: row.projectedConsumption || row.estimatedConsumption || 0,
+      currentStock: row.currentStock || 0,
+      facilityIndentQty: row.facilityIndentQty || 0,
+      rate: row.rate || 0
     });
   };
 
@@ -579,7 +669,20 @@ export default function CreateAnnualIndentDhPage() {
               {/* Form Controls Card matching DH EDL Item Header */}
               <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-6">
                 
-                {headerEditMode ? (
+                {loading ? (
+                  /* Loading Header Panel */
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <ArrowPathIcon className="w-5 h-5 text-emerald-600 animate-spin" />
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Loading Annual Indent details...
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400 font-semibold">Please wait</span>
+                    </div>
+                  </div>
+                ) : headerEditMode ? (
                   /* Edit Header Panel - Inline Layout without Category dropdown */
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     
@@ -591,7 +694,11 @@ export default function CreateAnnualIndentDhPage() {
                         </label>
                         <select
                           value={selectedFinYear}
-                          onChange={(e) => setSelectedFinYear(e.target.value)}
+                          onChange={(e) => {
+                            const newFy = e.target.value;
+                            setSelectedFinYear(newFy);
+                            setSearchParams({ finYearId: newFy });
+                          }}
                           disabled={dropdownLoading}
                           className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition-all outline-none shadow-sm"
                         >
@@ -796,37 +903,59 @@ export default function CreateAnnualIndentDhPage() {
                   <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm">
                     Indent Items Details ({items.length})
                   </h3>
-                  {items.length > 0 && (
-                    <button
-                      onClick={handleExportToExcel}
-                      className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5"
-                    >
-                      <DocumentArrowDownIcon className="w-4 h-4" />
-                      <span>Export to Excel</span>
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {items.length > 0 && (
+                      <button
+                        onClick={handleExportToExcel}
+                        className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                      >
+                        <DocumentArrowDownIcon className="w-4 h-4" />
+                        <span>Export to Excel</span>
+                      </button>
+                    )}
+                    {items.length > 0 && (
+                      <button
+                        onClick={handleDownloadPdf}
+                        disabled={downloadingPdf}
+                        className="px-3.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-60"
+                      >
+                        {downloadingPdf ? (
+                          <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ArrowDownTrayIcon className="w-4 h-4" />
+                        )}
+                        <span>{downloadingPdf ? 'Downloading PDF...' : 'Download PDF'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                   <table className="w-full text-xs text-left border-collapse">
                     <thead className="sticky top-0 z-10 shadow-xs bg-slate-50">
-                      <tr className="bg-emerald-900 text-white font-bold text-center border-b border-emerald-800">
-                        <th className="py-3 px-3 border-r border-emerald-800 w-12 text-center">Sl. No.</th>
-                        <th className="py-3 px-3 border-r border-emerald-800 text-center w-24">Item Code</th>
-                        <th className="py-3 px-3 border-r border-emerald-800 text-left">Item Name</th>
-                        <th className="py-3 px-3 border-r border-emerald-800 text-left">Group Name</th>
-                        <th className="py-3 px-3 border-r border-emerald-800 text-right">Consumption</th>
-                        <th className="py-3 px-3 border-r border-emerald-800 text-right">Current Stock</th>
-                        <th className="py-3 px-3 border-r border-emerald-800 text-right">Annual Indent Qty</th>
-                        <th className="py-3 px-3 border-r border-emerald-800 text-right">Rate</th>
-                        <th className="py-3 px-3 border-r border-emerald-800 text-right">Indent Value</th>
-                        <th className="py-3 px-3 text-center w-28">Actions</th>
+                      <tr className="bg-emerald-900 text-white font-bold text-center border-b border-emerald-800 text-[11px]">
+                        <th className="py-3 px-2 border-r border-emerald-800 w-10 text-center">Sl. No.</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-center w-20">Item Code</th>
+                        <th className="py-3 px-3 border-r border-emerald-800 text-left min-w-[200px]">Item Name</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-left min-w-[120px]">Strength</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-left min-w-[130px]">Group Name</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-center w-14">EDL</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">WH_ISSUE</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">ACTUAL_CONS</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">EST_CONS</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">CUR_STOCK</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-28">Annual Indent Qty</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-20">Rate</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">Indent Value</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-left w-24">Category</th>
+                        <th className="py-3 px-2 border-r border-emerald-800 text-center w-20">EDL Type</th>
+                        <th className="py-3 px-2 text-center w-24">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                       {loading ? (
                         <tr>
-                          <td colSpan="10" className="py-12 text-center text-slate-500">
+                          <td colSpan="16" className="py-12 text-center text-slate-500">
                             <div className="flex flex-col items-center justify-center gap-2">
                               <ArrowPathIcon className="w-7 h-7 animate-spin text-emerald-600" />
                               <span className="text-xs font-semibold">Loading items...</span>
@@ -835,13 +964,14 @@ export default function CreateAnnualIndentDhPage() {
                         </tr>
                       ) : items.length === 0 ? (
                         <tr>
-                          <td colSpan="10" className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
+                          <td colSpan="16" className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
                             No Item found in this Indent. Upload Excel file to populate items.
                           </td>
                         </tr>
                       ) : (
                         items.map((row, idx) => {
                           const isEditing = editingId === row.anualIndentId;
+                          const isEdl = row.edlType === 'EDL' || row.edlType === 'Yes' || row.edlType === 'Y';
                           return (
                             <tr
                               key={row.anualIndentId || idx}
@@ -849,74 +979,118 @@ export default function CreateAnnualIndentDhPage() {
                                 isEditing ? 'bg-amber-50/50 dark:bg-amber-950/20' : 'bg-white dark:bg-[#1e293b]'
                               }`}
                             >
-                              <td className="py-2.5 px-3 text-center font-semibold text-slate-500 border-r border-slate-100 dark:border-slate-800">
+                              <td className="py-2 px-2 text-center font-semibold text-slate-500 border-r border-slate-100 dark:border-slate-800">
                                 {idx + 1}
                               </td>
-                              <td className="py-2.5 px-3 text-center font-bold text-slate-800 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800">
+                              <td className="py-2 px-2 text-center font-mono font-bold text-emerald-700 dark:text-emerald-400 border-r border-slate-100 dark:border-slate-800">
                                 {row.itemCode}
                               </td>
-                              <td className="py-2.5 px-3 border-r border-slate-100 dark:border-slate-800 font-medium">
+                              <td className="py-2 px-3 border-r border-slate-100 dark:border-slate-800 font-medium">
                                 <span className="font-bold text-slate-900 dark:text-slate-100">{row.itemName}</span>
-                                {row.strength && (
-                                  <span className="text-[11px] text-slate-500 dark:text-slate-400 block">{row.strength}</span>
+                                {row.formulation && row.formulation !== '-' && (
+                                  <span className="text-[10px] text-slate-400 block">{row.formulation}</span>
                                 )}
                               </td>
-                              <td className="py-2.5 px-3 border-r border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300">
-                                {row.groupName}
+                              <td className="py-2 px-2 border-r border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-[11px]">
+                                {row.strength || '-'}
                               </td>
-                              <td className="py-2.5 px-3 text-right border-r border-slate-100 dark:border-slate-800 font-semibold">
+                              <td className="py-2 px-2 border-r border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 text-[11px]">
+                                {row.groupName || '-'}
+                              </td>
+                              <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-slate-800">
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                  {row.edl || '-'}
+                                </span>
+                              </td>
+                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono">
                                 {isEditing ? (
                                   <input
                                     type="number"
                                     value={editForm.consumption}
                                     onChange={(e) => setEditForm(prev => ({ ...prev, consumption: e.target.value }))}
-                                    className="w-20 px-2 py-1 text-right border border-emerald-500 rounded outline-none"
+                                    className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
                                   />
                                 ) : (
                                   row.consumption || 0
                                 )}
                               </td>
-                              <td className="py-2.5 px-3 text-right border-r border-slate-100 dark:border-slate-800 font-semibold">
+                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono text-slate-500 dark:text-slate-400">
+                                {isEditing ? (
+                                  <input
+                                    type="number"
+                                    value={editForm.actualConsumption}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, actualConsumption: e.target.value }))}
+                                    className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
+                                  />
+                                ) : (
+                                  row.actualConsumption || 0
+                                )}
+                              </td>
+                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono text-slate-500 dark:text-slate-400">
+                                {isEditing ? (
+                                  <input
+                                    type="number"
+                                    value={editForm.projectedConsumption}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, projectedConsumption: e.target.value }))}
+                                    className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
+                                  />
+                                ) : (
+                                  row.projectedConsumption || 0
+                                )}
+                              </td>
+                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono font-bold text-blue-700 dark:text-blue-400">
                                 {isEditing ? (
                                   <input
                                     type="number"
                                     value={editForm.currentStock}
                                     onChange={(e) => setEditForm(prev => ({ ...prev, currentStock: e.target.value }))}
-                                    className="w-20 px-2 py-1 text-right border border-emerald-500 rounded outline-none"
+                                    className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
                                   />
                                 ) : (
                                   row.currentStock || 0
                                 )}
                               </td>
-                              <td className="py-2.5 px-3 text-right border-r border-slate-100 dark:border-slate-800 font-extrabold text-emerald-700 dark:text-emerald-400">
+                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono font-extrabold text-emerald-700 dark:text-emerald-400">
                                 {isEditing ? (
                                   <input
                                     type="number"
                                     value={editForm.facilityIndentQty}
                                     onChange={(e) => setEditForm(prev => ({ ...prev, facilityIndentQty: e.target.value }))}
-                                    className="w-20 px-2 py-1 text-right border border-emerald-500 rounded outline-none font-bold"
+                                    className="w-20 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none font-bold text-xs"
                                   />
                                 ) : (
                                   row.facilityIndentQty || 0
                                 )}
                               </td>
-                              <td className="py-2.5 px-3 text-right border-r border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono text-emerald-700 dark:text-emerald-400">
                                 {isEditing ? (
                                   <input
                                     type="number"
                                     step="0.01"
                                     value={editForm.rate}
                                     onChange={(e) => setEditForm(prev => ({ ...prev, rate: e.target.value }))}
-                                    className="w-20 px-2 py-1 text-right border border-emerald-500 rounded outline-none"
+                                    className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
                                   />
                                 ) : (
-                                  Number(row.rate || 0).toFixed(2)
+                                  `₹${Number(row.rate || 0).toFixed(2)}`
                                 )}
                               </td>
-                              <td className="py-2.5 px-3 text-right border-r border-slate-100 dark:border-slate-800 font-bold text-slate-900 dark:text-slate-100">
-                                {Number(row.indAprVal || 0).toFixed(2)}
+                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono font-bold text-slate-900 dark:text-slate-100">
+                                ₹{Number(row.indAprVal || ((row.facilityIndentQty || 0) * (row.rate || 0))).toFixed(2)}
                               </td>
-                              <td className="py-2.5 px-3 text-center">
+                              <td className="py-2 px-2 border-r border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold uppercase">
+                                {row.categoryName || 'DRUGS'}
+                              </td>
+                              <td className="py-2 px-2 text-center border-r border-slate-100 dark:border-slate-800">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  isEdl 
+                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
+                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                }`}>
+                                  {isEdl ? 'EDL' : 'Non EDL'}
+                                </span>
+                              </td>
+                              <td className="py-2 px-2 text-center">
                                 {headerInfo.status !== 'C' ? (
                                   isEditing ? (
                                     <div className="flex items-center justify-center gap-1.5">
@@ -954,7 +1128,9 @@ export default function CreateAnnualIndentDhPage() {
                                     </div>
                                   )
                                 ) : (
-                                  <span className="text-slate-400 font-semibold text-[11px]">Freezed</span>
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                    Freezed
+                                  </span>
                                 )}
                               </td>
                             </tr>

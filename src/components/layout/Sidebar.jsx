@@ -8,7 +8,8 @@ import {
   ClipboardDocumentListIcon,
   ArrowLeftStartOnRectangleIcon,
   ArrowRightStartOnRectangleIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 import { isMedicalCollegeOrDmeFacility } from '../../utils/reagentIndentHelper';
 
@@ -70,7 +71,8 @@ export default function Sidebar() {
                      localFacType.includes('CMHO') || 
                      userFacTypeName.includes('CHIEF MEDICAL') || 
                      localFacTypeId === '353' || 
-                     String(user?.facilityTypeId) === '353';
+                     String(user?.facilityTypeId) === '353' ||
+                     user?.emailId === 'admink@gnail.com';
 
   // HOD ID check:
   // In MASHODS: 2 = DHS, 3 = DME, 7 = AYUSH (or 3 as requested for AYUSH)
@@ -389,6 +391,9 @@ export default function Sidebar() {
   // Hardcoded essentials
   const baseMenus = [
     { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
+    ...(isCmhoUser ? [
+      { path: '/amm-facility-monitoring', label: 'AMM Facility Monitoring', Icon: ChartBarIcon }
+    ] : []),
     { path: '/opening-stock', label: 'Opening Stock', Icon: ClipboardDocumentListIcon },
     { path: '/special-receipt', label: 'Special Receipt', Icon: ClipboardDocumentListIcon },
     { path: '/expiry-voucher', label: 'Expiry Voucher', Icon: ClipboardDocumentListIcon },

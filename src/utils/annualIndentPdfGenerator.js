@@ -139,18 +139,27 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
       totalQty += qty;
       totalValue += val;
 
+      const rawEdlType = String(item.edlType || item.EDLTYPE || item.edltype || '').trim().toUpperCase();
+      const edlTypeVal = rawEdlType.includes('NON') 
+        ? 'Non EDL' 
+        : (rawEdlType === 'EDL' || rawEdlType === 'YES' || rawEdlType === 'Y' ? 'EDL' : (item.edlType || 'Non EDL'));
+
       return [
         idx + 1,
         item.itemCode || item.ITEMCODE || '—',
         item.itemName || item.ITEMNAME || '—',
         item.strength || item.STRENGTH1 || '—',
-        item.unit || item.UNIT || '—',
         item.groupName || item.GROUPNAME || '—',
-        Number(item.currentStock || item.CURRENTSTOCK || 0).toLocaleString('en-IN'),
+        item.edl || item.EDL || '—',
         Number(item.consumption || item.CONSUMPTION || 0).toLocaleString('en-IN'),
+        Number(item.actualConsumption || item.ACTUALCONSUMPTION || 0).toLocaleString('en-IN'),
+        Number(item.projectedConsumption || item.PROJECTEDCONSUMPTION || 0).toLocaleString('en-IN'),
+        Number(item.currentStock || item.CURRENTSTOCK || 0).toLocaleString('en-IN'),
         qty.toLocaleString('en-IN'),
         rate.toFixed(2),
-        val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        item.categoryName || item.CATEGORYNAME || 'DRUGS',
+        edlTypeVal
       ];
     });
 
@@ -158,7 +167,7 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
     tableRows.push([
       {
         content: `Total (${items.length} Saved Items):`,
-        colSpan: 8,
+        colSpan: 10,
         styles: { halign: 'right', fontStyle: 'bold', fillColor: [241, 245, 249], textColor: [30, 41, 59] }
       },
       {
@@ -172,19 +181,24 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
       {
         content: `Rs. ${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         styles: { halign: 'right', fontStyle: 'bold', fillColor: [241, 245, 249], textColor: [6, 95, 70] }
+      },
+      {
+        content: '',
+        colSpan: 2,
+        styles: { fillColor: [241, 245, 249] }
       }
     ]);
 
     autoTable(doc, {
       startY: startY + 56,
-      margin: { left: 40, right: 40 },
-      tableWidth: pageWidth - 80,
-      head: [['#', 'Item Code', 'Item Name', 'Strength', 'Unit', 'Group Name', 'Current Stock', 'Consumption', 'Indent Qty', 'Rate (Rs.)', 'Approx Value (Rs.)']],
+      margin: { left: 24, right: 24 },
+      tableWidth: pageWidth - 48,
+      head: [['#', 'Item Code', 'Item Name', 'Strength', 'Group Name', 'EDL', 'WH Issue', 'Actual Cons', 'Est Cons', 'Cur Stock', 'Indent Qty', 'Rate (Rs.)', 'Value (Rs.)', 'Category', 'EDL Type']],
       body: tableRows,
       theme: 'grid',
       styles: {
-        fontSize: 8,
-        cellPadding: { top: 4, right: 4, bottom: 4, left: 4 },
+        fontSize: 7.5,
+        cellPadding: { top: 3.5, right: 3, bottom: 3.5, left: 3 },
         lineColor: [226, 232, 240],
         lineWidth: 0.5,
         valign: 'middle',
@@ -194,23 +208,27 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
         fillColor: primaryColor,
         textColor: [255, 255, 255],
         fontStyle: 'bold',
-        fontSize: 8,
+        fontSize: 7.5,
         halign: 'center',
         valign: 'middle',
-        minCellHeight: 22
+        minCellHeight: 20
       },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 26 },
-        1: { halign: 'center', cellWidth: 55, fontStyle: 'bold' },
-        2: { halign: 'left', cellWidth: 195.89 },
-        3: { halign: 'left', cellWidth: 65 },
-        4: { halign: 'center', cellWidth: 42 },
-        5: { halign: 'left', cellWidth: 78 },
-        6: { halign: 'right', cellWidth: 62 },
-        7: { halign: 'right', cellWidth: 68 },
-        8: { halign: 'right', cellWidth: 60, fontStyle: 'bold' },
-        9: { halign: 'right', cellWidth: 55 },
-        10: { halign: 'right', cellWidth: 75, fontStyle: 'bold' }
+        0: { halign: 'center', cellWidth: 20 },
+        1: { halign: 'center', cellWidth: 42, fontStyle: 'bold' },
+        2: { halign: 'left', cellWidth: 136 },
+        3: { halign: 'left', cellWidth: 60 },
+        4: { halign: 'left', cellWidth: 68 },
+        5: { halign: 'center', cellWidth: 25, fontStyle: 'bold' },
+        6: { halign: 'right', cellWidth: 44 },
+        7: { halign: 'right', cellWidth: 44 },
+        8: { halign: 'right', cellWidth: 44 },
+        9: { halign: 'right', cellWidth: 44 },
+        10: { halign: 'right', cellWidth: 48, fontStyle: 'bold' },
+        11: { halign: 'right', cellWidth: 42 },
+        12: { halign: 'right', cellWidth: 66, fontStyle: 'bold' },
+        13: { halign: 'left', cellWidth: 55 },
+        14: { halign: 'center', cellWidth: 42 }
       }
     });
 

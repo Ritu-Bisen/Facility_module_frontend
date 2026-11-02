@@ -301,7 +301,13 @@ export default function UploadForwardDhIndentPage() {
                               {index + 1}
                             </td>
                             <td className="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800">
-                              {row.nocNumber || row.indentNo}
+                              <Link
+                                to={`/annual-indent/create-dh?indentId=${row.nocId}&finYearId=${selectedFinYear}`}
+                                className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 hover:underline inline-flex items-center gap-1 font-bold"
+                                title="Click to view Annual Indent details"
+                              >
+                                {row.nocNumber || row.indentNo}
+                              </Link>
                             </td>
                             <td className="py-3 px-4 text-center border-r border-slate-100 dark:border-slate-800 font-medium">
                               {row.nocDate || row.indentDate}
@@ -316,9 +322,13 @@ export default function UploadForwardDhIndentPage() {
                                   <span>{row.status}</span>
                                 </Link>
                               ) : (
-                                <span className="text-emerald-600 dark:text-emerald-400">
-                                  {row.status}
-                                </span>
+                                <Link
+                                  to={`/annual-indent/create-dh?indentId=${row.nocId}&finYearId=${selectedFinYear}`}
+                                  className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 hover:underline cursor-pointer inline-flex items-center gap-1 font-bold"
+                                  title="Click to view finalized indent"
+                                >
+                                  <span>{row.status}</span>
+                                </Link>
                               )}
                             </td>
                             <td className="py-3 px-4 text-center">

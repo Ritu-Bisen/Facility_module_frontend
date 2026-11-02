@@ -172,6 +172,9 @@ export default function CreateAnnualIndentAyushPage() {
         if (hData.categoryId) {
           setSelectedCategory(String(hData.categoryId));
         }
+        if (hData.exists && hData.indentId && searchParams.get('indentId') !== String(hData.indentId)) {
+          setSearchParams({ finYearId: selectedFinYear, indentId: String(hData.indentId) }, { replace: true });
+        }
 
         // 2. If Indent exists, load items
         if (hData.indentId && hData.indentId !== 0) {

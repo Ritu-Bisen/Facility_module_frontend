@@ -70,6 +70,12 @@ export const authSlice = createSlice({
         localStorage.setItem('hodId', String(hodId));
         localStorage.setItem('hodid', String(hodId));
       }
+
+      const districtId = data?.districtId ?? data?.districtid ?? '';
+      if (districtId !== '' && districtId !== null && districtId !== undefined) {
+        localStorage.setItem('districtId', String(districtId));
+        localStorage.setItem('districtid', String(districtId));
+      }
       // Clean up legacy/redundant keys if present
       localStorage.removeItem('facilityTypeID');
       localStorage.removeItem('facilityTypeCode');
@@ -89,6 +95,8 @@ export const authSlice = createSlice({
       localStorage.removeItem('facilityType');
       localStorage.removeItem('hodId');
       localStorage.removeItem('hodid');
+      localStorage.removeItem('districtId');
+      localStorage.removeItem('districtid');
       localStorage.removeItem('facilityTypeID');
       localStorage.removeItem('facilityTypeCode');
       localStorage.removeItem('facilityTypeName');
