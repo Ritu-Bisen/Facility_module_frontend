@@ -315,7 +315,23 @@ const ReceiptPage = () => {
                             {items.map((item, idx) => (
                               <tr key={idx} className="hover:bg-gray-50/50">
                                 <td className="p-3">{idx + 1}</td>
-                                <td className="p-3 font-medium">{item.itemName}</td>
+                                <td className="p-3 font-medium">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {(item.itemCode || item.ITEMCODE || item.drugCode) && (
+                                      <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                        {item.itemCode || item.ITEMCODE || item.drugCode}
+                                      </span>
+                                    )}
+                                    <span className="text-gray-900 font-semibold">
+                                      {item.itemName || item.ITEMNAME || '—'}
+                                    </span>
+                                  </div>
+                                  {item.strength && item.strength !== '-' && (
+                                    <div className="text-xs text-gray-500 mt-0.5 font-normal">
+                                      {item.strength}
+                                    </div>
+                                  )}
+                                </td>
                                 <td className="p-3 text-right">{item.orderedQty}</td>
                                 <td className="p-3 text-right">{item.receivedQty}</td>
                                 <td className="p-3 text-right text-orange-600">{item.balanceQty}</td>
@@ -362,8 +378,13 @@ const ReceiptPage = () => {
                         const form = newBatchForm[itemGroup.receiptItemId] || {};
                         return (
                           <div key={idx} className="border rounded-lg overflow-hidden">
-                            <div className="bg-gray-100 px-4 py-2 font-medium text-gray-800 border-b">
-                              {itemGroup.itemName}
+                            <div className="bg-gray-100 px-4 py-2 font-medium text-gray-800 border-b flex items-center gap-2">
+                              {(itemGroup.itemCode || itemGroup.drugCode) && (
+                                <span className="font-mono font-semibold text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                  {itemGroup.itemCode || itemGroup.drugCode}
+                                </span>
+                              )}
+                              <span>{itemGroup.itemName || '—'}</span>
                             </div>
                             <div className="p-0 overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
                               <table className="w-full text-left text-sm">

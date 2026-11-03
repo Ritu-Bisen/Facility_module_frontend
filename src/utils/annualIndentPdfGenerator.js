@@ -3,6 +3,77 @@ import autoTable from 'jspdf-autotable';
 import api from '../api/axios';
 
 /**
+ * Sorts annual indent items in the hierarchy:
+ * 1. Drugs (EDL first, then Non-EDL)
+ * 2. Consumables (EDL first, then Non-EDL)
+ * 3. Other categories (EDL first, then Non-EDL)
+ * Within each category tier, items are sorted alphabetically by Group Name, then Item Name, then Item Code.
+ */
+export const sortAnnualIndentItems = (itemsList) => {
+  if (!Array.isArray(itemsList)) return [];
+
+  const getRank = (item) => {
+    const cat = String(item.categoryName || item.CATEGORYNAME || item.category || '').trim().toUpperCase();
+
+    // Check EDL status
+    const rawEdlType = String(item.edlType || item.EDLTYPE || item.edltype || '').trim().toUpperCase();
+    const edlVal = String(item.edl || item.EDL || '').trim().toUpperCase();
+
+    let isEdl = false;
+    if (rawEdlType.includes('NON')) {
+      isEdl = false;
+    } else if (rawEdlType === 'EDL' || rawEdlType === 'YES' || rawEdlType === 'Y') {
+      isEdl = true;
+    } else if (edlVal === 'P' || edlVal === 'U' || edlVal === 'Y' || edlVal === 'YES') {
+      isEdl = true;
+    } else {
+      isEdl = false;
+    }
+
+    const isDrug = cat.includes('DRUG') || cat === 'D' || cat === '';
+    const isConsumable = cat.includes('CONSUM') || cat.includes('SURG') || cat.includes('SUTUR');
+
+    if (isDrug) {
+      return isEdl ? 1 : 2; // 1: Drug EDL, 2: Drug Non-EDL
+    } else if (isConsumable) {
+      return isEdl ? 3 : 4; // 3: Consumable EDL, 4: Consumable Non-EDL
+    } else {
+      return isEdl ? 5 : 6; // 5: Other EDL, 6: Other Non-EDL
+    }
+  };
+
+  return [...itemsList].sort((a, b) => {
+    const rankA = getRank(a);
+    const rankB = getRank(b);
+
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+
+    // Secondary Sort: Group Name (A-Z)
+    const groupA = String(a.groupName || a.GROUPNAME || '').trim().toUpperCase();
+    const groupB = String(b.groupName || b.GROUPNAME || '').trim().toUpperCase();
+    if (groupA !== groupB) {
+      if (!groupA) return 1;
+      if (!groupB) return -1;
+      return groupA.localeCompare(groupB);
+    }
+
+    // Tertiary Sort: Item Name (A-Z)
+    const nameA = String(a.itemName || a.ITEMNAME || '').trim().toUpperCase();
+    const nameB = String(b.itemName || b.ITEMNAME || '').trim().toUpperCase();
+    if (nameA !== nameB) {
+      return nameA.localeCompare(nameB);
+    }
+
+    // Quaternary Sort: Item Code (A-Z)
+    const codeA = String(a.itemCode || a.ITEMCODE || '').trim().toUpperCase();
+    const codeB = String(b.itemCode || b.ITEMCODE || '').trim().toUpperCase();
+    return codeA.localeCompare(codeB);
+  });
+};
+
+/**
  * Generate PDF for Annual Indent containing ONLY saved items (facilityIndentQty > 0)
  * @param {Object} row - The indent row object (nocId, nocNumber, nocDate, status, accYear, categoryName, facilityId, etc.)
  * @param {Object} user - Logged in user details
@@ -132,7 +203,13 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
     let totalQty = 0;
     let totalValue = 0;
 
-    const tableRows = items.map((item, idx) => {
+    // Sort items by user specification:
+    // 1. Drugs EDL -> Drugs Non-EDL -> Consumables EDL -> Consumables Non-EDL
+    // 2. Group Name (A-Z)
+    // 3. Item Name (A-Z)
+    const sortedItems = sortAnnualIndentItems(items);
+
+    const tableRows = sortedItems.map((item, idx) => {
       const qty = Number(item.facilityIndentQty || item.FACILITYINDENTQTY || 0);
       const rate = Number(item.rate || item.RATE || 0);
       const val = Number(item.indAprVal || item.INDAPRVAL || (qty * rate));

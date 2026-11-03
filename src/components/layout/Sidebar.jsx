@@ -392,7 +392,7 @@ export default function Sidebar() {
   const baseMenus = [
     { path: '/dashboard', label: 'Dashboard', Icon: HomeIcon },
     ...(isCmhoUser ? [
-      { path: '/amm-facility-monitoring', label: 'AMM Facility Monitoring', Icon: ChartBarIcon }
+      { path: '/aam-facility-performance-monitoring', label: 'AAM Facility Performance Monitoring', Icon: ChartBarIcon }
     ] : []),
     { path: '/opening-stock', label: 'Opening Stock', Icon: ClipboardDocumentListIcon },
     { path: '/special-receipt', label: 'Special Receipt', Icon: ClipboardDocumentListIcon },
@@ -428,7 +428,10 @@ export default function Sidebar() {
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-1.5">
-                <span className="text-sm font-semibold text-white truncate">
+                <span
+                  className="text-sm font-semibold text-white truncate"
+                  title={`${user.firstName || ''} ${user.lastName || ''}`.trim()}
+                >
                   {user.firstName} {user.lastName}
                 </span>
                 <button
@@ -439,7 +442,9 @@ export default function Sidebar() {
                   <ArrowLeftStartOnRectangleIcon className="w-5 h-5" />
                 </button>
               </div>
-              <p className="text-xs text-gray-400 truncate mt-0.5">{user.emailId || ''}</p>
+              <p className="text-xs text-gray-400 truncate mt-0.5" title={user.emailId || ''}>
+                {user.emailId || ''}
+              </p>
             </div>
           )}
         </div>
@@ -455,7 +460,7 @@ export default function Sidebar() {
             <Link
               key={item.path}
               to={item.path}
-              title={collapsed ? item.label : undefined}
+              title={item.label}
               className={`flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all duration-150
                 ${isActive
                   ? 'bg-blue-600 text-white shadow-sm'
@@ -494,13 +499,13 @@ export default function Sidebar() {
                     setOpenMenus(prev => ({ ...prev, [module.moduleName]: false }));
                   }
                 }}
-                title={collapsed ? module.moduleName : undefined}
+                title={module.moduleName}
                 className={`w-full flex items-center justify-between rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none
                   ${isSubActive 
                     ? 'text-white bg-white/5' 
                     : 'text-gray-400 hover:bg-white/10 hover:text-white'}`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <Icon className="w-5 h-5 flex-shrink-0" />
                   {!collapsed && <span className="truncate">{module.moduleName}</span>}
                 </div>
@@ -523,6 +528,7 @@ export default function Sidebar() {
                       <Link
                         key={sub.screenId || sub.screenUrl}
                         to={sub.screenUrl}
+                        title={sub.screenName}
                         className={`flex items-center gap-3 rounded-lg px-2.5 py-2 text-xs font-semibold transition-all duration-150
                           ${isActive
                             ? 'bg-blue-600 text-white shadow-sm'

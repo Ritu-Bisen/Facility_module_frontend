@@ -6,7 +6,7 @@ import Footer from '../../components/layout/Footer';
 import axios from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
 import * as XLSX from 'xlsx';
-import { generateAnnualIndentPDF } from '../../utils/annualIndentPdfGenerator';
+import { generateAnnualIndentPDF, sortAnnualIndentItems } from '../../utils/annualIndentPdfGenerator';
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -49,6 +49,12 @@ export default function CreateAnnualIndentDhPage() {
   const [items, setItems] = useState([]);
   const [noOfItems, setNoOfItems] = useState(0);
   const [aproxIndentValue, setAproxIndentValue] = useState('0.00');
+
+  // Sorted items:
+  // 1. Drugs EDL -> Drugs Non-EDL -> Consumables EDL -> Consumables Non-EDL
+  // 2. Group Name (A-Z)
+  // 3. Item Name (A-Z)
+  const sortedItems = useMemo(() => sortAnnualIndentItems(items), [items]);
 
   // Compute summary count and total value dynamically from loaded items
   const calculatedNoOfItems = useMemo(() => {
@@ -242,24 +248,77 @@ export default function CreateAnnualIndentDhPage() {
 
       let headerRowIndex = 0;
       for (let i = 0; i < Math.min(10, rawRows.length); i++) {
-        const row = rawRows[i].map(c => String(c).trim().toUpperCase());
-        if (row.includes('ITEMCODE') || row.includes('ITEM CODE')) {
+        const row = rawRows[i].map(c => String(c || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_'));
+        if (row.some(c => c.includes('ITEMCODE') || c.includes('ITEM_CODE') || c.includes('DRUGCODE') || c.includes('DRUG_CODE'))) {
           headerRowIndex = i;
           break;
         }
       }
 
-      const headers = rawRows[headerRowIndex].map(h => String(h).trim().toUpperCase());
-      const itemCodeIdx = headers.findIndex(h => h.includes('ITEMCODE') || h.includes('ITEM CODE') || h.includes('DRUGCODE'));
-      const conIdx = headers.findIndex(h => (h.includes('ISSUED_FROM_WH') || h.includes('CONSUMPTION')) && !h.includes('ACTUAL') && !h.includes('ESTIMATED') && !h.includes('PROJECTED'));
-      const actConIdx = headers.findIndex(h => h.includes('ACTUAL_CONSUMPTION'));
-      const estConIdx = headers.findIndex(h => h.includes('ESTIMATED_CONSUMPTION') || h.includes('PROJECTED'));
-      const curStockIdx = headers.findIndex(h => h.includes('CURRENT_STOCK') || h.includes('STOCK'));
+      const rawHeaderStrings = rawRows[headerRowIndex].map(h => String(h || '').trim());
+      const headers = rawHeaderStrings.map(h => h.toUpperCase());
+      const normHeaders = headers.map(h => h.replace(/[^A-Z0-9]/g, '_'));
+
+      const itemCodeIdx = headers.findIndex((h, i) =>
+        h.includes('ITEMCODE') || h.includes('ITEM CODE') || h.includes('DRUGCODE') ||
+        normHeaders[i].includes('ITEM_CODE') || normHeaders[i].includes('ITEMCODE') || normHeaders[i].includes('DRUG_CODE')
+      );
+
+      // Actual Consumption: e.g. Actual_Consumption_From_01_April_26_to_31st_Oct_26
+      const actConIdx = headers.findIndex((h, i) =>
+        normHeaders[i].includes('ACTUAL_CONSUMPTION') ||
+        normHeaders[i].includes('ACTUALCONSUMPTION') ||
+        (normHeaders[i].includes('ACTUAL') && normHeaders[i].includes('CONS'))
+      );
+
+      // Estimated Consumption: e.g. Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27
+      const estConIdx = headers.findIndex((h, i) =>
+        normHeaders[i].includes('ESTIMATED_CONSUMPTION') ||
+        normHeaders[i].includes('ESTIMATEDCONSUMPTION') ||
+        (normHeaders[i].includes('ESTIMATED') && normHeaders[i].includes('CONS')) ||
+        normHeaders[i].includes('PROJECTED_CONSUMPTION') ||
+        normHeaders[i].includes('PROJECTEDCONSUMPTION') ||
+        (normHeaders[i].includes('PROJECTED') && normHeaders[i].includes('CONS')) ||
+        normHeaders[i] === 'EST_CONS' ||
+        normHeaders[i].includes('EST_CONS')
+      );
+
+      // Generic Consumption (fallback if specific estimated column not found)
+      const genConIdx = headers.findIndex((h, i) =>
+        (normHeaders[i].includes('CONSUMPTION') || normHeaders[i].includes('COSUMPTION')) &&
+        !normHeaders[i].includes('ACTUAL') &&
+        !normHeaders[i].includes('ESTIMATED') &&
+        !normHeaders[i].includes('PROJECTED') &&
+        !normHeaders[i].includes('ISSUED') &&
+        !normHeaders[i].includes('WH')
+      );
+
+      // Current stock
+      const curStockIdx = headers.findIndex((h, i) =>
+        normHeaders[i].includes('CURRENT_STOCK') ||
+        normHeaders[i].includes('CURRENTSTOCK') ||
+        normHeaders[i].includes('CUR_STOCK') ||
+        (normHeaders[i].includes('STOCK') && !normHeaders[i].includes('OPENING'))
+      );
+
       // Indent quantity column - ignore any column containing EDL or TYPE
-      const indQtyIdx = headers.findIndex(h => (h.includes('ANNUALINDENT') || h.includes('INDENT') || h.includes('QTY')) && !h.includes('EDL') && !h.includes('TYPE'));
-      const rateIdx = headers.findIndex(h => (h.includes('RATE') || h.includes('PRICE')) && !h.includes('EDL') && !h.includes('TYPE'));
-      const edlIdx = headers.findIndex(h => h === 'EDL' || h === 'EDLCAT' || h === 'EDL_CAT');
-      const edlTypeIdx = headers.findIndex(h => h.includes('EDLTYPE') || h.includes('EDL TYPE') || (h.includes('EDL') && h.includes('TYPE')));
+      const indQtyIdx = headers.findIndex((h, i) =>
+        (normHeaders[i].includes('ANNUAL_INDENT') || normHeaders[i].includes('ANNUALINDENT') || normHeaders[i].includes('INDENT') || normHeaders[i].includes('QTY')) &&
+        !normHeaders[i].includes('EDL') && !normHeaders[i].includes('TYPE')
+      );
+
+      const rateIdx = headers.findIndex((h, i) =>
+        (normHeaders[i].includes('RATE') || normHeaders[i].includes('PRICE')) &&
+        !normHeaders[i].includes('EDL') && !normHeaders[i].includes('TYPE')
+      );
+
+      const edlIdx = headers.findIndex((h, i) =>
+        normHeaders[i] === 'EDL' || normHeaders[i] === 'EDLCAT' || normHeaders[i] === 'EDL_CAT'
+      );
+
+      const edlTypeIdx = headers.findIndex((h, i) =>
+        normHeaders[i].includes('EDLTYPE') || normHeaders[i].includes('EDL_TYPE') || (normHeaders[i].includes('EDL') && normHeaders[i].includes('TYPE'))
+      );
 
       if (itemCodeIdx === -1) {
         alert('Could not find ITEMCODE column in the Excel file.');
@@ -276,9 +335,16 @@ export default function CreateAnnualIndentDhPage() {
         const itemCode = String(row[itemCodeIdx] || '').trim();
         if (!itemCode) continue;
 
-        const consumption = conIdx !== -1 ? Number(row[conIdx]) || 0 : 0;
         const actualConsumption = actConIdx !== -1 ? Number(row[actConIdx]) || 0 : 0;
-        const projectedConsumption = estConIdx !== -1 ? Number(row[estConIdx]) || 0 : 0;
+        const estimatedConsumption = estConIdx !== -1
+          ? Number(row[estConIdx]) || 0
+          : (genConIdx !== -1 ? Number(row[genConIdx]) || 0 : 0);
+
+        // Per user requirement:
+        // Excel column 'Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27' -> column CONSUMPTION of table anualindent
+        // Excel column 'Actual_Consumption_From_01_April_26_to_31st_Oct_26' -> column ACTUALCONSUMPTION of table anualindent
+        const consumption = estimatedConsumption;
+        const projectedConsumption = estimatedConsumption;
         const currentStock = curStockIdx !== -1 ? Number(row[curStockIdx]) || 0 : 0;
         const facilityIndentQty = indQtyIdx !== -1 ? Number(row[indQtyIdx]) || 0 : 0;
         const rate = rateIdx !== -1 ? Number(row[rateIdx]) || 0 : 0;
@@ -298,6 +364,7 @@ export default function CreateAnnualIndentDhPage() {
           consumption,
           actualConsumption,
           projectedConsumption,
+          estimatedConsumption,
           currentStock,
           facilityIndentQty,
           rate
@@ -447,11 +514,11 @@ export default function CreateAnnualIndentDhPage() {
                 <th>STRENGTH</th>
                 <th>GROUPNAME</th>
                 <th>EDL</th>
-                <th>ISSUED_FROM_WH_01_APR_25_TO_31ST_OCT_25</th>
-                <th>ACTUAL_CONSUMPTION_FROM_01_APRIL_25_TO_31ST_OCT_25</th>
-                <th>ESTIMATED_CONSUMPTION_FOR_ONE_YEAR_FROM_01_APRIL_25_TO_31ST_MARCH_26</th>
+                <th>ISSUED_FROM_WH_01_APR_26_TO_31ST_OCT_26</th>
+                <th>Actual_Consumption_From_01_April_26_to_31st_Oct_26</th>
+                <th>Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27</th>
                 <th>CURRENT_STOCK</th>
-                <th>ANNUALINDENT_26_27</th>
+                <th>ANNUAL_INDENT_27_28</th>
                 <th>RATE</th>
               </tr>
             </thead>
@@ -463,15 +530,15 @@ export default function CreateAnnualIndentDhPage() {
               <td>${idx + 1}</td>
               <td>${r.itemCode || ''}</td>
               <td>${r.itemName || ''}</td>
-              <td>${r.itemType || ''}</td>
+              <td>${r.formulation || r.itemType || ''}</td>
               <td>${r.strength || ''}</td>
               <td>${r.groupName || ''}</td>
-              <td>${r.edl2025 || 'No'}</td>
-              <td>${r.consumptionFrom1Apr25 || 0}</td>
+              <td>${r.edl || r.edl2025 || 'No'}</td>
+              <td>${r.issuedFromWh !== undefined ? r.issuedFromWh : (r.consumptionFrom1Apr25 || 0)}</td>
               <td>${r.actualConsumption || 0}</td>
               <td>${r.estimatedConsumption || 0}</td>
               <td>${r.currentStock || 0}</td>
-              <td>${r.annualIndent2627 || 0}</td>
+              <td>${r.annualIndent2728 !== undefined ? r.annualIndent2728 : (r.annualIndent2627 || 0)}</td>
               <td>${r.rate || 0}</td>
             </tr>
           `;
@@ -530,7 +597,7 @@ export default function CreateAnnualIndentDhPage() {
         <tbody>
     `;
 
-    items.forEach((r, idx) => {
+    sortedItems.forEach((r, idx) => {
       tableHtml += `
         <tr>
           <td style="text-align: center;">${idx + 1}</td>
@@ -962,14 +1029,14 @@ export default function CreateAnnualIndentDhPage() {
                             </div>
                           </td>
                         </tr>
-                      ) : items.length === 0 ? (
+                      ) : sortedItems.length === 0 ? (
                         <tr>
                           <td colSpan="16" className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
                             No Item found in this Indent. Upload Excel file to populate items.
                           </td>
                         </tr>
                       ) : (
-                        items.map((row, idx) => {
+                        sortedItems.map((row, idx) => {
                           const isEditing = editingId === row.anualIndentId;
                           const isEdl = row.edlType === 'EDL' || row.edlType === 'Yes' || row.edlType === 'Y';
                           return (

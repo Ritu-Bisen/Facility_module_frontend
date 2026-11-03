@@ -259,6 +259,11 @@ export const completeReceipt = async (receiptId) => {
   return response.data;
 };
 
+export const getMrcDetails = async (receiptId) => {
+  const response = await axios.get(`/local-purchase/receipts/${receiptId}/mrc-details`);
+  return response.data;
+};
+
 export const getNocSummaryFinYears = async () => {
   const response = await axios.get('/local-purchase/noc-summary/financial-years');
   return response.data;

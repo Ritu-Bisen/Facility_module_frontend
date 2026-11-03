@@ -32,7 +32,7 @@ import BreakageVoucherMain from '../pages/BreakageVoucherMain';
 import BreakageVoucherItems from '../pages/BreakageVoucherItems';
 import PrintBreakageVoucherPage from '../pages/PrintBreakageVoucherPage';
 import StockDashboard from '../pages/StockDashboard';
-import AmmFacilityMonitoringPage from '../pages/AmmFacilityMonitoringPage';
+import AamFacilityPerformanceMonitoringPage from '../pages/AamFacilityPerformanceMonitoringPage';
 import FacilityWardsPage from '../pages/FacilityWardsPage';
 import FacilityInformationPage from '../pages/FacilityInformationPage';
 import StorageLocationPage from '../pages/StorageLocationPage';
@@ -168,9 +168,9 @@ export default function AppRoutes() {
           <StockDashboard />
         </ProtectedRoute>
       } />
-      <Route path="/amm-facility-monitoring" element={
+      <Route path="/aam-facility-performance-monitoring" element={
         <ProtectedRoute>
-          <AmmFacilityMonitoringPage />
+          <AamFacilityPerformanceMonitoringPage />
         </ProtectedRoute>
       } />
       <Route path="/store/facility-stock-item-wise" element={

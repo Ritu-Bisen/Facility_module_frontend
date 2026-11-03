@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getFinYears } from '../../api/contractApi';
-import { getSupplierReceipts } from '../../api/localPurchaseApi';
+import { getSupplierReceipts, getMrcDetails } from '../../api/localPurchaseApi';
+import { generateMrcPdf } from '../../utils/mrcPdfGenerator';
 import Sidebar from '../../components/layout/Sidebar';
 import Header from '../../components/layout/Header';
 import { 
@@ -20,6 +21,24 @@ const ReceiptsFromSupplierPage = () => {
   
   const [supplyOrders, setSupplyOrders] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [downloadingMrcId, setDownloadingMrcId] = useState(null);
+
+  const handlePrintMrc = async (receiptId) => {
+    try {
+      setDownloadingMrcId(receiptId);
+      const mrcData = await getMrcDetails(receiptId);
+      if (!mrcData || !mrcData.header) {
+        alert('MRC details not found for this receipt.');
+        return;
+      }
+      generateMrcPdf(mrcData);
+    } catch (err) {
+      console.error('Error generating MRC PDF:', err);
+      alert('Failed to generate MRC PDF: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setDownloadingMrcId(null);
+    }
+  };
 
   useEffect(() => {
     loadFinYears();
@@ -216,9 +235,27 @@ const ReceiptsFromSupplierPage = () => {
                                             <td className="px-1 py-1 text-center">
                                               {receipt.status === 'Completed' && (
                                                 <button 
-                                                  className="text-blue-600 hover:text-blue-800 text-[9px] font-semibold hover:underline inline-flex items-center justify-center"
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    handlePrintMrc(receipt.receiptId);
+                                                  }}
+                                                  disabled={downloadingMrcId === receipt.receiptId}
+                                                  title="Download Material Receipt Certificate"
+                                                  className="text-blue-600 hover:text-blue-800 text-[9px] font-semibold hover:underline inline-flex items-center justify-center cursor-pointer disabled:opacity-50"
                                                 >
-                                                  MRC
+                                                  {downloadingMrcId === receipt.receiptId ? (
+                                                    <span className="inline-flex items-center gap-1 text-[8px] text-blue-600 font-normal">
+                                                      <svg className="animate-spin h-2.5 w-2.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                                      </svg>
+                                                      ...
+                                                    </span>
+                                                  ) : (
+                                                    'MRC'
+                                                  )}
                                                 </button>
                                               )}
                                             </td>

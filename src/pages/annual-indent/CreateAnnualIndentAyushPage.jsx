@@ -275,22 +275,69 @@ export default function CreateAnnualIndentAyushPage() {
       // Find header index
       let headerRowIndex = 0;
       for (let i = 0; i < Math.min(10, rawRows.length); i++) {
-        const row = rawRows[i].map(c => String(c).trim().toUpperCase());
-        if (row.includes('ITEMCODE') || row.includes('ITEM CODE') || row.includes('DRUGCODE')) {
+        const row = rawRows[i].map(c => String(c || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_'));
+        if (row.some(c => c.includes('ITEMCODE') || c.includes('ITEM_CODE') || c.includes('DRUGCODE') || c.includes('DRUG_CODE'))) {
           headerRowIndex = i;
           break;
         }
       }
 
-      const headers = rawRows[headerRowIndex].map(h => String(h).trim().toUpperCase());
-      const itemCodeIdx = headers.findIndex(h => h.includes('ITEMCODE') || h.includes('ITEM CODE') || h.includes('DRUGCODE'));
-      const conIdx = headers.findIndex(h => (h.includes('ISSUED_FROM_WH') || h.includes('CONSUMPTION') || h.includes('COSUMPTION')) && !h.includes('ACTUAL') && !h.includes('ESTIMATED') && !h.includes('PROJECTED'));
-      const actConIdx = headers.findIndex(h => h.includes('ACTUAL_CONSUMPTION'));
-      const estConIdx = headers.findIndex(h => h.includes('ESTIMATED_CONSUMPTION') || h.includes('PROJECTED'));
-      const curStockIdx = headers.findIndex(h => h.includes('CURRENT_STOCK') || h.includes('STOCK'));
+      const rawHeaderStrings = rawRows[headerRowIndex].map(h => String(h || '').trim());
+      const headers = rawHeaderStrings.map(h => h.toUpperCase());
+      const normHeaders = headers.map(h => h.replace(/[^A-Z0-9]/g, '_'));
+
+      const itemCodeIdx = headers.findIndex((h, i) =>
+        h.includes('ITEMCODE') || h.includes('ITEM CODE') || h.includes('DRUGCODE') ||
+        normHeaders[i].includes('ITEM_CODE') || normHeaders[i].includes('ITEMCODE') || normHeaders[i].includes('DRUG_CODE')
+      );
+
+      // Actual Consumption: e.g. Actual_Consumption_From_01_April_26_to_31st_Oct_26
+      const actConIdx = headers.findIndex((h, i) =>
+        normHeaders[i].includes('ACTUAL_CONSUMPTION') ||
+        normHeaders[i].includes('ACTUALCONSUMPTION') ||
+        (normHeaders[i].includes('ACTUAL') && normHeaders[i].includes('CONS'))
+      );
+
+      // Estimated Consumption: e.g. Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27
+      const estConIdx = headers.findIndex((h, i) =>
+        normHeaders[i].includes('ESTIMATED_CONSUMPTION') ||
+        normHeaders[i].includes('ESTIMATEDCONSUMPTION') ||
+        (normHeaders[i].includes('ESTIMATED') && normHeaders[i].includes('CONS')) ||
+        normHeaders[i].includes('PROJECTED_CONSUMPTION') ||
+        normHeaders[i].includes('PROJECTEDCONSUMPTION') ||
+        (normHeaders[i].includes('PROJECTED') && normHeaders[i].includes('CONS')) ||
+        normHeaders[i] === 'EST_CONS' ||
+        normHeaders[i].includes('EST_CONS')
+      );
+
+      // Generic Consumption (fallback if specific estimated column not found)
+      const genConIdx = headers.findIndex((h, i) =>
+        (normHeaders[i].includes('CONSUMPTION') || normHeaders[i].includes('COSUMPTION')) &&
+        !normHeaders[i].includes('ACTUAL') &&
+        !normHeaders[i].includes('ESTIMATED') &&
+        !normHeaders[i].includes('PROJECTED') &&
+        !normHeaders[i].includes('ISSUED') &&
+        !normHeaders[i].includes('WH')
+      );
+
+      // Current stock
+      const curStockIdx = headers.findIndex((h, i) =>
+        normHeaders[i].includes('CURRENT_STOCK') ||
+        normHeaders[i].includes('CURRENTSTOCK') ||
+        normHeaders[i].includes('CUR_STOCK') ||
+        (normHeaders[i].includes('STOCK') && !normHeaders[i].includes('OPENING'))
+      );
+
       // Indent quantity column - ignore any column containing EDL or TYPE
-      const indQtyIdx = headers.findIndex(h => (h.includes('ANNUALINDENT') || h.includes('INDENT') || h.includes('QTY')) && !h.includes('EDL') && !h.includes('TYPE'));
-      const rateIdx = headers.findIndex(h => (h.includes('RATE') || h.includes('PRICE')) && !h.includes('EDL') && !h.includes('TYPE'));
+      const indQtyIdx = headers.findIndex((h, i) =>
+        (normHeaders[i].includes('ANNUAL_INDENT') || normHeaders[i].includes('ANNUALINDENT') || normHeaders[i].includes('INDENT') || normHeaders[i].includes('QTY')) &&
+        !normHeaders[i].includes('EDL') && !normHeaders[i].includes('TYPE')
+      );
+
+      const rateIdx = headers.findIndex((h, i) =>
+        (normHeaders[i].includes('RATE') || normHeaders[i].includes('PRICE')) &&
+        !normHeaders[i].includes('EDL') && !normHeaders[i].includes('TYPE')
+      );
 
       if (itemCodeIdx === -1) {
         alert('Could not find ITEMCODE column in the Excel file.');
@@ -306,9 +353,14 @@ export default function CreateAnnualIndentAyushPage() {
         const itemCode = String(row[itemCodeIdx] || '').trim();
         if (!itemCode) continue;
 
-        const consumption = conIdx !== -1 ? Number(row[conIdx]) || 0 : (row[7] ? Number(row[7]) || 0 : 0);
         const actualConsumption = actConIdx !== -1 ? Number(row[actConIdx]) || 0 : 0;
-        const projectedConsumption = estConIdx !== -1 ? Number(row[estConIdx]) || 0 : 0;
+        const estimatedConsumption = estConIdx !== -1
+          ? Number(row[estConIdx]) || 0
+          : (genConIdx !== -1 ? Number(row[genConIdx]) || 0 : (row[7] ? Number(row[7]) || 0 : 0));
+
+        // Post Estimated_Consumption into CONSUMPTION column, Actual_Consumption into ACTUALCONSUMPTION column
+        const consumption = estimatedConsumption;
+        const projectedConsumption = estimatedConsumption;
         const currentStock = curStockIdx !== -1 ? Number(row[curStockIdx]) || 0 : (row[8] ? Number(row[8]) || 0 : 0);
         const facilityIndentQty = indQtyIdx !== -1 ? Number(row[indQtyIdx]) || 0 : (row[9] ? Number(row[9]) || 0 : 0);
         const rate = rateIdx !== -1 ? Number(row[rateIdx]) || 0 : (row[10] ? Number(row[10]) || 0 : 0);
@@ -318,6 +370,7 @@ export default function CreateAnnualIndentAyushPage() {
           consumption,
           actualConsumption,
           projectedConsumption,
+          estimatedConsumption,
           currentStock,
           facilityIndentQty,
           rate
