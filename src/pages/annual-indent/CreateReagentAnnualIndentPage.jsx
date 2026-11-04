@@ -223,40 +223,54 @@ export default function CreateReagentAnnualIndentPage() {
           // Col 6: currentStock
           // Col 7: nonEdlIndent2627
           // Col 8: rate
+          let headerRowIndex = 0;
+          for (let i = 0; i < Math.min(10, rows.length); i++) {
+            const rowStr = (rows[i] || []).map(c => String(c || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '_'));
+            if (rowStr.some(c => c.includes('ITEMCODE') || c.includes('ITEM_CODE') || c.includes('DRUGCODE') || c.includes('DRUG_CODE') || c === 'CODE')) {
+              headerRowIndex = i;
+              break;
+            }
+          }
+
           // Header matching (case insensitive, supporting dynamic names, ignoring EDL Type)
-          const headerRow = rows[0].map(c => String(c || '').trim().toLowerCase());
-          const codeIdx = headerRow.findIndex(h => 
-            (h.includes('itemcode') || h.includes('item_code') || h === 'item code' || h === 'code') &&
+          const rawHeaderRow = (rows[headerRowIndex] || []).map(c => String(c || '').trim());
+          const headerRow = rawHeaderRow.map(h => h.toLowerCase());
+          const normHeaders = rawHeaderRow.map(h => h.toUpperCase().replace(/[^A-Z0-9]/g, '_'));
+
+          const codeIdx = headerRow.findIndex((h, idx) => 
+            (h.includes('itemcode') || h.includes('item_code') || h === 'item code' || h === 'code' || normHeaders[idx].includes('ITEM_CODE')) &&
             !h.includes('type') && !h.includes('edl')
           );
-          const consIdx = headerRow.findIndex(h => 
-            (h.includes('cosumption') || h.includes('consumption')) &&
+          const consIdx = headerRow.findIndex((h, idx) => 
+            (h.includes('cosumption') || h.includes('consumption') || normHeaders[idx].includes('CONSUMPTION') || normHeaders[idx].includes('COSUMPTION')) &&
             !h.includes('type') && !h.includes('edl')
           );
-          const stockIdx = headerRow.findIndex(h => 
-            (h.includes('current_stock') || h.includes('current stock') || h.includes('stock')) &&
+          const stockIdx = headerRow.findIndex((h, idx) => 
+            (h.includes('current_stock') || h.includes('current stock') || h.includes('stock') || normHeaders[idx].includes('CURRENT_STOCK') || normHeaders[idx].includes('CUR_STOCK')) &&
             !h.includes('type') && !h.includes('edl')
           );
-          const qtyIdx = headerRow.findIndex(h => 
-            (h.includes('non_edl_indent') || h.includes('non edl indent') || h.includes('facilityindentqty') || h.includes('indent') || h.includes('qty')) &&
-            !h.includes('consumption') && !h.includes('type') && !h.includes('rate')
+          const qtyIdx = headerRow.findIndex((h, idx) => 
+            (h.includes('non_edl_indent') || h.includes('non edl indent') || h.includes('annual_indent') || h.includes('annualindent') || h.includes('facilityindentqty') || h.includes('indent') || h.includes('qty') || normHeaders[idx].includes('ANNUAL_INDENT') || normHeaders[idx].includes('NON_EDL_INDENT') || normHeaders[idx].includes('INDENT_QTY')) &&
+            !h.includes('consumption') && !h.includes('type') && !h.includes('rate') && !h.includes('edl')
           );
-          const rateIdx = headerRow.findIndex(h => 
-            h.includes('rate') && !h.includes('type') && !h.includes('edl')
+          const rateIdx = headerRow.findIndex((h, idx) => 
+            (h.includes('rate') || h.includes('price') || normHeaders[idx].includes('RATE')) && !h.includes('type') && !h.includes('edl')
           );
 
           const parsedItems = [];
           const missingRateCodes = [];
 
-          for (let i = 1; i < rows.length; i++) {
+          for (let i = headerRowIndex + 1; i < rows.length; i++) {
             const row = rows[i];
             if (!row || row.length === 0) continue;
 
             const itemCode = String(codeIdx >= 0 ? row[codeIdx] : row[1] || '').trim();
             if (!itemCode) continue;
 
-            const qty = Number(qtyIdx >= 0 ? row[qtyIdx] : row[7] || 0) || 0;
-            const rate = Number(rateIdx >= 0 ? row[rateIdx] : row[8] || 0) || 0;
+            const rawQtyStr = String(qtyIdx >= 0 ? row[qtyIdx] : row[7] || '0').replace(/,/g, '').trim();
+            const rawRateStr = String(rateIdx >= 0 ? row[rateIdx] : row[8] || '0').replace(/,/g, '').trim();
+            const qty = Number(rawQtyStr) || 0;
+            const rate = Number(rawRateStr) || 0;
 
             if (qty > 0) {
               if (rate <= 0) {
@@ -266,8 +280,10 @@ export default function CreateReagentAnnualIndentPage() {
               continue; // Only items with qty > 0 are imported per C# logic
             }
 
-            const consumption = Number(consIdx >= 0 ? row[consIdx] : row[5] || 0) || 0;
-            const currentStock = Number(stockIdx >= 0 ? row[stockIdx] : row[6] || 0) || 0;
+            const rawConsStr = String(consIdx >= 0 ? row[consIdx] : row[5] || '0').replace(/,/g, '').trim();
+            const rawStockStr = String(stockIdx >= 0 ? row[stockIdx] : row[6] || '0').replace(/,/g, '').trim();
+            const consumption = Number(rawConsStr) || 0;
+            const currentStock = Number(rawStockStr) || 0;
 
             parsedItems.push({
               itemcode: itemCode,

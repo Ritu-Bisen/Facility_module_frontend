@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeftIcon, CheckIcon, PlusIcon, TrashIcon, ArrowDownTrayIcon as SaveIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, CheckIcon, PlusIcon, TrashIcon, ArrowDownTrayIcon as SaveIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import * as api from '../../api/localPurchaseApi';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
@@ -17,9 +17,12 @@ const ReceiptPage = () => {
   
   // Tab 1: Items
   const [items, setItems] = useState([]);
+  const [itemsLoading, setItemsLoading] = useState(false);
+  const [itemsSaving, setItemsSaving] = useState(false);
   
   // Tab 2: Batches
   const [batchesByItem, setBatchesByItem] = useState([]);
+  const [batchesLoading, setBatchesLoading] = useState(false);
   const [newBatchForm, setNewBatchForm] = useState({}); // keyed by receiptItemId
 
   useEffect(() => {
@@ -54,19 +57,25 @@ const ReceiptPage = () => {
 
   const fetchItems = async (recId, poId) => {
     try {
+      setItemsLoading(true);
       const data = await api.getReceiptItems(recId, poId);
       setItems(data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setItemsLoading(false);
     }
   };
 
   const fetchBatches = async (recId) => {
     try {
+      setBatchesLoading(true);
       const data = await api.getReceiptBatches(recId);
       setBatchesByItem(data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setBatchesLoading(false);
     }
   };
 
@@ -106,6 +115,7 @@ const ReceiptPage = () => {
       return;
     }
     try {
+      setItemsSaving(true);
       await api.saveReceiptItems(headerData.receiptId, items);
       alert('Items saved successfully!');
       fetchItems(headerData.receiptId, headerData.poNoId);
@@ -113,6 +123,8 @@ const ReceiptPage = () => {
     } catch (err) {
       console.error(err);
       alert('Failed to save items');
+    } finally {
+      setItemsSaving(false);
     }
   };
 
@@ -222,7 +234,7 @@ const ReceiptPage = () => {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="bg-gray-50 px-4 py-3 border-b flex justify-between items-center">
                   <h2 className="font-semibold text-gray-700">Receipt Details</h2>
-                  {headerData.status !== 'C' && (
+                  {mode === 'create' && headerData.status !== 'C' && (
                     <button 
                       onClick={handleSaveHeader}
                       className="flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 transition"
@@ -234,44 +246,51 @@ const ReceiptPage = () => {
                 <div className="p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
                   <div>
                     <label className="block text-gray-500 text-xs mb-1">Fin Year</label>
-                    <div className="font-medium text-gray-800">{headerData.accYear}</div>
+                    <div className="font-medium text-gray-800">{headerData.accYear || '—'}</div>
                   </div>
                   <div>
                     <label className="block text-gray-500 text-xs mb-1">Supply Order No</label>
-                    <div className="font-medium text-gray-800">{headerData.poNo}</div>
+                    <div className="font-medium text-gray-800">{headerData.poNo || '—'}</div>
                   </div>
                   <div>
                     <label className="block text-gray-500 text-xs mb-1">Order Date</label>
-                    <div className="font-medium text-gray-800">{headerData.poDate}</div>
+                    <div className="font-medium text-gray-800">{headerData.poDate || '—'}</div>
                   </div>
                   <div>
                     <label className="block text-gray-500 text-xs mb-1">Supplier</label>
-                    <div className="font-medium text-gray-800">{headerData.supplierName}</div>
+                    <div className="font-medium text-gray-800">{headerData.supplierName || '—'}</div>
                   </div>
                   <div>
                     <label className="block text-gray-500 text-xs mb-1">Source / Scheme</label>
                     <div className="font-medium text-gray-800">{headerData.sourceName} / {headerData.schemeName}</div>
                   </div>
                   <div>
-                    <label className="block text-gray-700 text-xs font-bold mb-1">Receipt No *</label>
-                    <input 
-                      type="text" 
-                      value={receiptNo} 
-                      onChange={(e) => setReceiptNo(e.target.value)}
-                      disabled={headerData.status === 'C'}
-                      className="w-full border rounded px-2 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none disabled:bg-gray-100"
-                    />
+                    <label className="block text-gray-500 text-xs mb-1">Receipt No</label>
+                    {mode === 'create' ? (
+                      <input 
+                        type="text" 
+                        value={receiptNo} 
+                        onChange={(e) => setReceiptNo(e.target.value)}
+                        placeholder="Receipt No"
+                        className="w-full border rounded px-2 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                      />
+                    ) : (
+                      <div className="font-medium text-gray-800">{headerData.receiptNo || receiptNo || '—'}</div>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-gray-700 text-xs font-bold mb-1">Receipt Date * (DD-MM-YYYY)</label>
-                    <input 
-                      type="text" 
-                      value={receiptDate} 
-                      onChange={(e) => setReceiptDate(e.target.value)}
-                      disabled={headerData.status === 'C'}
-                      placeholder="DD-MM-YYYY"
-                      className="w-full border rounded px-2 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none disabled:bg-gray-100"
-                    />
+                    <label className="block text-gray-500 text-xs mb-1">Receipt Date (DD-MM-YYYY)</label>
+                    {mode === 'create' ? (
+                      <input 
+                        type="text" 
+                        value={receiptDate} 
+                        onChange={(e) => setReceiptDate(e.target.value)}
+                        placeholder="DD-MM-YYYY"
+                        className="w-full border rounded px-2 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none"
+                      />
+                    ) : (
+                      <div className="font-medium text-gray-800">{headerData.receiptDate || receiptDate || '—'}</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -312,43 +331,57 @@ const ReceiptPage = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y text-gray-700">
-                            {items.map((item, idx) => (
-                              <tr key={idx} className="hover:bg-gray-50/50">
-                                <td className="p-3">{idx + 1}</td>
-                                <td className="p-3 font-medium">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {(item.itemCode || item.ITEMCODE || item.drugCode) && (
-                                      <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                        {item.itemCode || item.ITEMCODE || item.drugCode}
-                                      </span>
-                                    )}
-                                    <span className="text-gray-900 font-semibold">
-                                      {item.itemName || item.ITEMNAME || '—'}
-                                    </span>
+                            {itemsLoading ? (
+                              <tr>
+                                <td colSpan="6" className="py-12 text-center text-gray-500">
+                                  <div className="flex flex-col items-center justify-center gap-2">
+                                    <ArrowPathIcon className="w-8 h-8 animate-spin text-indigo-600" />
+                                    <span className="text-xs font-semibold text-gray-600">Loading items...</span>
                                   </div>
-                                  {item.strength && item.strength !== '-' && (
-                                    <div className="text-xs text-gray-500 mt-0.5 font-normal">
-                                      {item.strength}
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="p-3 text-right">{item.orderedQty}</td>
-                                <td className="p-3 text-right">{item.receivedQty}</td>
-                                <td className="p-3 text-right text-orange-600">{item.balanceQty}</td>
-                                <td className="p-3 text-right bg-indigo-50/50">
-                                  <input 
-                                    type="number"
-                                    min="0"
-                                    disabled={headerData.status === 'C'}
-                                    value={item.receiptAbsQty || ''}
-                                    onChange={(e) => handleItemQtyChange(idx, e.target.value)}
-                                    className="w-24 text-right border rounded px-2 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none disabled:bg-transparent disabled:border-none disabled:font-bold"
-                                  />
                                 </td>
                               </tr>
-                            ))}
-                            {items.length === 0 && (
-                              <tr><td colSpan="6" className="p-4 text-center text-gray-500">No items found.</td></tr>
+                            ) : items.length === 0 ? (
+                              <tr>
+                                <td colSpan="6" className="py-8 text-center text-gray-500">
+                                  No items found.
+                                </td>
+                              </tr>
+                            ) : (
+                              items.map((item, idx) => (
+                                <tr key={idx} className="hover:bg-gray-50/50">
+                                  <td className="p-3">{idx + 1}</td>
+                                  <td className="p-3 font-medium">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      {(item.itemCode || item.ITEMCODE || item.drugCode) && (
+                                        <span className="font-mono font-bold text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                          {item.itemCode || item.ITEMCODE || item.drugCode}
+                                        </span>
+                                      )}
+                                      <span className="text-gray-900 font-semibold">
+                                        {item.itemName || item.ITEMNAME || '—'}
+                                      </span>
+                                    </div>
+                                    {item.strength && item.strength !== '-' && (
+                                      <div className="text-xs text-gray-500 mt-0.5 font-normal">
+                                        {item.strength}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-right">{item.orderedQty}</td>
+                                  <td className="p-3 text-right">{item.receivedQty}</td>
+                                  <td className="p-3 text-right text-orange-600">{item.balanceQty}</td>
+                                  <td className="p-3 text-right bg-indigo-50/50">
+                                    <input 
+                                      type="number"
+                                      min="0"
+                                      disabled={headerData.status === 'C'}
+                                      value={item.receiptAbsQty || ''}
+                                      onChange={(e) => handleItemQtyChange(idx, e.target.value)}
+                                      className="w-24 text-right border rounded px-2 py-1 text-sm focus:ring-1 focus:ring-indigo-500 outline-none disabled:bg-transparent disabled:border-none disabled:font-bold"
+                                    />
+                                  </td>
+                                </tr>
+                              ))
                             )}
                           </tbody>
                         </table>
@@ -357,9 +390,15 @@ const ReceiptPage = () => {
                         <div className="mt-4 flex justify-end">
                           <button 
                             onClick={handleSaveItems}
-                            className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded shadow hover:bg-indigo-700 transition"
+                            disabled={itemsSaving}
+                            className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded shadow hover:bg-indigo-700 transition disabled:opacity-50"
                           >
-                            <SaveIcon className="mr-2 w-4 h-4" /> Save Items
+                            {itemsSaving ? (
+                              <ArrowPathIcon className="mr-2 w-4 h-4 animate-spin" />
+                            ) : (
+                              <SaveIcon className="mr-2 w-4 h-4" />
+                            )}
+                            {itemsSaving ? 'Saving Items...' : 'Save Items'}
                           </button>
                         </div>
                       )}
@@ -369,12 +408,17 @@ const ReceiptPage = () => {
                   {/* TAB 2: BATCHES */}
                   {activeTab === 1 && (
                     <div className="space-y-6">
-                      {batchesByItem.length === 0 && (
+                      {batchesLoading ? (
+                        <div className="flex flex-col items-center justify-center py-12 gap-2 text-gray-500">
+                          <ArrowPathIcon className="w-8 h-8 animate-spin text-indigo-600" />
+                          <span className="text-xs font-semibold text-gray-600">Loading batches...</span>
+                        </div>
+                      ) : batchesByItem.length === 0 ? (
                         <div className="text-center text-gray-500 p-8 border rounded-lg bg-gray-50">
                           No received items found. Please save receipt quantities in the 'Receipt Items' tab first.
                         </div>
-                      )}
-                      {batchesByItem.map((itemGroup, idx) => {
+                      ) : (
+                        batchesByItem.map((itemGroup, idx) => {
                         const form = newBatchForm[itemGroup.receiptItemId] || {};
                         return (
                           <div key={idx} className="border rounded-lg overflow-hidden">
@@ -482,7 +526,8 @@ const ReceiptPage = () => {
                             </div>
                           </div>
                         );
-                      })}
+                      })
+                    )}
                     </div>
                   )}
 

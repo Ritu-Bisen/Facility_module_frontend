@@ -20,7 +20,9 @@ import {
   ArrowDownTrayIcon,
   DocumentArrowDownIcon,
   DocumentChartBarIcon,
-  CurrencyRupeeIcon
+  CurrencyRupeeIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon
 } from '@heroicons/react/24/outline';
 
 export default function CreateAnnualIndentDhPage() {
@@ -50,11 +52,49 @@ export default function CreateAnnualIndentDhPage() {
   const [noOfItems, setNoOfItems] = useState(0);
   const [aproxIndentValue, setAproxIndentValue] = useState('0.00');
 
+  // Filter & Search states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+
   // Sorted items:
   // 1. Drugs EDL -> Drugs Non-EDL -> Consumables EDL -> Consumables Non-EDL
   // 2. Group Name (A-Z)
   // 3. Item Name (A-Z)
   const sortedItems = useMemo(() => sortAnnualIndentItems(items), [items]);
+
+  // Available categories list based on standard categories + unique items categories
+  const availableCategories = useMemo(() => {
+    const baseList = ['CHEMICALS', 'CONSUMABLE AND SURGICAL', 'DRUGS', 'SURGICALS AND SUTURES'];
+    const set = new Set(baseList);
+    items.forEach(item => {
+      const cat = String(item.categoryName || item.category || '').trim().toUpperCase();
+      if (cat) set.add(cat);
+    });
+    return Array.from(set).sort();
+  }, [items]);
+
+  // Filtered items based on search query and category
+  const filteredItems = useMemo(() => {
+    return sortedItems.filter(item => {
+      const q = searchQuery.trim().toLowerCase();
+      const matchesSearch =
+        !q ||
+        (item.itemCode && String(item.itemCode).toLowerCase().includes(q)) ||
+        (item.itemName && String(item.itemName).toLowerCase().includes(q)) ||
+        (item.strength && String(item.strength).toLowerCase().includes(q)) ||
+        (item.strength1 && String(item.strength1).toLowerCase().includes(q)) ||
+        (item.groupName && String(item.groupName).toLowerCase().includes(q)) ||
+        (item.categoryName && String(item.categoryName).toLowerCase().includes(q)) ||
+        (item.category && String(item.category).toLowerCase().includes(q)) ||
+        (item.edl && String(item.edl).toLowerCase().includes(q));
+
+      const itemCat = String(item.categoryName || item.category || '').trim().toUpperCase();
+      const matchesCategory =
+        selectedCategory === 'ALL' || itemCat === selectedCategory.toUpperCase();
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [sortedItems, searchQuery, selectedCategory]);
 
   // Compute summary count and total value dynamically from loaded items
   const calculatedNoOfItems = useMemo(() => {
@@ -105,7 +145,7 @@ export default function CreateAnnualIndentDhPage() {
     async function loadFinYears() {
       setDropdownLoading(true);
       try {
-        const res = await axios.get('/annual-indent/upload-forward/fin-years');
+        const res = await axios.get('/dh-annual-indent/upload-forward/fin-years');
         if (res.data?.success && Array.isArray(res.data.data)) {
           setFinYears(res.data.data);
           if (res.data.data.length > 0) {
@@ -143,7 +183,7 @@ export default function CreateAnnualIndentDhPage() {
     setError('');
     try {
       const currentFacId = user?.facilityId || localStorage.getItem('facilityId') || undefined;
-      const headRes = await axios.get('/annual-indent/create/header', {
+      const headRes = await axios.get('/dh-annual-indent/create/header', {
         params: {
           facilityId: currentFacId,
           finYearId: selectedFinYear,
@@ -160,7 +200,7 @@ export default function CreateAnnualIndentDhPage() {
           if (hData.exists && searchParams.get('indentId') !== String(hData.indentId)) {
             setSearchParams({ finYearId: selectedFinYear, indentId: String(hData.indentId) }, { replace: true });
           }
-          const itemsRes = await axios.get('/annual-indent/create/items', {
+          const itemsRes = await axios.get('/dh-annual-indent/create/items', {
             params: {
               facilityId: currentFacId,
               finYearId: selectedFinYear,
@@ -197,7 +237,7 @@ export default function CreateAnnualIndentDhPage() {
     setError('');
     try {
       const currentFacId = user?.facilityId || localStorage.getItem('facilityId') || undefined;
-      const res = await axios.post('/annual-indent/create/generate-header', {
+      const res = await axios.post('/dh-annual-indent/create/generate-header', {
         facilityId: currentFacId,
         finYearId: selectedFinYear
       });
@@ -271,6 +311,15 @@ export default function CreateAnnualIndentDhPage() {
         (normHeaders[i].includes('ACTUAL') && normHeaders[i].includes('CONS'))
       );
 
+      // Issued From Warehouse: e.g. Issued_From_WH_01_Apr_26_to_31st_Oct_26 or WH_ISSUE
+      const whIssuedIdx = headers.findIndex((h, i) =>
+        normHeaders[i].includes('ISSUED_FROM_WH') ||
+        normHeaders[i].includes('ISSUED_FROM') ||
+        normHeaders[i].includes('WH_ISSUE') ||
+        normHeaders[i].includes('WHISSUE') ||
+        (normHeaders[i].includes('ISSUED') && (normHeaders[i].includes('WH') || normHeaders[i].includes('WAREHOUSE')))
+      );
+
       // Estimated Consumption: e.g. Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27
       const estConIdx = headers.findIndex((h, i) =>
         normHeaders[i].includes('ESTIMATED_CONSUMPTION') ||
@@ -335,15 +384,16 @@ export default function CreateAnnualIndentDhPage() {
         const itemCode = String(row[itemCodeIdx] || '').trim();
         if (!itemCode) continue;
 
+        const whIssued = whIssuedIdx !== -1 ? Number(row[whIssuedIdx]) || 0 : 0;
         const actualConsumption = actConIdx !== -1 ? Number(row[actConIdx]) || 0 : 0;
         const estimatedConsumption = estConIdx !== -1
           ? Number(row[estConIdx]) || 0
           : (genConIdx !== -1 ? Number(row[genConIdx]) || 0 : 0);
 
         // Per user requirement:
-        // Excel column 'Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27' -> column CONSUMPTION of table anualindent
-        // Excel column 'Actual_Consumption_From_01_April_26_to_31st_Oct_26' -> column ACTUALCONSUMPTION of table anualindent
-        const consumption = estimatedConsumption;
+        // Excel column 'Issued_From_WH_01_Apr_26_to_31st_Oct_26' -> column CONSUMPTION of table anualindent
+        // Excel column 'Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27' -> column PROJECTEDCONSUMPTION of table anualindent
+        const consumption = whIssued;
         const projectedConsumption = estimatedConsumption;
         const currentStock = curStockIdx !== -1 ? Number(row[curStockIdx]) || 0 : 0;
         const facilityIndentQty = indQtyIdx !== -1 ? Number(row[indQtyIdx]) || 0 : 0;
@@ -362,6 +412,7 @@ export default function CreateAnnualIndentDhPage() {
         parsedItems.push({
           itemCode,
           consumption,
+          whIssued,
           actualConsumption,
           projectedConsumption,
           estimatedConsumption,
@@ -380,7 +431,7 @@ export default function CreateAnnualIndentDhPage() {
       let activeIndentId = headerInfo.indentId;
       const currentFacId = user?.facilityId || localStorage.getItem('facilityId') || undefined;
       if (!activeIndentId || activeIndentId === 0) {
-        const genRes = await axios.post('/annual-indent/create/generate-header', {
+        const genRes = await axios.post('/dh-annual-indent/create/generate-header', {
           facilityId: currentFacId,
           finYearId: selectedFinYear
         });
@@ -397,7 +448,7 @@ export default function CreateAnnualIndentDhPage() {
         }
       }
 
-      const uploadRes = await axios.post('/annual-indent/create/upload-excel', {
+      const uploadRes = await axios.post('/dh-annual-indent/create/upload-excel', {
         facilityId: currentFacId,
         finYearId: selectedFinYear,
         indentId: activeIndentId,
@@ -407,7 +458,7 @@ export default function CreateAnnualIndentDhPage() {
       if (uploadRes.data?.success) {
         setMsg('Excel File Uploaded Successfully!');
 
-        const headRes = await axios.get('/annual-indent/create/header', {
+        const headRes = await axios.get('/dh-annual-indent/create/header', {
           params: { facilityId: currentFacId, finYearId: selectedFinYear, indentId: activeIndentId }
         });
         if (headRes.data?.success && headRes.data.data) {
@@ -416,7 +467,7 @@ export default function CreateAnnualIndentDhPage() {
           setSearchParams({ finYearId: selectedFinYear, indentId: String(headRes.data.data.indentId || activeIndentId) }, { replace: true });
         }
 
-        const itemsRes = await axios.get('/annual-indent/create/items', {
+        const itemsRes = await axios.get('/dh-annual-indent/create/items', {
           params: { facilityId: currentFacId, finYearId: selectedFinYear, indentId: activeIndentId }
         });
         if (itemsRes.data?.success && itemsRes.data.data) {
@@ -456,7 +507,7 @@ export default function CreateAnnualIndentDhPage() {
     }
     if (window.confirm('Are you sure you want to Freeze and finalize this Annual Indent?')) {
       try {
-        await axios.post('/annual-indent/create/freeze', {
+        await axios.post('/dh-annual-indent/create/freeze', {
           finYearId: selectedFinYear,
           indentId: headerInfo.indentId
         });
@@ -480,7 +531,7 @@ export default function CreateAnnualIndentDhPage() {
     }
     if (window.confirm('Are you sure you want to delete this complete Annual Indent?')) {
       try {
-        await axios.delete('/annual-indent/create/indent', {
+        await axios.delete('/dh-annual-indent/create/indent', {
           params: {
             finYearId: selectedFinYear,
             indentId: headerInfo.indentId
@@ -500,7 +551,7 @@ export default function CreateAnnualIndentDhPage() {
   // Download Sample Excel Handler
   const handleDownloadSampleFile = async () => {
     try {
-      const res = await axios.get('/annual-indent/download-format');
+      const res = await axios.get('/dh-annual-indent/download-format');
       if (res.data?.success && Array.isArray(res.data.data)) {
         const rows = res.data.data;
         let tableHtml = `
@@ -597,7 +648,8 @@ export default function CreateAnnualIndentDhPage() {
         <tbody>
     `;
 
-    sortedItems.forEach((r, idx) => {
+    const itemsToExport = filteredItems.length > 0 ? filteredItems : sortedItems;
+    itemsToExport.forEach((r, idx) => {
       tableHtml += `
         <tr>
           <td style="text-align: center;">${idx + 1}</td>
@@ -679,7 +731,7 @@ export default function CreateAnnualIndentDhPage() {
   // Save Row Edit
   const handleSaveEdit = async (row) => {
     try {
-      await axios.put('/annual-indent/create/item', {
+      await axios.put('/dh-annual-indent/create/item', {
         anualIndentId: row.anualIndentId,
         ...editForm
       });
@@ -696,7 +748,7 @@ export default function CreateAnnualIndentDhPage() {
   const handleDeleteRow = async (row) => {
     if (!window.confirm('Are you sure you want to delete this item?')) return;
     try {
-      await axios.delete(`/annual-indent/create/item/${row.anualIndentId}`);
+      await axios.delete(`/dh-annual-indent/create/item/${row.anualIndentId}`);
       setMsg('Item Deleted Successfully');
       loadIndentData();
     } catch (err) {
@@ -966,15 +1018,46 @@ export default function CreateAnnualIndentDhPage() {
 
               {/* Items Grid Table */}
               <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                  <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm">
-                    Indent Items Details ({items.length})
-                  </h3>
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm whitespace-nowrap">
+                      Indent Items Details ({filteredItems.length !== items.length ? `${filteredItems.length} of ${items.length}` : items.length})
+                    </h3>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Search Bar */}
+                    <div className="relative w-full sm:w-64">
+                      <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
+                      <input
+                        type="text"
+                        placeholder="Search item code, name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                    </div>
+
+                    {/* Category Filter */}
+                    <div className="flex items-center gap-1.5">
+                      <FunnelIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="bg-white dark:bg-slate-900 border-2 border-emerald-500 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none shadow-xs cursor-pointer"
+                      >
+                        <option value="ALL">All Categories</option>
+                        {availableCategories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Action Buttons */}
                     {items.length > 0 && (
                       <button
                         onClick={handleExportToExcel}
-                        className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                        className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 shrink-0"
                       >
                         <DocumentArrowDownIcon className="w-4 h-4" />
                         <span>Export to Excel</span>
@@ -984,7 +1067,7 @@ export default function CreateAnnualIndentDhPage() {
                       <button
                         onClick={handleDownloadPdf}
                         disabled={downloadingPdf}
-                        className="px-3.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-60"
+                        className="px-3.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-60 shrink-0"
                       >
                         {downloadingPdf ? (
                           <ArrowPathIcon className="w-4 h-4 animate-spin" />
@@ -1029,14 +1112,20 @@ export default function CreateAnnualIndentDhPage() {
                             </div>
                           </td>
                         </tr>
-                      ) : sortedItems.length === 0 ? (
+                      ) : items.length === 0 ? (
                         <tr>
                           <td colSpan="16" className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
                             No Item found in this Indent. Upload Excel file to populate items.
                           </td>
                         </tr>
+                      ) : filteredItems.length === 0 ? (
+                        <tr>
+                          <td colSpan="16" className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
+                            No matching items found for the selected search / category filter.
+                          </td>
+                        </tr>
                       ) : (
-                        sortedItems.map((row, idx) => {
+                        filteredItems.map((row, idx) => {
                           const isEditing = editingId === row.anualIndentId;
                           const isEdl = row.edlType === 'EDL' || row.edlType === 'Yes' || row.edlType === 'Y';
                           return (

@@ -32,7 +32,7 @@ function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey,
   const clearSelection = (e) => { e.stopPropagation(); onChange(''); setOpen(false); setQ(''); };
 
   return (
-    <div ref={boxRef} className="relative w-full">
+    <div ref={boxRef} className="relative w-full z-30">
       <div
         onClick={openDrop}
         className={`flex items-center justify-between gap-2 w-full h-10 px-3 rounded-xl border text-sm cursor-pointer select-none transition
@@ -62,35 +62,42 @@ function SearchDrop({ options, value, onChange, placeholder, labelKey, valueKey,
       </div>
 
       {open && (
-        <div className="absolute z-[200] top-full mt-1 w-full min-w-[220px] bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden">
-          <div className="p-2 border-b border-slate-100">
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+        <div className="absolute z-50 top-full mt-1.5 left-0 w-full min-w-[320px] md:min-w-[420px] max-w-xl bg-white rounded-xl shadow-2xl border border-slate-300 overflow-hidden ring-1 ring-black/5">
+          <div className="p-2 border-b border-slate-100 bg-slate-50/75">
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-sm">
               <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input
                 autoFocus
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Type to filter…"
-                className="flex-1 bg-transparent text-sm outline-none placeholder-slate-400 min-w-0"
+                placeholder="Type name, code, or strength to filter…"
+                className="flex-1 bg-transparent text-sm outline-none placeholder-slate-400 min-w-0 font-medium text-slate-700"
               />
               {q && (
                 <button onClick={() => setQ('')} className="text-slate-400 hover:text-slate-600 flex-shrink-0 text-sm">✕</button>
               )}
             </div>
+            <div className="flex items-center justify-between px-1 pt-1.5 text-[11px] font-medium text-slate-500">
+              <span>{list.length} item{list.length === 1 ? '' : 's'}</span>
+              {q && <span>Filtering by "{q}"</span>}
+            </div>
           </div>
-          <ul className="max-h-52 overflow-y-auto">
+          <ul className="max-h-72 overflow-y-auto divide-y divide-slate-100">
             {list.length === 0
-              ? <li className="px-4 py-3 text-sm text-slate-400 text-center">No results</li>
-              : list.map((o, i) => (
-                <li
-                  key={o[valueKey] ?? i}
-                  onClick={() => pick(o)}
-                  className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 hover:text-blue-700 border-b border-slate-50 last:border-0
-                    ${String(o[valueKey]) === String(value) ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-700'}`}
-                >
-                  {o[labelKey]}
-                </li>
-              ))}
+              ? <li className="px-4 py-4 text-xs font-semibold text-slate-400 text-center">No matching items found</li>
+              : list.map((o, i) => {
+                  const isSel = String(o[valueKey]) === String(value);
+                  return (
+                    <li
+                      key={o[valueKey] ?? i}
+                      onClick={() => pick(o)}
+                      className={`px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 hover:text-blue-700 transition-colors
+                        ${isSel ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700'}`}
+                    >
+                      {o[labelKey]}
+                    </li>
+                  );
+                })}
           </ul>
         </div>
       )}
@@ -617,7 +624,7 @@ export default function AddMonthlyIndentMCPage() {
               </div>
 
               {requestNo && (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden p-4 space-y-4">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-4 relative z-20 overflow-visible">
                   <div className="flex flex-col md:flex-row md:items-end gap-4 w-full">
                     {/* Item Category Dropdown */}
                     <div className="w-full md:w-1/3 space-y-1.5">
@@ -659,7 +666,7 @@ export default function AddMonthlyIndentMCPage() {
 
                     {/* Search Filter */}
                     {itemType !== 'OTHER' && (
-                      <div className="w-full md:w-1/3 space-y-1.5">
+                      <div className="w-full md:w-1/3 space-y-1.5 relative z-30">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                           Search Item <span className="text-gray-400 font-normal">(Name, Code, or Type)</span>
                         </label>

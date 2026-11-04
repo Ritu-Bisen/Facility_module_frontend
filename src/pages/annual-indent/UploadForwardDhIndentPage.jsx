@@ -46,7 +46,7 @@ export default function UploadForwardDhIndentPage() {
     async function loadFinYears() {
       setDropdownLoading(true);
       try {
-        const res = await axios.get('/annual-indent/upload-forward/fin-years');
+        const res = await axios.get('/dh-annual-indent/upload-forward/fin-years');
         if (res.data?.success && Array.isArray(res.data.data)) {
           setFinYears(res.data.data);
           if (res.data.data.length > 0) {
@@ -83,8 +83,8 @@ export default function UploadForwardDhIndentPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get('/annual-indent/upload-forward/list', {
-        params: { finYearId: selectedFinYear, isDh: true }
+      const res = await axios.get('/dh-annual-indent/upload-forward/list', {
+        params: { finYearId: selectedFinYear }
       });
       if (res.data?.success && Array.isArray(res.data.data)) {
         setIndentList(res.data.data);

@@ -18,12 +18,14 @@ import {
   ArrowUpTrayIcon,
   DocumentArrowDownIcon,
   DocumentChartBarIcon,
-  CurrencyRupeeIcon
+  CurrencyRupeeIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon
 } from '@heroicons/react/24/outline';
 
 export default function CreateAnnualIndentAyushPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const urlFinYear = searchParams.get('finYearId');
   const urlIndentId = searchParams.get('indentId');
 
@@ -51,6 +53,37 @@ export default function CreateAnnualIndentAyushPage() {
   const [items, setItems] = useState([]);
   const [noOfItems, setNoOfItems] = useState(0);
   const [aproxIndentValue, setAproxIndentValue] = useState('0.00');
+
+  // Filter & Search states
+  const [itemSearchQuery, setItemSearchQuery] = useState('');
+  const [itemGroupFilter, setItemGroupFilter] = useState('ALL');
+
+  // Available groups for filter
+  const availableItemGroups = useMemo(() => {
+    const set = new Set();
+    items.forEach(item => {
+      const g = String(item.groupName || item.categoryName || '').trim();
+      if (g) set.add(g);
+    });
+    return Array.from(set).sort();
+  }, [items]);
+
+  // Filtered items
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const q = itemSearchQuery.trim().toLowerCase();
+      const matchesSearch =
+        !q ||
+        (item.itemCode && String(item.itemCode).toLowerCase().includes(q)) ||
+        (item.itemName && String(item.itemName).toLowerCase().includes(q)) ||
+        (item.groupName && String(item.groupName).toLowerCase().includes(q));
+
+      const g = String(item.groupName || item.categoryName || '').trim();
+      const matchesGroup = itemGroupFilter === 'ALL' || g === itemGroupFilter;
+
+      return matchesSearch && matchesGroup;
+    });
+  }, [items, itemSearchQuery, itemGroupFilter]);
 
   // Compute summary count and total value dynamically from loaded items
   const calculatedNoOfItems = useMemo(() => {
@@ -111,8 +144,8 @@ export default function CreateAnnualIndentAyushPage() {
       setDropdownLoading(true);
       try {
         const [fyRes, catRes] = await Promise.all([
-          axios.get('/annual-indent/upload-forward/fin-years').catch(() => ({ data: { success: false } })),
-          axios.get('/annual-indent/categories').catch(() => ({ data: { success: false } }))
+          axios.get('/ayush-annual-indent/upload-forward/fin-years').catch(() => ({ data: { success: false } })),
+          axios.get('/ayush-annual-indent/categories').catch(() => ({ data: { success: false } }))
         ]);
 
         if (fyRes.data?.success && Array.isArray(fyRes.data.data)) {
@@ -150,18 +183,39 @@ export default function CreateAnnualIndentAyushPage() {
   // Load Header and Items when Selected Financial Year or IndentId changes
   useEffect(() => {
     if (!selectedFinYear) return;
-    loadIndentData();
+    if (urlIndentId) {
+      loadIndentData(urlIndentId);
+    } else {
+      // Add New Indent mode: do not auto-load previous indents!
+      setHeaderInfo({
+        indentId: 0,
+        indentNo: 'AUTO GENERATED',
+        indentDate: 'System Generated',
+        status: 'N',
+        categoryId: 0,
+        categoryName: '',
+        exists: false
+      });
+      setHeaderEditMode(true);
+      setSelectedCategory('0');
+      setItems([]);
+      setNoOfItems(0);
+      setAproxIndentValue('0.00');
+      setError('');
+    }
   }, [selectedFinYear, urlIndentId]);
 
-  const loadIndentData = async () => {
+  const loadIndentData = async (targetIndentId) => {
+    const idToLoad = targetIndentId || urlIndentId;
+    if (!idToLoad) return;
     setLoading(true);
     setError('');
     try {
       // 1. Fetch Header Info
-      const headRes = await axios.get('/annual-indent/create/header', {
+      const headRes = await axios.get('/ayush-annual-indent/create/header', {
         params: {
           finYearId: selectedFinYear,
-          indentId: urlIndentId || undefined
+          indentId: idToLoad
         }
       });
 
@@ -172,13 +226,10 @@ export default function CreateAnnualIndentAyushPage() {
         if (hData.categoryId) {
           setSelectedCategory(String(hData.categoryId));
         }
-        if (hData.exists && hData.indentId && searchParams.get('indentId') !== String(hData.indentId)) {
-          setSearchParams({ finYearId: selectedFinYear, indentId: String(hData.indentId) }, { replace: true });
-        }
 
         // 2. If Indent exists, load items
         if (hData.indentId && hData.indentId !== 0) {
-          const itemsRes = await axios.get('/annual-indent/create/items', {
+          const itemsRes = await axios.get('/ayush-annual-indent/create/items', {
             params: {
               finYearId: selectedFinYear,
               indentId: hData.indentId
@@ -216,9 +267,12 @@ export default function CreateAnnualIndentAyushPage() {
     }
     setCategoryError('');
     setGenerating(true);
+    setError('');
 
     try {
-      const res = await axios.post('/annual-indent/create/generate-header', {
+      const currentFacId = user?.facilityId || localStorage.getItem('facilityId') || undefined;
+      const res = await axios.post('/ayush-annual-indent/create/generate-header', {
+        facilityId: currentFacId,
         finYearId: selectedFinYear,
         categoryId: selectedCategory
       });
@@ -228,12 +282,15 @@ export default function CreateAnnualIndentAyushPage() {
         setHeaderEditMode(false);
         setMsg('Saved Successfully');
         setTimeout(() => setMsg(''), 4000);
+        if (res.data.data.indentId) {
+          setSearchParams({ finYearId: selectedFinYear, indentId: String(res.data.data.indentId) }, { replace: true });
+        }
       } else {
-        setError('Failed to generate indent header');
+        setError(res.data?.error || 'Failed to generate indent header');
       }
     } catch (err) {
       console.error('Error generating header:', err);
-      setError('Error creating annual indent');
+      setError(err.response?.data?.error || err.response?.data?.message || err.message || 'Error creating annual indent');
     } finally {
       setGenerating(false);
     }
@@ -291,11 +348,33 @@ export default function CreateAnnualIndentAyushPage() {
         normHeaders[i].includes('ITEM_CODE') || normHeaders[i].includes('ITEMCODE') || normHeaders[i].includes('DRUG_CODE')
       );
 
+      // AYUSH Consumption column: e.g. COSUMPTION_From_1APR_26 / CONSUMPTION_From_1APR_26 / COSUMPTION
+      const ayushConsIdx = headers.findIndex((h, i) =>
+        (normHeaders[i].startsWith('COSUMPTION_FROM') ||
+         normHeaders[i].startsWith('CONSUMPTION_FROM') ||
+         normHeaders[i].includes('COSUMPTION_FROM') ||
+         normHeaders[i].includes('CONSUMPTION_FROM') ||
+         normHeaders[i] === 'COSUMPTION' ||
+         normHeaders[i] === 'CONSUMPTION') &&
+        !normHeaders[i].includes('ACTUAL') &&
+        !normHeaders[i].includes('ESTIMATED') &&
+        !normHeaders[i].includes('PROJECTED')
+      );
+
       // Actual Consumption: e.g. Actual_Consumption_From_01_April_26_to_31st_Oct_26
       const actConIdx = headers.findIndex((h, i) =>
         normHeaders[i].includes('ACTUAL_CONSUMPTION') ||
         normHeaders[i].includes('ACTUALCONSUMPTION') ||
         (normHeaders[i].includes('ACTUAL') && normHeaders[i].includes('CONS'))
+      );
+
+      // Issued From Warehouse: e.g. Issued_From_WH_01_Apr_26_to_31st_Oct_26 or WH_ISSUE
+      const whIssuedIdx = headers.findIndex((h, i) =>
+        normHeaders[i].includes('ISSUED_FROM_WH') ||
+        normHeaders[i].includes('ISSUED_FROM') ||
+        normHeaders[i].includes('WH_ISSUE') ||
+        normHeaders[i].includes('WHISSUE') ||
+        (normHeaders[i].includes('ISSUED') && (normHeaders[i].includes('WH') || normHeaders[i].includes('WAREHOUSE')))
       );
 
       // Estimated Consumption: e.g. Estimated_Consumption_For_One_Year_From_01_April_26_to_31st_March_27
@@ -353,13 +432,19 @@ export default function CreateAnnualIndentAyushPage() {
         const itemCode = String(row[itemCodeIdx] || '').trim();
         if (!itemCode) continue;
 
-        const actualConsumption = actConIdx !== -1 ? Number(row[actConIdx]) || 0 : 0;
-        const estimatedConsumption = estConIdx !== -1
-          ? Number(row[estConIdx]) || 0
-          : (genConIdx !== -1 ? Number(row[genConIdx]) || 0 : (row[7] ? Number(row[7]) || 0 : 0));
+        // Post COSUMPTION_From_1APR_26 column data into CONSUMPTION column of anualindent
+        let consumption = 0;
+        if (ayushConsIdx !== -1 && row[ayushConsIdx] !== undefined && row[ayushConsIdx] !== '') {
+          consumption = Number(row[ayushConsIdx]) || 0;
+        } else if (genConIdx !== -1 && row[genConIdx] !== undefined && row[genConIdx] !== '') {
+          consumption = Number(row[genConIdx]) || 0;
+        } else if (whIssuedIdx !== -1 && row[whIssuedIdx] !== undefined && row[whIssuedIdx] !== '') {
+          consumption = Number(row[whIssuedIdx]) || 0;
+        }
 
-        // Post Estimated_Consumption into CONSUMPTION column, Actual_Consumption into ACTUALCONSUMPTION column
-        const consumption = estimatedConsumption;
+        const whIssued = whIssuedIdx !== -1 ? Number(row[whIssuedIdx]) || 0 : 0;
+        const actualConsumption = actConIdx !== -1 ? Number(row[actConIdx]) || 0 : 0;
+        const estimatedConsumption = estConIdx !== -1 ? Number(row[estConIdx]) || 0 : 0;
         const projectedConsumption = estimatedConsumption;
         const currentStock = curStockIdx !== -1 ? Number(row[curStockIdx]) || 0 : (row[8] ? Number(row[8]) || 0 : 0);
         const facilityIndentQty = indQtyIdx !== -1 ? Number(row[indQtyIdx]) || 0 : (row[9] ? Number(row[9]) || 0 : 0);
@@ -368,6 +453,8 @@ export default function CreateAnnualIndentAyushPage() {
         parsedItems.push({
           itemCode,
           consumption,
+          cosumptionFrom1Apr26: consumption,
+          whIssued,
           actualConsumption,
           projectedConsumption,
           estimatedConsumption,
@@ -392,7 +479,7 @@ export default function CreateAnnualIndentAyushPage() {
           return;
         }
 
-        const genRes = await axios.post('/annual-indent/create/generate-header', {
+        const genRes = await axios.post('/ayush-annual-indent/create/generate-header', {
           finYearId: selectedFinYear,
           categoryId: selectedCategory
         });
@@ -401,6 +488,9 @@ export default function CreateAnnualIndentAyushPage() {
           activeIndentId = genRes.data.data.indentId;
           setHeaderInfo(genRes.data.data);
           setHeaderEditMode(false);
+          if (activeIndentId) {
+            setSearchParams({ finYearId: selectedFinYear, indentId: String(activeIndentId) }, { replace: true });
+          }
         } else {
           alert('Failed to automatically create indent header for upload.');
           setUploading(false);
@@ -409,7 +499,7 @@ export default function CreateAnnualIndentAyushPage() {
       }
 
       // Send parsed items to backend API
-      const uploadRes = await axios.post('/annual-indent/create/upload-excel', {
+      const uploadRes = await axios.post('/ayush-annual-indent/create/upload-excel', {
         finYearId: selectedFinYear,
         indentId: activeIndentId,
         items: parsedItems
@@ -420,14 +510,14 @@ export default function CreateAnnualIndentAyushPage() {
         setTimeout(() => setMsg(''), 4000);
 
         // Reload Header & Items Grid
-        const headRes = await axios.get('/annual-indent/create/header', {
+        const headRes = await axios.get('/ayush-annual-indent/create/header', {
           params: { finYearId: selectedFinYear, indentId: activeIndentId }
         });
         if (headRes.data?.success && headRes.data.data) {
           setHeaderInfo(headRes.data.data);
         }
 
-        const itemsRes = await axios.get('/annual-indent/create/items', {
+        const itemsRes = await axios.get('/ayush-annual-indent/create/items', {
           params: { finYearId: selectedFinYear, indentId: activeIndentId }
         });
         if (itemsRes.data?.success && itemsRes.data.data) {
@@ -455,7 +545,7 @@ export default function CreateAnnualIndentAyushPage() {
     }
     if (window.confirm('Are you sure you want to Freeze and finalize this Annual Indent?')) {
       try {
-        await axios.post('/annual-indent/create/freeze', {
+        await axios.post('/ayush-annual-indent/create/freeze', {
           finYearId: selectedFinYear,
           indentId: headerInfo.indentId
         });
@@ -479,7 +569,7 @@ export default function CreateAnnualIndentAyushPage() {
     }
     if (window.confirm('Are you sure you want to delete this complete Annual Indent?')) {
       try {
-        await axios.delete('/annual-indent/create/indent', {
+        await axios.delete('/ayush-annual-indent/create/indent', {
           params: {
             finYearId: selectedFinYear,
             indentId: headerInfo.indentId
@@ -499,7 +589,12 @@ export default function CreateAnnualIndentAyushPage() {
   // Download Sample Excel Handler (lnkDownload_Click)
   const handleDownloadSampleFile = async () => {
     try {
-      const res = await axios.get('/annual-indent/download-format');
+      const res = await axios.get('/ayush-annual-indent/download-format', {
+        params: {
+          subCatId: selectedCategory || headerInfo.categoryId,
+          facilityId: user?.facilityId || '29609'
+        }
+      });
       if (res.data?.success && Array.isArray(res.data.data)) {
         const rows = res.data.data;
         let tableHtml = `
@@ -626,14 +721,14 @@ export default function CreateAnnualIndentAyushPage() {
   // Save Row Edit (gv_RowUpdating)
   const handleSaveEdit = async (row) => {
     try {
-      await axios.put('/annual-indent/create/item', {
+      await axios.put('/ayush-annual-indent/create/item', {
         anualIndentId: row.anualIndentId,
         ...editForm
       });
       setEditingId(null);
       setMsg('Updated Successfully');
       setTimeout(() => setMsg(''), 4000);
-      loadIndentData();
+      loadIndentData(headerInfo.indentId);
     } catch (err) {
       console.error('Failed to update item:', err);
       alert('Failed to update item');
@@ -644,10 +739,10 @@ export default function CreateAnnualIndentAyushPage() {
   const handleDeleteRow = async (row) => {
     if (!window.confirm('Are you sure, you want to delete?')) return;
     try {
-      await axios.delete(`/annual-indent/create/item/${row.anualIndentId}`);
+      await axios.delete(`/ayush-annual-indent/create/item/${row.anualIndentId}`);
       setMsg('Deleted Successfully');
       setTimeout(() => setMsg(''), 4000);
-      loadIndentData();
+      loadIndentData(headerInfo.indentId);
     } catch (err) {
       console.error('Failed to delete item:', err);
       alert('Delete not allowed, references found');
@@ -958,13 +1053,47 @@ export default function CreateAnnualIndentAyushPage() {
 
               {/* Items GridView Table matching gv1 */}
               <div className="bg-white dark:bg-[#1e293b] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                  <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm">
-                    Item Indent Details ({items.length})
-                  </h3>
-                  <span className="text-[11px] text-blue-600 font-semibold">
-                    To download click on excel button
-                  </span>
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm whitespace-nowrap">
+                      Item Indent Details ({filteredItems.length !== items.length ? `${filteredItems.length} of ${items.length}` : items.length})
+                    </h3>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Search Bar */}
+                    <div className="relative w-full sm:w-64">
+                      <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" />
+                      <input
+                        type="text"
+                        placeholder="Search item code, name..."
+                        value={itemSearchQuery}
+                        onChange={(e) => setItemSearchQuery(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    {/* Group Filter */}
+                    {availableItemGroups.length > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <FunnelIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                        <select
+                          value={itemGroupFilter}
+                          onChange={(e) => setItemGroupFilter(e.target.value)}
+                          className="bg-white dark:bg-slate-900 border-2 border-blue-500 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none shadow-xs cursor-pointer"
+                        >
+                          <option value="ALL">All Groups</option>
+                          {availableItemGroups.map(grp => (
+                            <option key={grp} value={grp}>{grp}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <span className="text-[11px] text-blue-600 font-semibold shrink-0">
+                      To download click on excel button
+                    </span>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-260px)]">
@@ -999,8 +1128,14 @@ export default function CreateAnnualIndentAyushPage() {
                             No Item found for selected Financial Year
                           </td>
                         </tr>
+                      ) : filteredItems.length === 0 ? (
+                        <tr>
+                          <td colSpan="10" className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
+                            No matching items found for the selected filter.
+                          </td>
+                        </tr>
                       ) : (
-                        items.map((row, idx) => {
+                        filteredItems.map((row, idx) => {
                           const isEditing = editingId === row.anualIndentId;
                           const indVal = Number(row.indAprVal || ((row.facilityIndentQty || 0) * (row.rate || 0))).toFixed(2);
 

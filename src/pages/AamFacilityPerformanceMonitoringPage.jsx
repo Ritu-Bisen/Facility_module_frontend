@@ -3,6 +3,7 @@ import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Footer from '../components/layout/Footer';
 import { useAuth } from '../hooks/useAuth';
+import api from '../api/axios';
 import {
   ChartBarIcon,
   ArrowPathIcon,
@@ -14,13 +15,68 @@ export default function AamFacilityPerformanceMonitoringPage() {
   const [loading, setLoading] = useState(true);
   const [iframeKey, setIframeKey] = useState(0);
 
-  const districtVal = String(
+  const initialDistrict = String(
     user?.districtId ||
     user?.districtid ||
+    sessionStorage.getItem('districtid') ||
+    sessionStorage.getItem('districtId') ||
     localStorage.getItem('districtId') ||
     localStorage.getItem('districtid') ||
     '2194'
   ).trim();
+
+  const [districtVal, setDistrictVal] = useState(initialDistrict);
+  const [districtInput, setDistrictInput] = useState(initialDistrict);
+
+  // Sync district ID to both sessionStorage and localStorage in parent window
+  useEffect(() => {
+    if (districtVal) {
+      try {
+        sessionStorage.setItem('districtid', String(districtVal).trim());
+        sessionStorage.setItem('districtId', String(districtVal).trim());
+        localStorage.setItem('districtid', String(districtVal).trim());
+        localStorage.setItem('districtId', String(districtVal).trim());
+      } catch (e) {}
+    }
+  }, [districtVal]);
+
+  // Fetch district ID from backend if facilityId is available and not set
+  useEffect(() => {
+    if (user?.facilityId) {
+      api.get(`/facility/district/${user.facilityId}`)
+        .then((res) => {
+          if (res.data?.success && res.data?.districtId) {
+            const fetchedDist = String(res.data.districtId).trim();
+            if (fetchedDist) {
+              setDistrictVal(fetchedDist);
+              setDistrictInput(fetchedDist);
+              try {
+                sessionStorage.setItem('districtid', fetchedDist);
+                sessionStorage.setItem('districtId', fetchedDist);
+                localStorage.setItem('districtid', fetchedDist);
+                localStorage.setItem('districtId', fetchedDist);
+              } catch (e) {}
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user?.facilityId]);
+
+  const handleApplyDistrict = () => {
+    const val = String(districtInput).trim();
+    if (val) {
+      setDistrictVal(val);
+      try {
+        sessionStorage.setItem('districtid', val);
+        sessionStorage.setItem('districtId', val);
+        localStorage.setItem('districtid', val);
+        localStorage.setItem('districtId', val);
+      } catch (e) {}
+      setLoading(true);
+      setIframeKey((prev) => prev + 1);
+    }
+  };
 
   // Listen for OAC_LOADED message from iframe
   useEffect(() => {
@@ -59,7 +115,7 @@ export default function AamFacilityPerformanceMonitoringPage() {
   function handleScriptError() {
     console.warn('[OAC] Direct script load failed, retrying with no-referrer...');
     var s = document.createElement('script');
-    s.src = "https://cgmscanalytics-cgmscee-bo.analytics.ocp.oraclecloud.com/public/dv/v1/embedding/standalone/embedding.js?t=" + Date.now();
+    s.src = "https://cgmscanalyticspro-cgmscee-t1-bo.analytics.ocp.oraclecloud.com/public/dv/v1/embedding/standalone/embedding.js?t=" + Date.now();
     s.type = "application/javascript";
     s.referrerPolicy = "no-referrer";
     s.onload = function() {
@@ -75,7 +131,7 @@ export default function AamFacilityPerformanceMonitoringPage() {
 </script>
 
 <script
-  src="https://cgmscanalytics-cgmscee-bo.analytics.ocp.oraclecloud.com/public/dv/v1/embedding/standalone/embedding.js"
+  src="https://cgmscanalyticspro-cgmscee-t1-bo.analytics.ocp.oraclecloud.com/public/dv/v1/embedding/standalone/embedding.js"
   type="application/javascript"
   referrerpolicy="no-referrer"
   onerror="handleScriptError()">
@@ -131,18 +187,31 @@ function fetchAndSetToken() {
                         "/@Catalog/users/sm.cgmsc@gmail.com/AAM Monitoring "
                     );
 
-                    var districtidVal = "${districtVal}" || "2194";
+                    var districtidVal = "${districtVal}".trim() || "0";
                     try {
-                        var s = sessionStorage.getItem("districtid") ||
-                                (window.parent ? window.parent.sessionStorage.getItem("districtid") : "") ||
+                        var s = (window.parent ? window.parent.sessionStorage.getItem("districtid") : "") ||
+                                sessionStorage.getItem("districtid") ||
+                                (window.parent ? window.parent.localStorage.getItem("districtid") : "") ||
                                 localStorage.getItem("districtid") ||
                                 "";
-                        if (s && s !== "0") districtidVal = s;
+                        if (s && s !== "0" && s !== "null" && s !== "undefined") {
+                          districtidVal = String(s).trim();
+                        }
                     } catch(e) {}
+
+                    if (!districtidVal || districtidVal === "0") {
+                      districtidVal = "${districtVal}".trim() || "0";
+                    }
+
+                    try {
+                      sessionStorage.setItem("districtid", districtidVal);
+                    } catch(e) {}
+
+                    console.log("[OAC Embedding] Applying PARAM_DISTRICTID:", districtidVal);
 
                     self.parameters = ko.observable({
                         "p1n": "PARAM_DISTRICTID",
-                        "p1v": String(districtidVal).trim()
+                        "p1v": districtidVal
                     });
                 }
 
@@ -217,12 +286,25 @@ setInterval(function() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-600">
-                    <BuildingOffice2Icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-600 shadow-xs">
+                    <BuildingOffice2Icon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>District ID:</span>
-                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                      {districtVal}
-                    </span>
+                    <input
+                      type="text"
+                      value={districtInput}
+                      onChange={(e) => setDistrictInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleApplyDistrict(); }}
+                      className="w-20 px-2 py-0.5 text-xs font-mono font-bold bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-inner"
+                      placeholder="District ID"
+                      title="Enter District ID to filter dashboard parameter"
+                    />
+                    <button
+                      onClick={handleApplyDistrict}
+                      className="px-2.5 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-medium transition text-xs shadow-xs"
+                      title="Apply District ID to dashboard parameter"
+                    >
+                      Apply
+                    </button>
                   </div>
 
                   <button

@@ -103,7 +103,11 @@ export default function UploadForwardNonEdlIndentPage() {
     const key = row.nocId || row.indentId;
     setDownloadingId(key);
     try {
-      await generateAnnualIndentPDF(row, user, row.accYrSetId || selectedFinYear);
+      await generateAnnualIndentPDF(
+        { ...row, isNonEdl: true, categoryName: row.categoryName || 'NON-EDL' },
+        user,
+        row.accYrSetId || selectedFinYear
+      );
     } catch (err) {
       console.error('Failed to download indent PDF:', err);
       alert('Error downloading indent PDF: ' + (err.message || 'Unknown error'));

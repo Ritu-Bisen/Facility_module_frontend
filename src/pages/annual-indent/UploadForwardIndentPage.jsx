@@ -58,8 +58,8 @@ export default function UploadForwardIndentPage() {
       setDropdownLoading(true);
       try {
         const [fyRes, catRes] = await Promise.all([
-          axios.get('/annual-indent/upload-forward/fin-years'),
-          axios.get('/annual-indent/categories')
+          axios.get('/ayush-annual-indent/upload-forward/fin-years'),
+          axios.get('/ayush-annual-indent/categories')
         ]);
 
         if (fyRes.data?.success && Array.isArray(fyRes.data.data)) {
@@ -102,7 +102,7 @@ export default function UploadForwardIndentPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get('/annual-indent/upload-forward/list', {
+      const res = await axios.get('/ayush-annual-indent/upload-forward/list', {
         params: { finYearId: selectedFinYear }
       });
       if (res.data?.success && Array.isArray(res.data.data)) {
@@ -161,7 +161,7 @@ export default function UploadForwardIndentPage() {
     setDownloadingCategory(true);
 
     try {
-      const res = await axios.get('/annual-indent/ayush/download-format', {
+      const res = await axios.get('/ayush-annual-indent/download-format', {
         params: { 
           subCatId: selectedCategory,
           facilityId: user?.facilityId || '29609'

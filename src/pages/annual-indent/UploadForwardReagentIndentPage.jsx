@@ -103,7 +103,11 @@ export default function UploadForwardReagentIndentPage() {
     const key = row.nocId || row.indentId;
     setDownloadingId(key);
     try {
-      await generateAnnualIndentPDF(row, user, row.accYrSetId || selectedFinYear);
+      await generateAnnualIndentPDF(
+        { ...row, isReagent: true, categoryName: row.categoryName || 'REAGENT' },
+        user,
+        row.accYrSetId || selectedFinYear
+      );
     } catch (err) {
       console.error('Failed to download indent PDF:', err);
       alert('Error downloading indent PDF: ' + (err.message || 'Unknown error'));

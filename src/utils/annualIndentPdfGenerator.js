@@ -151,6 +151,24 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
       facilityDisplayName = 'Facility';
     }
 
+    // Check if indent is Non-EDL or has no actual consumption data
+    const isNonEdl =
+      Boolean(row.isNonEdl) ||
+      String(row.categoryName || '').toUpperCase().includes('NON') ||
+      String(row.categoryName || '').toUpperCase().includes('REAGENT') ||
+      String(row.nocNumber || row.indentNo || '').toUpperCase().includes('/NE') ||
+      String(row.nocNumber || row.indentNo || '').toUpperCase().includes('/RG') ||
+      String(row.nocNumber || row.indentNo || '').toUpperCase().includes('NONEDL');
+
+    const hasActualCons =
+      !isNonEdl ||
+      items.some(
+        item =>
+          Number(item.actualConsumption || item.ACTUALCONSUMPTION || 0) > 0 ||
+          Number(item.projectedConsumption || item.PROJECTEDCONSUMPTION || 0) > 0 ||
+          Number(item.consumption || item.CONSUMPTION || 0) > 0
+      );
+
     const doc = new jsPDF('landscape', 'pt', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -164,7 +182,8 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(15);
-    doc.text('ANNUAL INDENT REPORT', pageWidth / 2, 44, { align: 'center' });
+    const reportTitle = isNonEdl ? 'NON-EDL ANNUAL INDENT REPORT' : 'ANNUAL INDENT REPORT';
+    doc.text(reportTitle, pageWidth / 2, 44, { align: 'center' });
 
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
@@ -184,7 +203,7 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
     const indentNo = row.nocNumber || row.indentNo || '—';
     const indentDate = row.nocDate || row.indentDate || '—';
     const accYear = row.accYear || '—';
-    const category = row.categoryName || 'General';
+    const category = row.categoryName || (isNonEdl ? 'NON-EDL' : 'General');
     const status = row.status || 'Completed';
 
     // Left Column
@@ -221,6 +240,29 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
         ? 'Non EDL' 
         : (rawEdlType === 'EDL' || rawEdlType === 'YES' || rawEdlType === 'Y' ? 'EDL' : (item.edlType || 'Non EDL'));
 
+      const consVal = Number(item.consumption || item.CONSUMPTION || 0).toLocaleString('en-IN');
+      const curStockVal = Number(item.currentStock || item.CURRENTSTOCK || 0).toLocaleString('en-IN');
+
+      if (hasActualCons) {
+        return [
+          idx + 1,
+          item.itemCode || item.ITEMCODE || '—',
+          item.itemName || item.ITEMNAME || '—',
+          item.strength || item.STRENGTH1 || '—',
+          item.groupName || item.GROUPNAME || '—',
+          item.edl || item.EDL || '—',
+          consVal,
+          Number(item.actualConsumption || item.ACTUALCONSUMPTION || 0).toLocaleString('en-IN'),
+          Number(item.projectedConsumption || item.PROJECTEDCONSUMPTION || 0).toLocaleString('en-IN'),
+          curStockVal,
+          qty.toLocaleString('en-IN'),
+          rate.toFixed(2),
+          val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          item.categoryName || item.CATEGORYNAME || 'DRUGS',
+          edlTypeVal
+        ];
+      }
+
       return [
         idx + 1,
         item.itemCode || item.ITEMCODE || '—',
@@ -228,10 +270,8 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
         item.strength || item.STRENGTH1 || '—',
         item.groupName || item.GROUPNAME || '—',
         item.edl || item.EDL || '—',
-        Number(item.consumption || item.CONSUMPTION || 0).toLocaleString('en-IN'),
-        Number(item.actualConsumption || item.ACTUALCONSUMPTION || 0).toLocaleString('en-IN'),
-        Number(item.projectedConsumption || item.PROJECTEDCONSUMPTION || 0).toLocaleString('en-IN'),
-        Number(item.currentStock || item.CURRENTSTOCK || 0).toLocaleString('en-IN'),
+        consVal,
+        curStockVal,
         qty.toLocaleString('en-IN'),
         rate.toFixed(2),
         val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
@@ -244,7 +284,7 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
     tableRows.push([
       {
         content: `Total (${items.length} Saved Items):`,
-        colSpan: 10,
+        colSpan: hasActualCons ? 10 : 8,
         styles: { halign: 'right', fontStyle: 'bold', fillColor: [241, 245, 249], textColor: [30, 41, 59] }
       },
       {
@@ -266,11 +306,49 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
       }
     ]);
 
+    const tableHead = hasActualCons
+      ? [['#', 'Item Code', 'Item Name', 'Strength', 'Group Name', 'EDL', 'WH_ISSUE', 'ACTUAL_CONS', 'EST_CONS', 'Cur Stock', 'Indent Qty', 'Rate (Rs.)', 'Value (Rs.)', 'Category', 'EDL Type']]
+      : [['#', 'Item Code', 'Item Name', 'Strength', 'Group Name', 'EDL', 'Consumption', 'Cur Stock', 'Indent Qty', 'Rate (Rs.)', 'Value (Rs.)', 'Category', 'EDL Type']];
+
+    const columnStyles = hasActualCons
+      ? {
+          0: { halign: 'center', cellWidth: 20 },
+          1: { halign: 'center', cellWidth: 42, fontStyle: 'bold' },
+          2: { halign: 'left', cellWidth: 136 },
+          3: { halign: 'left', cellWidth: 60 },
+          4: { halign: 'left', cellWidth: 68 },
+          5: { halign: 'center', cellWidth: 25, fontStyle: 'bold' },
+          6: { halign: 'right', cellWidth: 44 },
+          7: { halign: 'right', cellWidth: 44 },
+          8: { halign: 'right', cellWidth: 44 },
+          9: { halign: 'right', cellWidth: 44 },
+          10: { halign: 'right', cellWidth: 48, fontStyle: 'bold' },
+          11: { halign: 'right', cellWidth: 42 },
+          12: { halign: 'right', cellWidth: 66, fontStyle: 'bold' },
+          13: { halign: 'left', cellWidth: 55 },
+          14: { halign: 'center', cellWidth: 42 }
+        }
+      : {
+          0: { halign: 'center', cellWidth: 22 },
+          1: { halign: 'center', cellWidth: 46, fontStyle: 'bold' },
+          2: { halign: 'left', cellWidth: 156 },
+          3: { halign: 'left', cellWidth: 65 },
+          4: { halign: 'left', cellWidth: 75 },
+          5: { halign: 'center', cellWidth: 28, fontStyle: 'bold' },
+          6: { halign: 'right', cellWidth: 54 },
+          7: { halign: 'right', cellWidth: 50 },
+          8: { halign: 'right', cellWidth: 54, fontStyle: 'bold' },
+          9: { halign: 'right', cellWidth: 44 },
+          10: { halign: 'right', cellWidth: 68, fontStyle: 'bold' },
+          11: { halign: 'left', cellWidth: 60 },
+          12: { halign: 'center', cellWidth: 44 }
+        };
+
     autoTable(doc, {
       startY: startY + 56,
       margin: { left: 24, right: 24 },
       tableWidth: pageWidth - 48,
-      head: [['#', 'Item Code', 'Item Name', 'Strength', 'Group Name', 'EDL', 'WH Issue', 'Actual Cons', 'Est Cons', 'Cur Stock', 'Indent Qty', 'Rate (Rs.)', 'Value (Rs.)', 'Category', 'EDL Type']],
+      head: tableHead,
       body: tableRows,
       theme: 'grid',
       styles: {
@@ -290,23 +368,7 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
         valign: 'middle',
         minCellHeight: 20
       },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 20 },
-        1: { halign: 'center', cellWidth: 42, fontStyle: 'bold' },
-        2: { halign: 'left', cellWidth: 136 },
-        3: { halign: 'left', cellWidth: 60 },
-        4: { halign: 'left', cellWidth: 68 },
-        5: { halign: 'center', cellWidth: 25, fontStyle: 'bold' },
-        6: { halign: 'right', cellWidth: 44 },
-        7: { halign: 'right', cellWidth: 44 },
-        8: { halign: 'right', cellWidth: 44 },
-        9: { halign: 'right', cellWidth: 44 },
-        10: { halign: 'right', cellWidth: 48, fontStyle: 'bold' },
-        11: { halign: 'right', cellWidth: 42 },
-        12: { halign: 'right', cellWidth: 66, fontStyle: 'bold' },
-        13: { halign: 'left', cellWidth: 55 },
-        14: { halign: 'center', cellWidth: 42 }
-      }
+      columnStyles
     });
 
     // Add page numbers and generation timestamp to all pages
