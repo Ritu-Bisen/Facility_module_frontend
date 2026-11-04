@@ -292,45 +292,49 @@ export default function UploadForwardDhIndentPage() {
                           </td>
                         </tr>
                       ) : (
-                        filteredIndentList.map((row, index) => (
-                          <tr
-                            key={row.nocId || index}
-                            className="hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors bg-white dark:bg-[#1e293b]"
-                          >
-                            <td className="py-3 px-4 text-center font-semibold text-slate-500 border-r border-slate-100 dark:border-slate-800">
-                              {index + 1}
-                            </td>
-                            <td className="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800">
-                              <Link
-                                to={`/annual-indent/create-dh?indentId=${row.nocId}&finYearId=${selectedFinYear}`}
-                                className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 hover:underline inline-flex items-center gap-1 font-bold"
-                                title="Click to view Annual Indent details"
-                              >
-                                {row.nocNumber || row.indentNo}
-                              </Link>
-                            </td>
-                            <td className="py-3 px-4 text-center border-r border-slate-100 dark:border-slate-800 font-medium">
-                              {row.nocDate || row.indentDate}
-                            </td>
-                            <td className="py-3 px-4 text-center border-r border-slate-100 dark:border-slate-800 font-extrabold">
-                              {row.status === 'Incomplete' ? (
-                                <Link
-                                  to={`/annual-indent/create-dh?indentId=${row.nocId}&finYearId=${selectedFinYear}`}
-                                  className="text-red-600 dark:text-red-400 hover:text-red-800 hover:underline cursor-pointer inline-flex items-center gap-1 font-black"
-                                  title="Click to view/edit incomplete indent"
-                                >
-                                  <span>{row.status}</span>
-                                </Link>
-                              ) : (
-                                <Link
-                                  to={`/annual-indent/create-dh?indentId=${row.nocId}&finYearId=${selectedFinYear}`}
-                                  className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 hover:underline cursor-pointer inline-flex items-center gap-1 font-bold"
-                                  title="Click to view finalized indent"
-                                >
-                                  <span>{row.status}</span>
-                                </Link>
-                              )}
-                            </td>
+                        filteredIndentList.map((row, index) => {
+                          const isIncomplete = row.status === 'Incomplete' || row.status === 'I';
+                          return (
+                            <tr
+                              key={row.nocId || index}
+                              className="hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors bg-white dark:bg-[#1e293b]"
+                            >
+                              <td className="py-3 px-4 text-center font-semibold text-slate-500 border-r border-slate-100 dark:border-slate-800">
+                                {index + 1}
+                              </td>
+                              <td className="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800">
+                                {isIncomplete ? (
+                                  <Link
+                                    to={`/annual-indent/create-dh?indentId=${row.nocId}&finYearId=${selectedFinYear}`}
+                                    className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 hover:underline inline-flex items-center gap-1 font-bold cursor-pointer"
+                                    title="Click to view/edit incomplete indent"
+                                  >
+                                    {row.nocNumber || row.indentNo}
+                                  </Link>
+                                ) : (
+                                  <span className="font-bold text-slate-800 dark:text-slate-200 select-none">
+                                    {row.nocNumber || row.indentNo}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-4 text-center border-r border-slate-100 dark:border-slate-800 font-medium">
+                                {row.nocDate || row.indentDate}
+                              </td>
+                              <td className="py-3 px-4 text-center border-r border-slate-100 dark:border-slate-800 font-extrabold">
+                                {isIncomplete ? (
+                                  <Link
+                                    to={`/annual-indent/create-dh?indentId=${row.nocId}&finYearId=${selectedFinYear}`}
+                                    className="text-red-600 dark:text-red-400 hover:text-red-800 hover:underline cursor-pointer inline-flex items-center gap-1 font-black"
+                                    title="Click to view/edit incomplete indent"
+                                  >
+                                    <span>{row.status}</span>
+                                  </Link>
+                                ) : (
+                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold select-none cursor-default">
+                                    {row.status}
+                                  </span>
+                                )}
+                              </td>
                             <td className="py-3 px-4 text-center">
                               {row.status === 'Completed' || row.status === 'C' ? (
                                 <button
@@ -359,8 +363,9 @@ export default function UploadForwardDhIndentPage() {
                               )}
                             </td>
                           </tr>
-                        ))
-                      )}
+                        );
+                      })
+                    )}
                     </tbody>
                   </table>
                 </div>

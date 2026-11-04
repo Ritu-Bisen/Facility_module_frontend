@@ -74,6 +74,70 @@ export const sortAnnualIndentItems = (itemsList) => {
 };
 
 /**
+ * Checks if the current user or facility corresponds to a DME (Directorate of Medical Education) / Medical College login.
+ */
+export const isDmeUserOrFacility = (user, row = {}) => {
+  if (user?.emailId === 'admink@gnail.com') return true;
+
+  const localFacType = (localStorage.getItem('facilityType') || '').trim().toUpperCase();
+  const localFacTypeId = String(localStorage.getItem('facilityTypeId') || localStorage.getItem('facilitytypeid') || '').trim();
+  const localFacName = (localStorage.getItem('facilityName') || '').trim().toUpperCase();
+  const localRoleName = (localStorage.getItem('roleName') || '').trim().toUpperCase();
+  const localEmail = (localStorage.getItem('emailId') || localStorage.getItem('email') || '').trim().toLowerCase();
+
+  const userFacTypeCode = (user?.facilityTypeCode || user?.facilityType || '').trim().toUpperCase();
+  const userFacTypeId = String(user?.facilityTypeId || user?.facilitytypeid || user?.facilityTypeID || '').trim();
+  const userFacName = (user?.facilityName || user?.facilityTypeName || '').trim().toUpperCase();
+  const userRoleName = (user?.roleName || '').trim().toUpperCase();
+  const userEmail = (user?.emailId || user?.email || '').trim().toLowerCase();
+
+  const rowFacName = String(row?.facilityName || row?.FACILITYNAME || '').trim().toUpperCase();
+
+  const rawHodId = localStorage.getItem('hodId') || localStorage.getItem('hodid') || user?.hodId || user?.hodid;
+  const currentHodId = rawHodId !== null && rawHodId !== undefined && rawHodId !== '' ? Number(rawHodId) : null;
+
+  // HOD 3 is DME
+  if (currentHodId === 3) return true;
+
+  // Facility Type Codes & IDs (364 = DME, 378 = DME MC)
+  const dmeTypes = ['DME', 'DME MC', 'MC', '364', '378'];
+  if (
+    dmeTypes.includes(localFacType) ||
+    dmeTypes.includes(userFacTypeCode) ||
+    dmeTypes.includes(localFacTypeId) ||
+    dmeTypes.includes(userFacTypeId)
+  ) {
+    return true;
+  }
+
+  // Keywords check: DME, Medical College, MC, BRAM
+  const hasKeyword = (str) =>
+    str.includes('DME') ||
+    str.includes('MEDICAL COLLEGE') ||
+    str.includes('BRAM') ||
+    str.startsWith('MC') ||
+    str.includes(' MC');
+
+  if (
+    hasKeyword(localFacType) ||
+    hasKeyword(userFacTypeCode) ||
+    hasKeyword(localFacName) ||
+    hasKeyword(userFacName) ||
+    hasKeyword(rowFacName) ||
+    hasKeyword(localRoleName) ||
+    hasKeyword(userRoleName) ||
+    localEmail.includes('bram') ||
+    localEmail.includes('dme') ||
+    userEmail.includes('bram') ||
+    userEmail.includes('dme')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+/**
  * Generate PDF for Annual Indent containing ONLY saved items (facilityIndentQty > 0)
  * @param {Object} row - The indent row object (nocId, nocNumber, nocDate, status, accYear, categoryName, facilityId, etc.)
  * @param {Object} user - Logged in user details
@@ -169,6 +233,13 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
           Number(item.consumption || item.CONSUMPTION || 0) > 0
       );
 
+    // Check if DME (Directorate of Medical Education / Medical College) login
+    const isDme = isDmeUserOrFacility(activeUser, row);
+
+    // Per user specification: In case of DME login, do NOT show WH_ISSUE, ACTUAL_CONS, EST_CONS columns.
+    // Instead show single 'Consumption' column where data comes from consumption column of anualindent table.
+    const showTripleConsColumns = !isDme && hasActualCons;
+
     const doc = new jsPDF('landscape', 'pt', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -243,7 +314,7 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
       const consVal = Number(item.consumption || item.CONSUMPTION || 0).toLocaleString('en-IN');
       const curStockVal = Number(item.currentStock || item.CURRENTSTOCK || 0).toLocaleString('en-IN');
 
-      if (hasActualCons) {
+      if (showTripleConsColumns) {
         return [
           idx + 1,
           item.itemCode || item.ITEMCODE || '—',
@@ -263,6 +334,7 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
         ];
       }
 
+      // Single Consumption column (DME login or formats without actual/projected cons)
       return [
         idx + 1,
         item.itemCode || item.ITEMCODE || '—',
@@ -270,7 +342,7 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
         item.strength || item.STRENGTH1 || '—',
         item.groupName || item.GROUPNAME || '—',
         item.edl || item.EDL || '—',
-        consVal,
+        consVal, // Data directly from consumption column of anualindent table
         curStockVal,
         qty.toLocaleString('en-IN'),
         rate.toFixed(2),
@@ -284,7 +356,7 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
     tableRows.push([
       {
         content: `Total (${items.length} Saved Items):`,
-        colSpan: hasActualCons ? 10 : 8,
+        colSpan: showTripleConsColumns ? 10 : 8,
         styles: { halign: 'right', fontStyle: 'bold', fillColor: [241, 245, 249], textColor: [30, 41, 59] }
       },
       {
@@ -306,11 +378,11 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
       }
     ]);
 
-    const tableHead = hasActualCons
+    const tableHead = showTripleConsColumns
       ? [['#', 'Item Code', 'Item Name', 'Strength', 'Group Name', 'EDL', 'WH_ISSUE', 'ACTUAL_CONS', 'EST_CONS', 'Cur Stock', 'Indent Qty', 'Rate (Rs.)', 'Value (Rs.)', 'Category', 'EDL Type']]
       : [['#', 'Item Code', 'Item Name', 'Strength', 'Group Name', 'EDL', 'Consumption', 'Cur Stock', 'Indent Qty', 'Rate (Rs.)', 'Value (Rs.)', 'Category', 'EDL Type']];
 
-    const columnStyles = hasActualCons
+    const columnStyles = showTripleConsColumns
       ? {
           0: { halign: 'center', cellWidth: 20 },
           1: { halign: 'center', cellWidth: 42, fontStyle: 'bold' },

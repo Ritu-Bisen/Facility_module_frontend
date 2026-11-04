@@ -6,7 +6,7 @@ import Footer from '../../components/layout/Footer';
 import axios from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
 import * as XLSX from 'xlsx';
-import { generateAnnualIndentPDF, sortAnnualIndentItems } from '../../utils/annualIndentPdfGenerator';
+import { generateAnnualIndentPDF, sortAnnualIndentItems, isDmeUserOrFacility } from '../../utils/annualIndentPdfGenerator';
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -47,6 +47,9 @@ export default function CreateAnnualIndentDhPage() {
 
   const [headerEditMode, setHeaderEditMode] = useState(!urlIndentId);
   const [generating, setGenerating] = useState(false);
+
+  // DME Check: In case of DME login, hide WH_ISSUE, ACTUAL_CONS, EST_CONS and show single Consumption
+  const isDme = useMemo(() => isDmeUserOrFacility(user, headerInfo), [user, headerInfo]);
 
   const [items, setItems] = useState([]);
   const [noOfItems, setNoOfItems] = useState(0);
@@ -634,9 +637,7 @@ export default function CreateAnnualIndentDhPage() {
             <th>Strength</th>
             <th>GroupName</th>
             <th>EDL</th>
-            <th>WH_ISSUE</th>
-            <th>ACTUAL_CONS</th>
-            <th>EST_CONS</th>
+            ${isDme ? '<th>Consumption</th>' : '<th>WH_ISSUE</th><th>ACTUAL_CONS</th><th>EST_CONS</th>'}
             <th>CUR_STOCK</th>
             <th>AnnualIndentQty</th>
             <th>Rate</th>
@@ -658,9 +659,12 @@ export default function CreateAnnualIndentDhPage() {
           <td>${r.strength || ''}</td>
           <td>${r.groupName || ''}</td>
           <td style="text-align: center;">${r.edl || '-'}</td>
-          <td style="text-align: right;">${r.consumption || 0}</td>
-          <td style="text-align: right;">${r.actualConsumption || 0}</td>
-          <td style="text-align: right;">${r.projectedConsumption || 0}</td>
+          ${isDme 
+            ? `<td style="text-align: right;">${r.consumption || 0}</td>`
+            : `<td style="text-align: right;">${r.consumption || 0}</td>
+               <td style="text-align: right;">${r.actualConsumption || 0}</td>
+               <td style="text-align: right;">${r.projectedConsumption || 0}</td>`
+          }
           <td style="text-align: right;">${r.currentStock || 0}</td>
           <td style="text-align: right;">${r.facilityIndentQty || 0}</td>
           <td style="text-align: right;">${Number(r.rate || 0).toFixed(2)}</td>
@@ -991,13 +995,13 @@ export default function CreateAnnualIndentDhPage() {
                     </div>
                   </div>
 
-                  <button
+                  {/* <button
                     onClick={handleDownloadSampleFile}
                     className="ml-auto text-xs font-bold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300 underline flex items-center gap-1"
                   >
                     <DocumentArrowDownIcon className="w-4 h-4" />
                     <span>Download sample excel file format</span>
-                  </button>
+                  </button> */}
                 </div>
 
               </div>
@@ -1090,9 +1094,15 @@ export default function CreateAnnualIndentDhPage() {
                         <th className="py-3 px-2 border-r border-emerald-800 text-left min-w-[120px]">Strength</th>
                         <th className="py-3 px-2 border-r border-emerald-800 text-left min-w-[130px]">Group Name</th>
                         <th className="py-3 px-2 border-r border-emerald-800 text-center w-14">EDL</th>
-                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">WH_ISSUE</th>
-                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">ACTUAL_CONS</th>
-                        <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">EST_CONS</th>
+                        {isDme ? (
+                          <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">Consumption</th>
+                        ) : (
+                          <>
+                            <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">WH_ISSUE</th>
+                            <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">ACTUAL_CONS</th>
+                            <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">EST_CONS</th>
+                          </>
+                        )}
                         <th className="py-3 px-2 border-r border-emerald-800 text-right w-24">CUR_STOCK</th>
                         <th className="py-3 px-2 border-r border-emerald-800 text-right w-28">Annual Indent Qty</th>
                         <th className="py-3 px-2 border-r border-emerald-800 text-right w-20">Rate</th>
@@ -1105,7 +1115,7 @@ export default function CreateAnnualIndentDhPage() {
                     <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                       {loading ? (
                         <tr>
-                          <td colSpan="16" className="py-12 text-center text-slate-500">
+                          <td colSpan={isDme ? "14" : "16"} className="py-12 text-center text-slate-500">
                             <div className="flex flex-col items-center justify-center gap-2">
                               <ArrowPathIcon className="w-7 h-7 animate-spin text-emerald-600" />
                               <span className="text-xs font-semibold">Loading items...</span>
@@ -1114,13 +1124,13 @@ export default function CreateAnnualIndentDhPage() {
                         </tr>
                       ) : items.length === 0 ? (
                         <tr>
-                          <td colSpan="16" className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
+                          <td colSpan={isDme ? "14" : "16"} className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
                             No Item found in this Indent. Upload Excel file to populate items.
                           </td>
                         </tr>
                       ) : filteredItems.length === 0 ? (
                         <tr>
-                          <td colSpan="16" className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
+                          <td colSpan={isDme ? "14" : "16"} className="py-12 text-center text-slate-500 dark:text-slate-400 font-bold">
                             No matching items found for the selected search / category filter.
                           </td>
                         </tr>
@@ -1158,42 +1168,59 @@ export default function CreateAnnualIndentDhPage() {
                                   {row.edl || '-'}
                                 </span>
                               </td>
-                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono">
-                                {isEditing ? (
-                                  <input
-                                    type="number"
-                                    value={editForm.consumption}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, consumption: e.target.value }))}
-                                    className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
-                                  />
-                                ) : (
-                                  row.consumption || 0
-                                )}
-                              </td>
-                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono text-slate-500 dark:text-slate-400">
-                                {isEditing ? (
-                                  <input
-                                    type="number"
-                                    value={editForm.actualConsumption}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, actualConsumption: e.target.value }))}
-                                    className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
-                                  />
-                                ) : (
-                                  row.actualConsumption || 0
-                                )}
-                              </td>
-                              <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono text-slate-500 dark:text-slate-400">
-                                {isEditing ? (
-                                  <input
-                                    type="number"
-                                    value={editForm.projectedConsumption}
-                                    onChange={(e) => setEditForm(prev => ({ ...prev, projectedConsumption: e.target.value }))}
-                                    className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
-                                  />
-                                ) : (
-                                  row.projectedConsumption || 0
-                                )}
-                              </td>
+                              {isDme ? (
+                                <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono">
+                                  {isEditing ? (
+                                    <input
+                                      type="number"
+                                      value={editForm.consumption}
+                                      onChange={(e) => setEditForm(prev => ({ ...prev, consumption: e.target.value }))}
+                                      className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
+                                    />
+                                  ) : (
+                                    row.consumption || 0
+                                  )}
+                                </td>
+                              ) : (
+                                <>
+                                  <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono">
+                                    {isEditing ? (
+                                      <input
+                                        type="number"
+                                        value={editForm.consumption}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, consumption: e.target.value }))}
+                                        className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
+                                      />
+                                    ) : (
+                                      row.consumption || 0
+                                    )}
+                                  </td>
+                                  <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono text-slate-500 dark:text-slate-400">
+                                    {isEditing ? (
+                                      <input
+                                        type="number"
+                                        value={editForm.actualConsumption}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, actualConsumption: e.target.value }))}
+                                        className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
+                                      />
+                                    ) : (
+                                      row.actualConsumption || 0
+                                    )}
+                                  </td>
+                                  <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono text-slate-500 dark:text-slate-400">
+                                    {isEditing ? (
+                                      <input
+                                        type="number"
+                                        value={editForm.projectedConsumption}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, projectedConsumption: e.target.value }))}
+                                        className="w-16 px-1.5 py-1 text-right border border-emerald-500 rounded outline-none text-xs"
+                                      />
+                                    ) : (
+                                      row.projectedConsumption || 0
+                                    )}
+                                  </td>
+                                </>
+                              )}
                               <td className="py-2 px-2 text-right border-r border-slate-100 dark:border-slate-800 font-mono font-bold text-blue-700 dark:text-blue-400">
                                 {isEditing ? (
                                   <input

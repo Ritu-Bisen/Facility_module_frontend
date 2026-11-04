@@ -455,7 +455,19 @@ export default function UploadForwardIndentPage() {
                               {index + 1}
                             </td>
                             <td className="py-3 px-4 text-center font-bold text-slate-800 dark:text-slate-200 border-r border-slate-100 dark:border-slate-800">
-                              {row.nocNumber}
+                              {row.status === 'Incomplete' ? (
+                                <Link
+                                  to={`/annual-indent/create-ayush?indentId=${row.nocId}&finYearId=${selectedFinYear}`}
+                                  className="text-blue-700 dark:text-blue-400 hover:text-blue-900 hover:underline inline-flex items-center gap-1 font-bold cursor-pointer"
+                                  title="Click to view/edit incomplete indent"
+                                >
+                                  {row.nocNumber}
+                                </Link>
+                              ) : (
+                                <span className="font-bold text-slate-800 dark:text-slate-200 select-none">
+                                  {row.nocNumber}
+                                </span>
+                              )}
                             </td>
                             <td className="py-3 px-4 text-center border-r border-slate-100 dark:border-slate-800 font-medium">
                               {row.nocDate}
