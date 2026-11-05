@@ -51,8 +51,8 @@ export default function DaoStatusReportPage() {
       setDropdownLoading(true);
       try {
         const [fyRes, catRes] = await Promise.all([
-          axios.get('/annual-indent/upload-forward/fin-years'),
-          axios.get('/annual-indent/categories')
+          axios.get('/dao-annual-indent/fin-years'),
+          axios.get('/dao-annual-indent/categories')
         ]);
 
         if (fyRes.data?.success && Array.isArray(fyRes.data.data)) {
@@ -66,7 +66,7 @@ export default function DaoStatusReportPage() {
         if (catRes.data?.success && Array.isArray(catRes.data.data)) {
           setCategories(catRes.data.data);
           if (catRes.data.data.length > 0) {
-            setSelectedCategory(String(catRes.data.data[0].categoryId || catRes.data.data[0].subcatId || '1'));
+            setSelectedCategory(String(catRes.data.data[0].subcatId));
           }
         }
       } catch (err) {
@@ -113,7 +113,7 @@ export default function DaoStatusReportPage() {
 
   const handleExportExcel = () => {
     if (reportList.length === 0) return;
-    const catObj = categories.find(c => String(c.categoryId || c.subcatId) === selectedCategory);
+    const catObj = categories.find(c => String(c.subcatId) === selectedCategory);
     const catName = catObj ? catObj.categoryName : 'Category';
     const headers = ['Sr No', 'Facility Name', 'Indent Type', 'Status'];
     const rows = reportList.map(r => [
@@ -184,7 +184,7 @@ export default function DaoStatusReportPage() {
                     >
                       <option value="0">Select Category</option>
                       {categories.map(c => (
-                        <option key={c.categoryId || c.subcatId} value={c.categoryId || c.subcatId}>
+                        <option key={c.subcatId} value={String(c.subcatId)}>
                           {c.categoryName}
                         </option>
                       ))}
@@ -268,7 +268,7 @@ export default function DaoStatusReportPage() {
                             {row.facilityName}
                           </td>
                           <td className="py-2 px-4 border-r border-slate-100 text-slate-700 text-xs">
-                            {row.categoryName}
+                            {row.categoryName || categories.find(c => String(c.subcatId) === String(selectedCategory))?.categoryName || '—'}
                           </td>
                           <td className="py-2 px-4 border-r border-slate-100 text-slate-700 text-xs font-semibold">
                             {row.status}

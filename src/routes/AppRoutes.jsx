@@ -82,6 +82,7 @@ import CreateAnnualIndentPage from '../pages/annual-indent/CreateAnnualIndentPag
 import CreateAnnualIndentAyushPage from '../pages/annual-indent/CreateAnnualIndentAyushPage';
 import CreateAnnualIndentDhPage from '../pages/annual-indent/CreateAnnualIndentDhPage';
 import DaoApprovalPage from '../pages/annual-indent/DaoApprovalPage';
+import ChcApprovalPage from '../pages/annual-indent/ChcApprovalPage';
 import DaoStatusReportPage from '../pages/annual-indent/DaoStatusReportPage';
 import DaoItemWiseAiPage from '../pages/annual-indent/DaoItemWiseAiPage';
 import CgmscReceiptDrugWisePage from '../pages/reports/CgmscReceiptDrugWisePage';
@@ -670,6 +671,27 @@ export default function AppRoutes() {
       <Route path="/annual-indent/upload-forward" element={
         <ProtectedRoute>
           <UploadForwardIndentPage />
+        </ProtectedRoute>
+      } />
+      {/* CHC Annual Indent Routes */}
+      <Route path="/annual-indent/chc-approval" element={
+        <ProtectedRoute>
+          <ChcApprovalPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/CHCApproval.aspx" element={
+        <ProtectedRoute>
+          <ChcApprovalPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/CHCApproval.aspx" element={
+        <ProtectedRoute>
+          <ChcApprovalPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/CHCApproval.aspx" element={
+        <ProtectedRoute>
+          <ChcApprovalPage />
         </ProtectedRoute>
       } />
       {/* DAO Annual Indent Routes */}

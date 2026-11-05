@@ -148,6 +148,7 @@ export default function Sidebar() {
           ...(isHod2Or3 && !isAyushUser && currentHodId !== 7 ? [
             { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual Indent', canView: true }
           ] : []),
+          { screenId: 'ai_chc_approval', screenUrl: '/annual-indent/chc-approval', screenName: 'Approval of Forwarded Indents', canView: true },
           ...(isMcFacility ? [
             { screenId: 'ai_mc_ai', screenUrl: '/annual-indent/medical-college-ai', screenName: 'Medical College AI', canView: true },
             { screenId: 'ai_mc_vs_issuance', screenUrl: '/annual-indent/mc-hospital-ai-vs-issuance', screenName: 'Medical College/Hospital AI vs Issuance', canView: true }
@@ -267,7 +268,7 @@ export default function Sidebar() {
 
           // If user's HOD is not 2 or 3 or 7, filter out upload-forward
           if (!isHod2Or3) {
-            if (url.includes('upload-forward') || name.includes('upload and forward') || name.includes('forward indent')) {
+            if ((url.includes('upload-forward') || name.includes('upload and forward') || name.includes('forward indent')) && !name.includes('approval') && !url.includes('approval')) {
               return false;
             }
           }
@@ -303,6 +304,9 @@ export default function Sidebar() {
         }
         if (sUrl.includes('reagentanualindentmain') || sName.includes('upload and forward reagent') || sUrl.includes('reagentanualitemindent')) {
           return { ...s, screenUrl: '/non-edl-annual-indent/upload-forward-reagent' };
+        }
+        if (sUrl.includes('chcapproval') || (sName.includes('approval of forwarded indent') && !sName.includes('(dao)'))) {
+          return { ...s, screenName: 'Approval of Forwarded Indents', screenUrl: '/annual-indent/chc-approval' };
         }
         if (sUrl.includes('daoapproval') || sName.includes('approval of forwarded indent(dao)')) {
           return { ...s, screenName: 'Approval Of Forwarded Indent(DAO)', screenUrl: '/annual-indent/dao-approval' };

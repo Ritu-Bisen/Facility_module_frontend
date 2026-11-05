@@ -51,7 +51,7 @@ export const generateIndentToOtherFacilityPDF = async (idOrData) => {
       idx + 1,
       item.itemCode || item.ITEMCODE || '—',
       item.itemName || item.ITEMNAME || '—',
-      item.strength || item.STRENGTH1 || '—',
+      item.strength || item.strength1 || item.STRENGTH1 || item.Strength1 || '—',
       item.requestedQty || item.REQUESTEDQTY || '0',
       item.approvedQty || item.APPROVEDQTY || '0'
     ]);

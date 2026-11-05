@@ -313,13 +313,15 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
 
       const consVal = Number(item.consumption || item.CONSUMPTION || 0).toLocaleString('en-IN');
       const curStockVal = Number(item.currentStock || item.CURRENTSTOCK || 0).toLocaleString('en-IN');
+      const rawStrength = String(item.strength || item.strength1 || item.STRENGTH1 || item.Strength1 || item.STRENGTH || '').trim();
+      const displayStrength = rawStrength && rawStrength !== '-' && rawStrength !== '—' ? rawStrength : '—';
 
       if (showTripleConsColumns) {
         return [
           idx + 1,
           item.itemCode || item.ITEMCODE || '—',
           item.itemName || item.ITEMNAME || '—',
-          item.strength || item.STRENGTH1 || '—',
+          displayStrength,
           item.groupName || item.GROUPNAME || '—',
           item.edl || item.EDL || '—',
           consVal,
@@ -339,7 +341,7 @@ export const generateAnnualIndentPDF = async (row, user, selectedYear) => {
         idx + 1,
         item.itemCode || item.ITEMCODE || '—',
         item.itemName || item.ITEMNAME || '—',
-        item.strength || item.STRENGTH1 || '—',
+        displayStrength,
         item.groupName || item.GROUPNAME || '—',
         item.edl || item.EDL || '—',
         consVal, // Data directly from consumption column of anualindent table
