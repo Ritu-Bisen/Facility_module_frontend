@@ -40,9 +40,13 @@ export default function DownloadAiFormatPage() {
     setLoading(true);
     setError('');
     try {
+      const facId = user?.facilityId || (localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user'))?.facilityId : null) || localStorage.getItem('facilityId') || '23393';
       const facTypeId = localStorage.getItem('facilityTypeId') || localStorage.getItem('facilitytypeid') || user?.facilityTypeId || user?.facilitytypeid;
       const res = await axios.get('/annual-indent/download-format', {
-        params: { facilityTypeId: facTypeId || undefined }
+        params: { 
+          facilityId: facId || undefined,
+          facilityTypeId: facTypeId || undefined 
+        }
       });
       if (res.data?.success && Array.isArray(res.data.data)) {
         setItemsData(res.data.data);
@@ -89,11 +93,15 @@ export default function DownloadAiFormatPage() {
     setDownloading(true);
     setError('');
     try {
+      const facId = user?.facilityId || (localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user'))?.facilityId : null) || localStorage.getItem('facilityId') || '23393';
       let exportRows = itemsData;
       if (exportRows.length === 0) {
         const facTypeId = localStorage.getItem('facilityTypeId') || localStorage.getItem('facilitytypeid') || user?.facilityTypeId || user?.facilitytypeid;
         const res = await axios.get('/annual-indent/download-format', {
-          params: { facilityTypeId: facTypeId || undefined }
+          params: { 
+            facilityId: facId || undefined,
+            facilityTypeId: facTypeId || undefined 
+          }
         });
         if (res.data?.success && Array.isArray(res.data.data)) {
           exportRows = res.data.data;
@@ -101,7 +109,6 @@ export default function DownloadAiFormatPage() {
       }
 
       if (exportRows.length > 0) {
-        const facId = user?.facilityId || '22595';
 
         // Prepare XLSX worksheet data matching the exact query columns
         const worksheetData = isDme

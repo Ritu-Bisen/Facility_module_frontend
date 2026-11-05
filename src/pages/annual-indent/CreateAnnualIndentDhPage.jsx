@@ -554,7 +554,14 @@ export default function CreateAnnualIndentDhPage() {
   // Download Sample Excel Handler
   const handleDownloadSampleFile = async () => {
     try {
-      const res = await axios.get('/dh-annual-indent/download-format');
+      const facId = user?.facilityId || (localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user'))?.facilityId : null) || localStorage.getItem('facilityId') || '23393';
+      const facTypeId = localStorage.getItem('facilityTypeId') || localStorage.getItem('facilitytypeid') || user?.facilityTypeId || user?.facilitytypeid;
+      const res = await axios.get('/dh-annual-indent/download-format', {
+        params: {
+          facilityId: facId || undefined,
+          facilityTypeId: facTypeId || undefined
+        }
+      });
       if (res.data?.success && Array.isArray(res.data.data)) {
         const rows = res.data.data;
         let tableHtml = `

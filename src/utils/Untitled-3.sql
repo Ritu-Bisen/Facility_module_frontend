@@ -5,7 +5,7 @@ select * from MASCGMSCNOCITEMS where nocid='366250';
 select * from usrusers where facilityid='23511';
 
 
-.
+
 
 select * from MASANUALINDENT where indentno='23393/AI00001/26-27';
 
