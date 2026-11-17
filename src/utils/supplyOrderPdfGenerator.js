@@ -14,9 +14,9 @@ export const generateSupplyOrderPDF = (details, user) => {
   // --- Header ---
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text(facilityName, doc.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
-  doc.text(districtName, doc.internal.pageSize.getWidth() / 2, 55, { align: 'center' });
-  doc.text(locationName, doc.internal.pageSize.getWidth() / 2, 70, { align: 'center' });
+  doc.text(facilityName, doc.internal.pageSize.getWidth() / 2, 70, { align: 'center' });
+  // doc.text(districtName, doc.internal.pageSize.getWidth() / 2, 55, { align: 'center' });
+  // doc.text(locationName, doc.internal.pageSize.getWidth() / 2, 70, { align: 'center' });
   
   doc.setLineWidth(0.5);
   doc.line(40, 85, doc.internal.pageSize.getWidth() - 40, 85);

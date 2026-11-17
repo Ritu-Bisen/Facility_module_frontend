@@ -6,7 +6,7 @@ import Footer from '../../components/layout/Footer';
 import axios from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
 import { generateAnnualIndentPDF } from '../../utils/annualIndentPdfGenerator';
-import { getDynamicIndentHeaders } from '../../utils/indentYearHelper';
+import { getDynamicIndentHeaders, getCurrentAndFutureFinYears } from '../../utils/indentYearHelper';
 import {
   DocumentArrowUpIcon,
   PlusIcon,
@@ -148,8 +148,108 @@ export default function UploadForwardIndentPage() {
     );
   }, [user]);
 
-  // For DH: only show Add New Annual Indent button if in that year there is NO indent (indentList.length === 0)
-  const showAddButton = isDhUser ? (indentList.length === 0) : canAdd;
+  // Dynamic Indian Financial Year calculations (1 April - 31 March)
+  // e.g. Before 1 April 2027: current = 26-27, future = 27-28
+  // e.g. From 1 April 2027:   current = 27-28, future = 28-29
+  const finYearInfo = useMemo(() => getCurrentAndFutureFinYears(), []);
+
+  // Check if selected financial year is the current financial year
+  const isCurrentFinYear = useMemo(() => {
+    const selectedYearObj = finYears.find(fy => String(fy.accYrSetId) === String(selectedFinYear));
+    if (selectedYearObj?.isCurrent) return true;
+
+    const yearText = String(
+      selectedYearObj?.accYear ||
+      selectedYearObj?.shAccYear ||
+      selectedYearObj?.year ||
+      ''
+    ).trim();
+
+    if (yearText) {
+      return (
+        yearText.includes(finYearInfo.currentFyShort) ||
+        yearText.includes(finYearInfo.currentFyFull) ||
+        yearText.replace(/\s+/g, '') === finYearInfo.currentFyFull ||
+        yearText.replace(/\s+/g, '') === finYearInfo.currentFyShort
+      );
+    }
+    return String(selectedFinYear) === '547';
+  }, [finYears, selectedFinYear, finYearInfo]);
+
+  // Check if selected financial year is the future financial year
+  const isFutureFinYear = useMemo(() => {
+    const selectedYearObj = finYears.find(fy => String(fy.accYrSetId) === String(selectedFinYear));
+    const currentIdx = finYears.findIndex(fy => fy.isCurrent);
+    if (currentIdx > 0 && selectedYearObj && String(finYears[currentIdx - 1]?.accYrSetId) === String(selectedFinYear)) {
+      return true;
+    }
+
+    const yearText = String(
+      selectedYearObj?.accYear ||
+      selectedYearObj?.shAccYear ||
+      selectedYearObj?.year ||
+      ''
+    ).trim();
+
+    if (yearText) {
+      return (
+        yearText.includes(finYearInfo.futureFyShort) ||
+        yearText.includes(finYearInfo.futureFyFull) ||
+        yearText.replace(/\s+/g, '') === finYearInfo.futureFyFull ||
+        yearText.replace(/\s+/g, '') === finYearInfo.futureFyShort
+      );
+    }
+    return String(selectedFinYear) === '548';
+  }, [finYears, selectedFinYear, finYearInfo]);
+
+  const isCurrentOrFutureFinYear = isCurrentFinYear || isFutureFinYear;
+
+  // Add New Annual Indent visibility rule:
+  // - The button only shows in the current financial year and future financial year (e.g. 26-27 and 27-28; from 1 April 27-28 and 28-29).
+  // - In past financial years, NEVER show that button.
+  // - When login user hodId is 3 (DME): ALWAYS show the button in current and future year in any case.
+  // - When login user hodId is 2 (DHS):
+  //     * In 26-27: do NOT show button
+  //     * In future year (e.g. 27-28; from 1 Apr in 27-28/28-29): ONLY show if there is no indent yet (indentList.length === 0). If one indent is created, do NOT show that button.
+  // - Otherwise: default to standard rule (isDhUser ? (indentList.length === 0) : canAdd)
+  const showAddButton = useMemo(() => {
+    // Only show button in current year and future year; never in past years
+    if (!isCurrentOrFutureFinYear) {
+      return false;
+    }
+
+    const localHod = String(
+      localStorage.getItem('hodId') ??
+      localStorage.getItem('hodid') ??
+      currentHodId ??
+      ''
+    ).trim();
+
+    const isHod3 = localHod === '3' || currentHodId === 3;
+    const isHod2 = localHod === '2' || currentHodId === 2;
+
+    if (isHod3) {
+      // DME (hodId 3): In both current and future year, ALWAYS show button in any case
+      return true;
+    }
+
+    if (isHod2) {
+      // DHS (hodId 2):
+      const selectedYearObj = finYears.find(fy => String(fy.accYrSetId) === String(selectedFinYear));
+      const yearText = String(selectedYearObj?.accYear || selectedYearObj?.shAccYear || '').trim();
+      const isYear2627 = yearText.includes('26-27') || yearText.includes('2026-2027') || String(selectedFinYear) === '547';
+
+      // In 26-27: do not show
+      if (isYear2627) {
+        return false;
+      }
+
+      // In other current/future years (e.g. 27-28): only show if no indent yet (if 1 indent created, do NOT show)
+      return indentList.length === 0;
+    }
+
+    return isDhUser ? (indentList.length === 0) : canAdd;
+  }, [isCurrentOrFutureFinYear, finYears, selectedFinYear, currentHodId, isDhUser, indentList.length, canAdd]);
 
   // Download Category Excel Format Handler (btnDownload_Click)
   const handleDownloadCategoryFormat = async () => {

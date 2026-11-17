@@ -7,6 +7,7 @@ import axios from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
 import * as XLSX from 'xlsx';
 import { generateAnnualIndentPDF, sortAnnualIndentItems, isDmeUserOrFacility } from '../../utils/annualIndentPdfGenerator';
+import { getCurrentAndFutureFinYears } from '../../utils/indentYearHelper';
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -47,6 +48,30 @@ export default function CreateAnnualIndentDhPage() {
 
   const [headerEditMode, setHeaderEditMode] = useState(!urlIndentId);
   const [generating, setGenerating] = useState(false);
+
+  // Guard: New annual indent can ONLY be created for Current or Future financial years
+  // Also: User hodId 2 cannot create a new indent for fin year 26-27
+  useEffect(() => {
+    const rawHodId = localStorage.getItem('hodId') || localStorage.getItem('hodid') || user?.hodId || user?.hodid;
+    const currentHodId = rawHodId !== null && rawHodId !== undefined && rawHodId !== '' ? Number(rawHodId) : null;
+    
+    const { currentFyShort, currentFyFull, futureFyShort, futureFyFull } = getCurrentAndFutureFinYears();
+    const selectedYearObj = finYears.find(fy => String(fy.accYrSetId) === String(selectedFinYear));
+    const yearText = String(selectedYearObj?.accYear || selectedYearObj?.shAccYear || '').trim();
+
+    const isCurrent = selectedYearObj?.isCurrent || yearText.includes(currentFyShort) || yearText.includes(currentFyFull) || String(selectedFinYear) === '547';
+    const isFuture = yearText.includes(futureFyShort) || yearText.includes(futureFyFull) || String(selectedFinYear) === '548';
+    const isCurrentOrFuture = isCurrent || isFuture;
+
+    const isFinYear2627 = yearText.includes('26-27') || yearText.includes('2026-2027') || String(selectedFinYear) === '547';
+
+    // Disallow new indent creation in past years, or for hodId 2 in 26-27
+    if (!urlIndentId) {
+      if (!isCurrentOrFuture || (currentHodId === 2 && isFinYear2627)) {
+        navigate('/annual-indent/upload-forward-dh', { replace: true });
+      }
+    }
+  }, [selectedFinYear, finYears, urlIndentId, user, navigate]);
 
   // DME Check: In case of DME login, hide WH_ISSUE, ACTUAL_CONS, EST_CONS and show single Consumption
   const isDme = useMemo(() => isDmeUserOrFacility(user, headerInfo), [user, headerInfo]);
