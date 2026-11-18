@@ -83,7 +83,9 @@ import CreateAnnualIndentAyushPage from '../pages/annual-indent/CreateAnnualInde
 import CreateAnnualIndentDhPage from '../pages/annual-indent/CreateAnnualIndentDhPage';
 import DaoApprovalPage from '../pages/annual-indent/DaoApprovalPage';
 import ChcApprovalPage from '../pages/annual-indent/ChcApprovalPage';
+import ChcStatusReportPage from '../pages/annual-indent/ChcStatusReportPage';
 import DaoStatusReportPage from '../pages/annual-indent/DaoStatusReportPage';
+import CmhoStatusReportPage from '../pages/annual-indent/CmhoStatusReportPage';
 import DaoItemWiseAiPage from '../pages/annual-indent/DaoItemWiseAiPage';
 import CgmscReceiptDrugWisePage from '../pages/reports/CgmscReceiptDrugWisePage';
 import CgmscReceiptBatchWisePage from '../pages/reports/CgmscReceiptBatchWisePage';
@@ -694,6 +696,26 @@ export default function AppRoutes() {
           <ChcApprovalPage />
         </ProtectedRoute>
       } />
+      <Route path="/annual-indent/chc-status-report" element={
+        <ProtectedRoute>
+          <ChcStatusReportPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/CHCAnnualIndentStatus.aspx" element={
+        <ProtectedRoute>
+          <ChcStatusReportPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/CHCAnnualIndentStatus.aspx" element={
+        <ProtectedRoute>
+          <ChcStatusReportPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/CHCAnnualIndentStatus.aspx" element={
+        <ProtectedRoute>
+          <ChcStatusReportPage />
+        </ProtectedRoute>
+      } />
       {/* DAO Annual Indent Routes */}
       <Route path="/annual-indent/dao-approval" element={
         <ProtectedRoute>
@@ -713,6 +735,27 @@ export default function AppRoutes() {
       <Route path="/AnualIndent/Reports/AyushDAOAnnualIndentStatus.aspx" element={
         <ProtectedRoute>
           <DaoStatusReportPage />
+        </ProtectedRoute>
+      } />
+      {/* CMHO Annual Indent Status Report Routes */}
+      <Route path="/annual-indent/cmho-status-report" element={
+        <ProtectedRoute>
+          <CmhoStatusReportPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/CMHOAnnualIndentStatus.aspx" element={
+        <ProtectedRoute>
+          <CmhoStatusReportPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/CMHOAnnualIndentStatus.aspx" element={
+        <ProtectedRoute>
+          <CmhoStatusReportPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/CMHOAnnualIndentStatus.aspx" element={
+        <ProtectedRoute>
+          <CmhoStatusReportPage />
         </ProtectedRoute>
       } />
       <Route path="/annual-indent/dao-item-wise-ai" element={

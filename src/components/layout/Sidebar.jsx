@@ -74,6 +74,16 @@ export default function Sidebar() {
                      String(user?.facilityTypeId) === '353' ||
                      user?.emailId === 'admink@gnail.com';
 
+  // CHC Facility check
+  const isChcFacility = 
+    userFacTypeCode === 'CHC' || 
+    localFacType === 'CHC' || 
+    userFacTypeName.includes('CHC') || 
+    localFacType.includes('CHC') || 
+    userFacTypeName.includes('COMMUNITY HEALTH') ||
+    localRoleName.includes('CHC') ||
+    userRoleName.includes('CHC');
+
   // HOD ID check:
   // In MASHODS: 2 = DHS, 3 = DME, 7 = AYUSH (or 3 as requested for AYUSH)
   const rawHodId = localStorage.getItem('hodId') || localStorage.getItem('hodid') || user?.hodId || user?.hodid;
@@ -148,7 +158,13 @@ export default function Sidebar() {
           ...(isHod2Or3 && !isAyushUser && currentHodId !== 7 ? [
             { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual Indent', canView: true }
           ] : []),
-          { screenId: 'ai_chc_approval', screenUrl: '/annual-indent/chc-approval', screenName: 'Approval of Forwarded Indents', canView: true },
+          ...(isChcFacility ? [
+            { screenId: 'ai_chc_approval', screenUrl: '/annual-indent/chc-approval', screenName: 'Approval of Forwarded Indents(Only For Parent CHC)', canView: true },
+            { screenId: 'ai_chc_status_report', screenUrl: '/annual-indent/chc-status-report', screenName: 'Status Report of Uploaded and Forwarded Indent(Only for Parent CHC)', canView: true }
+          ] : []),
+          ...(isCmhoUser ? [
+            { screenId: 'ai_cmho_status_report', screenUrl: '/annual-indent/cmho-status-report', screenName: 'Status Report for Uploaded and Forwarded Indents(Only for CMHO)', canView: true }
+          ] : []),
           ...(isMcFacility ? [
             { screenId: 'ai_mc_ai', screenUrl: '/annual-indent/medical-college-ai', screenName: 'Medical College AI', canView: true },
             { screenId: 'ai_mc_vs_issuance', screenUrl: '/annual-indent/mc-hospital-ai-vs-issuance', screenName: 'Medical College/Hospital AI vs Issuance', canView: true }
@@ -306,7 +322,16 @@ export default function Sidebar() {
           return { ...s, screenUrl: '/non-edl-annual-indent/upload-forward-reagent' };
         }
         if (sUrl.includes('chcapproval') || (sName.includes('approval of forwarded indent') && !sName.includes('(dao)'))) {
-          return { ...s, screenName: 'Approval of Forwarded Indents', screenUrl: '/annual-indent/chc-approval' };
+          if (!isChcFacility) return null;
+          return { ...s, screenName: 'Approval of Forwarded Indents(Only For Parent CHC)', screenUrl: '/annual-indent/chc-approval' };
+        }
+        if (sUrl.includes('chcannualindentstatus') || (sName.includes('status report') && sName.includes('chc'))) {
+          if (!isChcFacility) return null;
+          return { ...s, screenName: 'Status Report of Uploaded and Forwarded Indent(Only for Parent CHC)', screenUrl: '/annual-indent/chc-status-report' };
+        }
+        if (sUrl.includes('cmhoannualindentstatus') || sName.includes('status report for uploaded and forwarded indents(only for cmho)')) {
+          if (!isCmhoUser) return null;
+          return { ...s, screenName: 'Status Report for Uploaded and Forwarded Indents(Only for CMHO)', screenUrl: '/annual-indent/cmho-status-report' };
         }
         if (sUrl.includes('daoapproval') || sName.includes('approval of forwarded indent(dao)')) {
           return { ...s, screenName: 'Approval Of Forwarded Indent(DAO)', screenUrl: '/annual-indent/dao-approval' };
@@ -324,7 +349,7 @@ export default function Sidebar() {
           return { ...s, screenName: 'Expiry Voucher', screenUrl: '/expiry-voucher' };
         }
         return s;
-      });
+      }).filter(Boolean);
 
       if (!moduleMap.has(name)) {
         moduleMap.set(name, {
@@ -345,7 +370,7 @@ export default function Sidebar() {
     });
 
     return Array.from(moduleMap.values());
-  }, [menus, hardcodedModules, isHod2Or3, isCmhoUser, isDaoAyushFac]);
+  }, [menus, hardcodedModules, isHod2Or3, isCmhoUser, isDaoAyushFac, isChcFacility]);
 
   useEffect(() => {
     // Keep parent menu open when navigating to one of its sub-items
