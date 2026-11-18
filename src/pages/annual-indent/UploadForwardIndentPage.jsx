@@ -129,12 +129,21 @@ export default function UploadForwardIndentPage() {
     return true;
   });
 
-  // Check if facility type or role is DH (District Hospital)
+  // Check if facility type or role is DH (District Hospital under DHS, not AYUSH)
   const isDhUser = useMemo(() => {
     const facTypeCode = (user?.facilityTypeCode || localStorage.getItem('facilityTypeCode') || '').toUpperCase();
     const facTypeDesc = (user?.facilityTypeName || user?.facilityType || localStorage.getItem('facilityType') || '').toUpperCase();
     const facName = (user?.facilityName || '').toUpperCase();
     const role = (user?.roleName || user?.role || localStorage.getItem('roleName') || '').toUpperCase();
+    const email = (user?.emailId || '').toLowerCase();
+
+    // If the user is an AYUSH facility user, they are submitting AYUSH indents per category and are NOT DHS DH
+    const isAyush = currentHodId === 7 || 
+                    role.includes('AYUSH') || 
+                    facTypeDesc.includes('AYUSH') || 
+                    facName.includes('AYUSH') ||
+                    email.startsWith('afu');
+    if (isAyush) return false;
 
     return (
       facTypeCode === 'DH' ||
@@ -146,7 +155,7 @@ export default function UploadForwardIndentPage() {
       role === 'DH' ||
       role.includes('DH')
     );
-  }, [user]);
+  }, [user, currentHodId]);
 
   // Dynamic Indian Financial Year calculations (1 April - 31 March)
   // e.g. Before 1 April 2027: current = 26-27, future = 27-28
