@@ -83,11 +83,28 @@ export default function ChcApprovalPage() {
       const res = await axios.get('/chc-annual-indent/fin-years');
       if (res.data?.success && Array.isArray(res.data.data)) {
         setFinYears(res.data.data);
-        const curr = res.data.data.find(y => y.isCurrent);
-        if (curr) {
-          setSelectedFinYear(String(curr.accYrSetId));
-        } else if (res.data.data.length > 0) {
-          setSelectedFinYear(String(res.data.data[0].accYrSetId));
+        
+        // Default to Fin Year 27-28 (2027-2028)
+        const fy2728 = res.data.data.find(y => {
+          const str = String(y.accYear || '').replace(/\s+/g, '');
+          return str.includes('27-28') || str.includes('2027-2028') || str.includes('2027-28') || String(y.accYrSetId) === '548';
+        });
+
+        if (fy2728) {
+          setSelectedFinYear(String(fy2728.accYrSetId));
+        } else {
+          // If 27-28 text is not explicitly found, check for next year after current (descending order)
+          const currentIdx = res.data.data.findIndex(y => y.isCurrent);
+          if (currentIdx > 0) {
+            setSelectedFinYear(String(res.data.data[currentIdx - 1].accYrSetId));
+          } else {
+            const curr = res.data.data.find(y => y.isCurrent);
+            if (curr) {
+              setSelectedFinYear(String(curr.accYrSetId));
+            } else if (res.data.data.length > 0) {
+              setSelectedFinYear(String(res.data.data[0].accYrSetId));
+            }
+          }
         }
       }
     } catch (err) {
@@ -215,12 +232,13 @@ export default function ChcApprovalPage() {
     }
   };
 
-  // Batch approve all rows in grid
+  // Batch approve all pending rows in grid
   const handleApproveAllRows = async () => {
-    if (items.length === 0) return;
+    const pendingItems = items.filter(item => !item.isApproved);
+    if (pendingItems.length === 0) return;
     setSavingAll(true);
     try {
-      const payload = items.map(item => ({
+      const payload = pendingItems.map(item => ({
         anualIndentId: item.anualIndentId,
         itemId: item.itemId,
         facilityId: item.facilityId,
@@ -231,7 +249,7 @@ export default function ChcApprovalPage() {
         finYearId: selectedFinYear
       });
       if (res.data?.success) {
-        showMsg(`All ${res.data.updatedCount} facility rows approved successfully!`, 'success');
+        showMsg(`All ${res.data.updatedCount || pendingItems.length} facility rows approved successfully!`, 'success');
         fetchGridItems();
       } else {
         showMsg(res.data?.error || 'Failed to approve batch', 'error');
@@ -543,7 +561,7 @@ export default function ChcApprovalPage() {
                         </span>
                       </div>
 
-                      {!isCompleted && (
+                      {!isCompleted && stats.pending > 0 && (
                         <button
                           type="button"
                           onClick={handleApproveAllRows}
@@ -558,10 +576,16 @@ export default function ChcApprovalPage() {
                           ) : (
                             <>
                               <CheckIcon className="w-3.5 h-3.5" />
-                              <span>Approve All for this Drug</span>
+                              <span>Approve All for this Drug ({stats.pending})</span>
                             </>
                           )}
                         </button>
+                      )}
+                      {!isCompleted && stats.pending === 0 && stats.total > 0 && (
+                        <div className="px-3 py-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold text-xs flex items-center gap-1.5 border border-emerald-300 dark:border-emerald-700">
+                          <CheckCircleIcon className="w-4 h-4 text-emerald-600" />
+                          <span>All Facilities Approved</span>
+                        </div>
                       )}
                     </div>
                   )}
@@ -587,13 +611,15 @@ export default function ChcApprovalPage() {
                         <thead>
                           <tr className="bg-slate-800 text-white font-bold">
                             <th className="p-3 text-center w-12">Sl. No.</th>
-                            <th className="p-3">ItemCode & Description</th>
-                            <th className="p-3">Facility Name</th>
-                            <th className="p-3 text-right">Consumption</th>
-                            <th className="p-3 text-right">Current Stock</th>
-                            <th className="p-3 text-right">Facility Annual Indent</th>
-                            <th className="p-3 text-center w-36">Approve Qty</th>
-                            <th className="p-3 text-center w-28">Actions</th>
+                            <th className="p-3 min-w-[140px]">ItemCode & Description</th>
+                            <th className="p-3 min-w-[120px]">Facility Name</th>
+                            <th className="p-3 text-right whitespace-nowrap" title="Warehouse Issues (CONSUMPTION)">WH_ISSUE</th>
+                            <th className="p-3 text-right whitespace-nowrap" title="Actual Consumption (ACTUALCONSUMPTION)">ACTUAL_CONS</th>
+                            <th className="p-3 text-right whitespace-nowrap" title="Estimated / Projected Consumption (PROJECTEDCONSUMPTION)">EST_CONS</th>
+                            <th className="p-3 text-right whitespace-nowrap" title="Current Stock (CURRENTSTOCK)">Cur Stock</th>
+                            <th className="p-3 text-right whitespace-nowrap" title="Indent Quantity (FACILITYINDENTQTY)">Indent Qty</th>
+                            <th className="p-3 text-center w-36 whitespace-nowrap">Approve Qty</th>
+                            <th className="p-3 text-center w-28 whitespace-nowrap">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
@@ -602,10 +628,10 @@ export default function ChcApprovalPage() {
                             return (
                               <tr
                                 key={row.anualIndentId || idx}
-                                className={`transition-colors ${
+                                className={`transition-colors border-l-4 ${
                                   isApproved
-                                    ? 'bg-emerald-50/70 hover:bg-emerald-100/70 dark:bg-emerald-950/20 dark:hover:bg-emerald-950/40'
-                                    : 'bg-rose-50/50 hover:bg-rose-100/60 dark:bg-rose-950/20 dark:hover:bg-rose-950/30'
+                                    ? 'bg-emerald-100/90 hover:bg-emerald-200/80 border-emerald-600 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 dark:border-emerald-500'
+                                    : 'bg-amber-100/80 hover:bg-amber-200/70 border-amber-500 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 dark:border-amber-500'
                                 }`}
                               >
                                 <td className="p-3 text-center font-bold text-slate-500">
@@ -623,6 +649,12 @@ export default function ChcApprovalPage() {
                                 <td className="p-3 text-right font-mono text-slate-700 dark:text-slate-300">
                                   {row.consumption}
                                 </td>
+                                <td className="p-3 text-right font-mono text-slate-700 dark:text-slate-300">
+                                  {row.actualConsumption ?? 0}
+                                </td>
+                                <td className="p-3 text-right font-mono text-slate-700 dark:text-slate-300">
+                                  {row.projectedConsumption ?? 0}
+                                </td>
                                 <td className="p-3 text-right font-mono font-bold text-blue-700 dark:text-blue-400">
                                   {row.currentStock}
                                 </td>
@@ -630,22 +662,32 @@ export default function ChcApprovalPage() {
                                   {row.anlQty}
                                 </td>
                                 <td className="p-3 text-center">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={row.bmoApprovedQty ?? ''}
-                                    onChange={(e) => handleQtyChange(idx, e.target.value)}
-                                    disabled={isCompleted}
-                                    className="w-28 px-2 py-1.5 text-center font-mono font-bold text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60 shadow-xs"
-                                  />
+                                  {isApproved || isCompleted ? (
+                                    <span className="inline-block w-28 px-2 py-1.5 text-center font-mono font-bold text-xs text-emerald-900 dark:text-emerald-200 bg-emerald-200/50 dark:bg-emerald-900/40 rounded-lg border border-emerald-300 dark:border-emerald-700 select-all">
+                                      {row.bmoApprovedQty ?? row.anlQty}
+                                    </span>
+                                  ) : (
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={row.bmoApprovedQty ?? ''}
+                                      onChange={(e) => handleQtyChange(idx, e.target.value)}
+                                      className="w-28 px-2 py-1.5 text-center font-mono font-bold text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-xs"
+                                    />
+                                  )}
                                 </td>
                                 <td className="p-3 text-center">
-                                  {!isCompleted && (
+                                  {isApproved || isCompleted ? (
+                                    <span className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-bold text-[11px] shadow-xs cursor-default">
+                                      <CheckCircleIcon className="w-3.5 h-3.5 text-white" />
+                                      <span>Approved</span>
+                                    </span>
+                                  ) : (
                                     <button
                                       type="button"
                                       onClick={() => handleApproveSingle(row)}
                                       disabled={savingRowId === row.anualIndentId}
-                                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-[11px] shadow-xs flex items-center justify-center gap-1 mx-auto disabled:opacity-50 transition-all"
+                                      className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold text-[11px] shadow-xs flex items-center justify-center gap-1 mx-auto disabled:opacity-50 transition-all"
                                       title="Approve this facility indent"
                                     >
                                       {savingRowId === row.anualIndentId ? (
@@ -657,12 +699,6 @@ export default function ChcApprovalPage() {
                                         </>
                                       )}
                                     </button>
-                                  )}
-                                  {isCompleted && (
-                                    <span className="text-[11px] font-bold text-emerald-600 flex items-center justify-center gap-1">
-                                      <CheckCircleIcon className="w-4 h-4" />
-                                      <span>Approved</span>
-                                    </span>
                                   )}
                                 </td>
                               </tr>

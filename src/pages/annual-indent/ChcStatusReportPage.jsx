@@ -75,10 +75,16 @@ export default function ChcStatusReportPage() {
         const res = await axios.get('/chc-annual-indent/fin-years');
         if (res.data?.success && Array.isArray(res.data.data)) {
           setFinYears(res.data.data);
-          // Prefer 547 or current year or first item
+          // Prefer 27-28, else 547 or current year or first item
+          const has2728 = res.data.data.find(fy => {
+            const str = String(fy.accYear || '').replace(/\s+/g, '');
+            return str.includes('27-28') || str.includes('2027-2028') || str.includes('2027-28') || String(fy.accYrSetId) === '548';
+          });
           const has547 = res.data.data.find(fy => String(fy.accYrSetId) === '547');
           const currentFy = res.data.data.find(fy => fy.isCurrent);
-          if (has547) {
+          if (has2728) {
+            setSelectedFinYear(String(has2728.accYrSetId));
+          } else if (has547) {
             setSelectedFinYear('547');
           } else if (currentFy) {
             setSelectedFinYear(String(currentFy.accYrSetId));
