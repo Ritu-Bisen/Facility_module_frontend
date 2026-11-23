@@ -80,7 +80,11 @@ const SupplyOrdersPage = () => {
 
   const handleDownloadPO = async (so) => {
     try {
-      const response = await getSupplyOrderDetails(so.id);
+      const storedUser = localStorage.getItem('user');
+      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+      const currentUserId = user?.userId || user?.USERID || parsedUser?.userId || parsedUser?.USERID || localStorage.getItem('userId') || '';
+
+      const response = await getSupplyOrderDetails(so.id, currentUserId);
       if (response && response.success && response.data) {
         generateSupplyOrderPDF(response.data, user);
       } else {

@@ -85,9 +85,25 @@ export const getSupplyOrders = async (finYearId, status) => {
   }
 };
 
-export const getSupplyOrderDetails = async (poNoId) => {
+export const getSupplyOrderDetails = async (poNoId, userId) => {
   try {
-    const response = await axios.get(`/local-purchase/supply-orders/${poNoId}/pdf-details`);
+    let uid = userId;
+    if (!uid) {
+      try {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          const u = JSON.parse(stored);
+          uid = u.userId || u.USERID || u.memberId || u.id;
+        }
+      } catch (e) {}
+    }
+    if (!uid) {
+      uid = localStorage.getItem('userId') || localStorage.getItem('USERID') || localStorage.getItem('memberId') || '';
+    }
+
+    const response = await axios.get(`/local-purchase/supply-orders/${poNoId}/pdf-details`, {
+      params: uid ? { userId: uid } : {}
+    });
     return response.data;
   } catch (error) {
     throw error;
