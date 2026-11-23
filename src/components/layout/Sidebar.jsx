@@ -34,6 +34,7 @@ export default function Sidebar() {
   const userFacTypeCode = (user?.facilityTypeCode || '').trim().toUpperCase();
   const userFacTypeName = (user?.facilityTypeName || user?.facilityType || '').trim().toUpperCase();
   const userRoleName = (user?.roleName || '').trim().toUpperCase();
+  const reduxFacType = (facilityType || '').trim().toUpperCase();
 
   // Facility check for DH, DME, DME MC / MC logins
   const isDhDmeMcFacility = 
@@ -74,15 +75,32 @@ export default function Sidebar() {
                      String(user?.facilityTypeId) === '353' ||
                      user?.emailId === 'admink@gnail.com';
 
-  // CHC Facility check
+  // CHC / CH Facility check (Community Health Centre / Civil Hospital)
   const isChcFacility = 
     userFacTypeCode === 'CHC' || 
+    userFacTypeCode === 'CH' || 
     localFacType === 'CHC' || 
+    localFacType === 'CH' || 
+    reduxFacType === 'CHC' || 
+    reduxFacType === 'CH' || 
+    userFacTypeName === 'CH' || 
     userFacTypeName.includes('CHC') || 
     localFacType.includes('CHC') || 
-    userFacTypeName.includes('COMMUNITY HEALTH') ||
-    localRoleName.includes('CHC') ||
-    userRoleName.includes('CHC');
+    reduxFacType.includes('CHC') || 
+    userFacTypeName.includes('COMMUNITY HEALTH') || 
+    userFacTypeName.includes('CIVIL HOSPITAL') || 
+    localRoleName.includes('CHC') || 
+    userRoleName.includes('CHC') || 
+    localRoleName === 'CH' || 
+    userRoleName === 'CH' || 
+    localRoleName.includes('CIVIL HOSPITAL') || 
+    userRoleName.includes('CIVIL HOSPITAL') || 
+    /\bCH\b/i.test(userFacTypeCode) || 
+    /\bCH\b/i.test(localFacType) || 
+    /\bCH\b/i.test(reduxFacType) || 
+    /\bCH\b/i.test(userFacTypeName) || 
+    /\bCH\b/i.test(userRoleName) || 
+    /\bCH\b/i.test(localRoleName);
 
   // HOD ID check:
   // In MASHODS: 2 = DHS, 3 = DME, 7 = AYUSH (or 3 as requested for AYUSH)
@@ -159,8 +177,8 @@ export default function Sidebar() {
             { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual Indent', canView: true }
           ] : []),
           ...(isChcFacility ? [
-            { screenId: 'ai_chc_approval', screenUrl: '/annual-indent/chc-approval', screenName: 'Approval of Forwarded Indents(Only For Parent CHC)', canView: true },
-            { screenId: 'ai_chc_status_report', screenUrl: '/annual-indent/chc-status-report', screenName: 'Status Report of Uploaded and Forwarded Indent(Only for Parent CHC)', canView: true }
+            { screenId: 'ai_chc_approval', screenUrl: '/annual-indent/chc-approval', screenName: 'Approval of Forwarded Indents(Only For Parent CHC/CH)', canView: true },
+            { screenId: 'ai_chc_status_report', screenUrl: '/annual-indent/chc-status-report', screenName: 'Status Report of Uploaded and Forwarded Indent(Only for Parent CHC/CH)', canView: true }
           ] : []),
           ...(isCmhoUser ? [
             { screenId: 'ai_cmho_status_report', screenUrl: '/annual-indent/cmho-status-report', screenName: 'Status Report for Uploaded and Forwarded Indents(Only for CMHO)', canView: true }
@@ -323,11 +341,11 @@ export default function Sidebar() {
         }
         if (sUrl.includes('chcapproval') || (sName.includes('approval of forwarded indent') && !sName.includes('(dao)'))) {
           if (!isChcFacility) return null;
-          return { ...s, screenName: 'Approval of Forwarded Indents(Only For Parent CHC)', screenUrl: '/annual-indent/chc-approval' };
+          return { ...s, screenName: 'Approval of Forwarded Indents(Only For Parent CHC/CH)', screenUrl: '/annual-indent/chc-approval' };
         }
-        if (sUrl.includes('chcannualindentstatus') || (sName.includes('status report') && sName.includes('chc'))) {
+        if (sUrl.includes('chcannualindentstatus') || (sName.includes('status report') && (sName.includes('chc') || sName.includes('ch')))) {
           if (!isChcFacility) return null;
-          return { ...s, screenName: 'Status Report of Uploaded and Forwarded Indent(Only for Parent CHC)', screenUrl: '/annual-indent/chc-status-report' };
+          return { ...s, screenName: 'Status Report of Uploaded and Forwarded Indent(Only for Parent CHC/CH)', screenUrl: '/annual-indent/chc-status-report' };
         }
         if (sUrl.includes('cmhoannualindentstatus') || sName.includes('status report for uploaded and forwarded indents(only for cmho)')) {
           if (!isCmhoUser) return null;

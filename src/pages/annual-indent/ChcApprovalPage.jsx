@@ -293,7 +293,7 @@ export default function ChcApprovalPage() {
   const handleFreeze = async () => {
     const confirm = await Swal.fire({
       title: 'Freeze Annual Indents?',
-      text: 'Are you sure you want to approve and freeze annual indents for all PHCs under this CHC? Once frozen, quantities cannot be modified.',
+      text: 'Are you sure you want to approve and freeze annual indents for all PHCs under this CHC/CH? Once frozen, quantities cannot be modified.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonColor: '#059669',
@@ -360,7 +360,7 @@ export default function ChcApprovalPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs font-semibold text-teal-300 uppercase tracking-widest">
                   <BuildingOffice2Icon className="w-4 h-4" />
-                  <span>CHC / BMO Level Indent Management</span>
+                  <span>CHC / CH / BMO Level Indent Management</span>
                 </div>
                 <h1 className="text-xl md:text-2xl font-black tracking-tight">
                   Approval of Forwarded Indents of PHCs
@@ -778,7 +778,7 @@ export default function ChcApprovalPage() {
                       <span>Approval & Freezing Guidelines:</span>
                     </p>
                     <ul className="list-disc list-inside space-y-1 text-[11px] leading-relaxed">
-                      <li>All primary health facilities (PHCs) mapped to this CHC must have completed their annual indents before freezing.</li>
+                      <li>All primary health facilities (PHCs) mapped to this CHC/CH must have completed their annual indents before freezing.</li>
                       <li>Every item with quantity greater than 0 must have an approved quantity assigned.</li>
                       <li>Once frozen, the annual indent status is marked as <strong>Completed (C)</strong> and forwarded to the district warehouse.</li>
                     </ul>

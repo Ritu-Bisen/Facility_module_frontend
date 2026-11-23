@@ -327,7 +327,7 @@ export default function ChcStatusReportPage() {
                 {/* Footer Count info */}
                 {!loading && filteredList.length > 0 && (
                   <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex justify-between items-center print:hidden">
-                    <span>CHC Sub-Facilities Annual Indent Status</span>
+                    <span>CHC / CH Sub-Facilities Annual Indent Status</span>
                     <span>Total: <strong className="text-slate-700">{filteredList.length}</strong> Records</span>
                   </div>
                 )}
