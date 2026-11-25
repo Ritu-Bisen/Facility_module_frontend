@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
@@ -6,6 +6,7 @@ import Footer from '../../components/layout/Footer';
 import axios from '../../api/axios';
 import { useAuth } from '../../hooks/useAuth';
 import { generateAnnualIndentPDF } from '../../utils/annualIndentPdfGenerator';
+import { getCurrentAndFutureFinYears } from '../../utils/indentYearHelper';
 import {
   DocumentArrowUpIcon,
   PlusIcon,
@@ -32,6 +33,74 @@ export default function UploadForwardReagentIndentPage() {
   const [loading, setLoading] = useState(false);
   const [dropdownLoading, setDropdownLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Financial Year Helpers to determine Current and Future Years
+  const finYearInfo = useMemo(() => getCurrentAndFutureFinYears(), []);
+
+  // Check if selected financial year is the current financial year
+  const isCurrentFinYear = useMemo(() => {
+    if (!selectedFinYear) return false;
+    const selectedYearObj = finYears.find(fy => String(fy.accYrSetId) === String(selectedFinYear));
+    if (selectedYearObj?.isCurrent) return true;
+
+    const yearText = String(
+      selectedYearObj?.accYear ||
+      selectedYearObj?.shAccYear ||
+      selectedYearObj?.year ||
+      ''
+    ).trim();
+
+    if (yearText) {
+      return (
+        yearText.includes(finYearInfo.currentFyShort) ||
+        yearText.includes(finYearInfo.currentFyFull) ||
+        yearText.replace(/\s+/g, '') === finYearInfo.currentFyFull ||
+        yearText.replace(/\s+/g, '') === finYearInfo.currentFyShort
+      );
+    }
+    return String(selectedFinYear) === '547';
+  }, [finYears, selectedFinYear, finYearInfo]);
+
+  // Check if selected financial year is the future financial year
+  const isFutureFinYear = useMemo(() => {
+    if (!selectedFinYear) return false;
+    const selectedYearObj = finYears.find(fy => String(fy.accYrSetId) === String(selectedFinYear));
+    const currentIdx = finYears.findIndex(fy => fy.isCurrent);
+    if (currentIdx > 0 && selectedYearObj) {
+      const selectedIdx = finYears.findIndex(fy => String(fy.accYrSetId) === String(selectedFinYear));
+      if (selectedIdx >= 0 && selectedIdx < currentIdx) {
+        return true;
+      }
+    }
+
+    const yearText = String(
+      selectedYearObj?.accYear ||
+      selectedYearObj?.shAccYear ||
+      selectedYearObj?.year ||
+      ''
+    ).trim();
+
+    if (yearText) {
+      const match = yearText.match(/(\d{4})/);
+      if (match) {
+        const startYr = parseInt(match[1], 10);
+        const currentStartYr = parseInt(finYearInfo.currentFyFull.split('-')[0], 10);
+        if (startYr > currentStartYr) return true;
+      }
+      return (
+        yearText.includes(finYearInfo.futureFyShort) ||
+        yearText.includes(finYearInfo.futureFyFull) ||
+        yearText.replace(/\s+/g, '') === finYearInfo.futureFyFull ||
+        yearText.replace(/\s+/g, '') === finYearInfo.futureFyShort
+      );
+    }
+    return String(selectedFinYear) === '548';
+  }, [finYears, selectedFinYear, finYearInfo]);
+
+  const isCurrentOrFutureFinYear = isCurrentFinYear || isFutureFinYear;
+
+  // Add button is open for current and future year
+  const showAddButton = isCurrentOrFutureFinYear;
 
   // Fetch Financial Years on Mount
   useEffect(() => {
@@ -221,12 +290,12 @@ export default function UploadForwardReagentIndentPage() {
                   </select>
                 </div>
 
-                {/* Add New REAGENT Annual Indent Button (matching Image 2) */}
+                {/* Add New REAGENT Annual Indent Button (Open for Current and Future Year) */}
                 <div className="flex items-center gap-2">
                   <span className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                     Add New REAGENT Annual Indent:
                   </span>
-                  {canAdd ? (
+                  {showAddButton ? (
                     <Link
                       to={`/non-edl-annual-indent/create-reagent?finYearId=${selectedFinYear}`}
                       className="p-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-full shadow hover:shadow-md transition-all group shrink-0"

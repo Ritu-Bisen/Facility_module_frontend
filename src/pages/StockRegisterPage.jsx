@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 
 export default function StockRegisterPage() {
   const [items, setItems] = useState([]);
+  const [itemsLoading, setItemsLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -28,12 +29,15 @@ export default function StockRegisterPage() {
   }, []);
 
   const fetchItems = async () => {
+    setItemsLoading(true);
     try {
       const response = await api.get('/items/drugs');
       setItems(response.data || []);
     } catch (err) {
       console.error('Error fetching items:', err);
       toast.error('Failed to load items list');
+    } finally {
+      setItemsLoading(false);
     }
   };
 
@@ -87,7 +91,21 @@ export default function StockRegisterPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden relative">
+      {/* Full Page Loading Overlay for Items */}
+      {itemsLoading && (
+        <div className="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-xs flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl border border-slate-100 flex flex-col items-center min-w-[260px]">
+            <div className="relative mb-3">
+              <div className="w-12 h-12 border-4 border-blue-100 rounded-full"></div>
+              <div className="w-12 h-12 border-4 border-blue-600 rounded-full border-t-transparent animate-spin absolute top-0 left-0"></div>
+            </div>
+            <p className="text-sm font-bold text-slate-800">Loading Items...</p>
+            <p className="text-xs text-slate-500 mt-1">Please wait while data is being fetched</p>
+          </div>
+        </div>
+      )}
+
       <Header />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <Sidebar />
@@ -193,7 +211,7 @@ export default function StockRegisterPage() {
 
                   <button 
                     type="submit"
-                    disabled={loading}
+                    disabled={loading || itemsLoading}
                     className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2.5 px-8 rounded-lg shadow-md shadow-blue-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 h-[42px] flex items-center justify-center disabled:opacity-75 disabled:cursor-not-allowed disabled:transform-none"
                   >
                     {loading ? (
