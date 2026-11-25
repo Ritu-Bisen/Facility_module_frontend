@@ -120,7 +120,8 @@ export default function AddSupplyOrderPage() {
       if (data && data.header) {
         if (data.header.accYrSetId) setFinYear(data.header.accYrSetId.toString());
         setSupplier(data.header.lpSupplierId || '');
-        if (data.header.categoryId) setFund(data.header.categoryId.toString());
+        const initialFundId = data.header.lpBudgetId || data.header.budgetId || data.header.categoryId;
+        if (initialFundId) setFund(initialFundId.toString());
         if (data.header.contractId) {
           setContractsList([{ id: data.header.contractId, name: data.header.contractNo }]);
           setContract(data.header.contractId.toString());
@@ -419,6 +420,8 @@ export default function AddSupplyOrderPage() {
         poNo: soNoData.soNo,
         poDate: new Date().toISOString().split('T')[0].split('-').reverse().join('-'),
         categoryId: fund,
+        lpBudgetId: fund,
+        budgetId: fund,
         psaCode: soNoData.psaCode,
         icCode: '',
         supplierCode: soNoData.supplierCode,

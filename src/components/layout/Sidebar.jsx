@@ -181,7 +181,8 @@ export default function Sidebar() {
             { screenId: 'ai_chc_status_report', screenUrl: '/annual-indent/chc-status-report', screenName: 'Status Report of Uploaded and Forwarded Indent(Only for Parent CHC/CH)', canView: true }
           ] : []),
           ...(isCmhoUser ? [
-            { screenId: 'ai_cmho_status_report', screenUrl: '/annual-indent/cmho-status-report', screenName: 'Status Report for Uploaded and Forwarded Indents(Only for CMHO)', canView: true }
+            { screenId: 'ai_cmho_status_report', screenUrl: '/annual-indent/cmho-status-report', screenName: 'Status Report for Uploaded and Forwarded Indents(Only for CMHO)', canView: true },
+            { screenId: 'ai_bmo_approved_status', screenUrl: '/annual-indent/bmo-approved-status', screenName: 'BMO approved status', canView: true }
           ] : []),
           ...(isMcFacility ? [
             { screenId: 'ai_mc_ai', screenUrl: '/annual-indent/medical-college-ai', screenName: 'Medical College AI', canView: true },
@@ -274,8 +275,8 @@ export default function Sidebar() {
             return false;
           }
 
-          // Annual Indent Distribution only allowed for CMHO
-          if (!isCmhoUser && (url.includes('distribution') || name.includes('distribution'))) {
+          // Annual Indent Distribution and BMO Approved Status only allowed for CMHO
+          if (!isCmhoUser && (url.includes('distribution') || name.includes('distribution') || url.includes('bmo-approved-status') || name.includes('bmo approved status') || url.includes('paindindaprovalofbmosatus'))) {
             return false;
           }
 
@@ -350,6 +351,10 @@ export default function Sidebar() {
         if (sUrl.includes('cmhoannualindentstatus') || sName.includes('status report for uploaded and forwarded indents(only for cmho)')) {
           if (!isCmhoUser) return null;
           return { ...s, screenName: 'Status Report for Uploaded and Forwarded Indents(Only for CMHO)', screenUrl: '/annual-indent/cmho-status-report' };
+        }
+        if (sUrl.includes('paindindaprovalofbmosatus') || sUrl.includes('bmo-approved-status') || sName.includes('bmo approved status') || sName.includes('bmo forwarded status')) {
+          if (!isCmhoUser) return null;
+          return { ...s, screenName: 'BMO approved status', screenUrl: '/annual-indent/bmo-approved-status' };
         }
         if (sUrl.includes('daoapproval') || sName.includes('approval of forwarded indent(dao)')) {
           return { ...s, screenName: 'Approval Of Forwarded Indent(DAO)', screenUrl: '/annual-indent/dao-approval' };

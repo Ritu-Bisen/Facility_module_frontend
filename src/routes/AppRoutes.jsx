@@ -86,6 +86,7 @@ import ChcApprovalPage from '../pages/annual-indent/ChcApprovalPage';
 import ChcStatusReportPage from '../pages/annual-indent/ChcStatusReportPage';
 import DaoStatusReportPage from '../pages/annual-indent/DaoStatusReportPage';
 import CmhoStatusReportPage from '../pages/annual-indent/CmhoStatusReportPage';
+import BmoApprovedStatusPage from '../pages/annual-indent/BmoApprovedStatusPage';
 import DaoItemWiseAiPage from '../pages/annual-indent/DaoItemWiseAiPage';
 import CgmscReceiptDrugWisePage from '../pages/reports/CgmscReceiptDrugWisePage';
 import CgmscReceiptBatchWisePage from '../pages/reports/CgmscReceiptBatchWisePage';
@@ -756,6 +757,33 @@ export default function AppRoutes() {
       <Route path="/Facility/CMHOAnnualIndentStatus.aspx" element={
         <ProtectedRoute>
           <CmhoStatusReportPage />
+        </ProtectedRoute>
+      } />
+
+      {/* CMHO BMO Approved Status Routes */}
+      <Route path="/annual-indent/bmo-approved-status" element={
+        <ProtectedRoute>
+          <BmoApprovedStatusPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/PaindindAprovalOfBMOSatus.aspx" element={
+        <ProtectedRoute>
+          <BmoApprovedStatusPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/PaindindAprovalOfBMOSatus.aspx" element={
+        <ProtectedRoute>
+          <BmoApprovedStatusPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/Facility/PaindindAprovalOfBMOSatus.aspx" element={
+        <ProtectedRoute>
+          <BmoApprovedStatusPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/AnualIndent/Reports/PaindindAprovalOfBMOSatus.aspx" element={
+        <ProtectedRoute>
+          <BmoApprovedStatusPage />
         </ProtectedRoute>
       } />
       <Route path="/annual-indent/dao-item-wise-ai" element={

@@ -99,7 +99,7 @@ export const generateSupplyOrderPDF = (details, user) => {
   doc.text(`Purchase Order No: ${header.poNo || ''} dated: ${header.poDate || ''}`, 40, y);
   y += 15;
 
-  const fundName = header.fund || header.sourceName || (header.sourceId ? String(header.sourceId) : '') || '';
+  const fundName = header.budgetName || header.BUDGETNAME || header.fund || header.sourceName || (header.sourceId ? String(header.sourceId) : '') || '';
   doc.text(`Fund :- ${fundName}`, 40, y);
   y += 16;
 

@@ -171,7 +171,8 @@ export default function AddAyushLocalPurchasePage() {
           if (order.dispatchDate) setDispatchDate(order.dispatchDate);
           if (order.contractNo) setContractNo(order.contractNo);
           if (order.tenderNo) setTenderNo(order.tenderNo);
-          if (order.categoryId) setFund(order.categoryId.toString());
+          const initialFundId = order.lpBudgetId || order.budgetId || order.categoryId;
+          if (initialFundId) setFund(initialFundId.toString());
           if (order.supplierName) setSupplierName(order.supplierName);
         }
       }

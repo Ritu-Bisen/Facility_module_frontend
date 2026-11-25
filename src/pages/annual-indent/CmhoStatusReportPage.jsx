@@ -163,39 +163,6 @@ export default function CmhoStatusReportPage() {
           <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 print:p-0 print:overflow-visible">
             <div className="max-w-6xl mx-auto space-y-5">
               
-              {/* Filter Card: Fin Year Selection */}
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 print:hidden">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                  <label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                    <CalendarDaysIcon className="w-4 h-4 text-blue-600" />
-                    Select Fin Year:
-                  </label>
-                  <div className="relative w-64">
-                    <select
-                      value={selectedFinYear}
-                      onChange={(e) => setSelectedFinYear(e.target.value)}
-                      disabled={dropdownLoading}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition disabled:opacity-50"
-                    >
-                      {finYears.map(fy => (
-                        <option key={fy.accYrSetId} value={String(fy.accYrSetId)}>
-                          {fy.accYear} {fy.isCurrent ? '(Current)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    onClick={fetchReport}
-                    disabled={loading}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition shadow-sm disabled:opacity-50"
-                    title="Reload data"
-                  >
-                    <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    <span>Refresh</span>
-                  </button>
-                </div>
-              </div>
-
               {/* Main Report Container */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden print:border-none print:shadow-none">
                 
@@ -231,19 +198,54 @@ export default function CmhoStatusReportPage() {
                   </div>
                 </div>
 
-                {/* Sub-bar: Search & Results Count */}
+                {/* Sub-bar: Fin Year on Left Side of Searchbar & Results Count */}
                 <div className="px-5 py-3 bg-slate-50/80 border-b border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 print:hidden">
-                  <div className="relative w-full sm:w-72">
-                    <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Search facility name or status..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                    />
+                  <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                    {/* Select Fin Year (Left side of searchbar) */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-semibold text-slate-700 flex items-center gap-1 whitespace-nowrap">
+                        <CalendarDaysIcon className="w-3.5 h-3.5 text-blue-600" />
+                        Select Fin Year:
+                      </label>
+                      <div className="relative w-44">
+                        <select
+                          value={selectedFinYear}
+                          onChange={(e) => setSelectedFinYear(e.target.value)}
+                          disabled={dropdownLoading}
+                          className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition disabled:opacity-50"
+                        >
+                          {finYears.map(fy => (
+                            <option key={fy.accYrSetId} value={String(fy.accYrSetId)}>
+                              {fy.accYear} {fy.isCurrent ? '(Current)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        onClick={fetchReport}
+                        disabled={loading}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition shadow-xs disabled:opacity-50"
+                        title="Reload data"
+                      >
+                        <ArrowPathIcon className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                        <span>Refresh</span>
+                      </button>
+                    </div>
+
+                    {/* Searchbar */}
+                    <div className="relative w-full sm:w-64">
+                      <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Search facility name or status..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                      />
+                    </div>
                   </div>
-                  <div className="text-xs text-slate-600 font-medium">
+
+                  <div className="text-xs text-slate-600 font-medium whitespace-nowrap">
                     Showing <span className="font-semibold text-slate-800">{filteredList.length}</span> of <span className="font-semibold text-slate-800">{reportList.length}</span> facilities
                   </div>
                 </div>
