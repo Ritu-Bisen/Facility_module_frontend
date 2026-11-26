@@ -33,7 +33,7 @@ export default function CreateNonEdlAnnualIndentPage() {
 
   const { user } = useAuth();
   const [finYears, setFinYears] = useState([]);
-  const [selectedFinYear, setSelectedFinYear] = useState(urlFinYear || '546');
+  const [selectedFinYear, setSelectedFinYear] = useState(urlFinYear || '548');
 
   // Dynamic Year Headers (e.g. COSUMPTION_From_1APR_26, Non_EDL_INDENT_27_28)
   const { consumptionHeader, indentHeader, futureFullYearRange, currYr } = useMemo(() => getDynamicIndentHeaders(), []);
@@ -71,7 +71,7 @@ export default function CreateNonEdlAnnualIndentPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // Fetch Financial Years on Mount (filters for years where indent is not created)
+  // Fetch Financial Years on Mount
   useEffect(() => {
     async function loadFinYears() {
       setDropdownLoading(true);
@@ -91,11 +91,12 @@ export default function CreateNonEdlAnnualIndentPage() {
             const matched = urlFinYear && list.find(fy => String(fy.accYrSetId) === String(urlFinYear));
             if (matched) {
               setSelectedFinYear(String(matched.accYrSetId));
+            } else if (!urlIndentId) {
+              const currentFy = list.find(fy => fy.isCurrent);
+              setSelectedFinYear(String((currentFy || list[0]).accYrSetId));
             } else {
               setSelectedFinYear(String(list[0].accYrSetId));
             }
-          } else {
-            setSelectedFinYear('');
           }
         }
       } catch (err) {
@@ -112,10 +113,29 @@ export default function CreateNonEdlAnnualIndentPage() {
   // Load Header and Items when Financial Year or IndentId changes
   useEffect(() => {
     if (!selectedFinYear) return;
-    loadHeaderAndItems();
+    if (urlIndentId) {
+      loadHeaderAndItems(urlIndentId);
+    } else {
+      // Add New Indent mode: show completely clear state
+      setHeaderInfo({
+        indentId: 0,
+        indentNo: 'AUTO GENERATED',
+        indentDate: 'System Generated',
+        status: 'N',
+        exists: false
+      });
+      setHeaderEditMode(true);
+      setItems([]);
+      setNoOfItems(0);
+      setAproxIndentValue('0.00');
+      setSelectedFile(null);
+      setError('');
+    }
   }, [selectedFinYear, urlIndentId]);
 
-  const loadHeaderAndItems = async () => {
+  const loadHeaderAndItems = async (targetIndentId) => {
+    const idToLoad = targetIndentId || urlIndentId;
+    if (!idToLoad) return;
     setLoading(true);
     setError('');
     setMsg('');
@@ -125,7 +145,7 @@ export default function CreateNonEdlAnnualIndentPage() {
         params: {
           facilityId: facId,
           finYearId: selectedFinYear,
-          indentId: urlIndentId || undefined
+          indentId: idToLoad
         }
       });
 
@@ -175,10 +195,15 @@ export default function CreateNonEdlAnnualIndentPage() {
       });
 
       if (res.data?.success && res.data.data) {
-        setHeaderInfo(res.data.data);
+        const newHeader = res.data.data;
+        setHeaderInfo(newHeader);
         setHeaderEditMode(false);
-        setMsg('Non-EDL Indent header generated successfully');
-        loadHeaderAndItems();
+        setItems([]);
+        setNoOfItems(0);
+        setAproxIndentValue('0.00');
+        setSelectedFile(null);
+        setMsg('Non-EDL Indent header generated successfully. You can now upload the Excel file.');
+        navigate(`/non-edl-annual-indent/create?mode=Edit&indentId=${newHeader.indentId}&finYearId=${selectedFinYear}`, { replace: true });
       } else {
         setError(res.data?.error || 'Failed to generate indent header');
       }
@@ -315,7 +340,7 @@ export default function CreateNonEdlAnnualIndentPage() {
           if (uploadRes.data?.success) {
             setMsg(`Excel items uploaded successfully! Added/Updated ${uploadRes.data.data?.count || parsedItems.length} records.`);
             setSelectedFile(null);
-            loadHeaderAndItems();
+            loadHeaderAndItems(headerInfo.indentId);
           } else {
             setError(uploadRes.data?.error || 'Failed to upload Excel items');
           }
@@ -425,7 +450,7 @@ export default function CreateNonEdlAnnualIndentPage() {
       });
       setEditingId(null);
       setMsg('Item updated successfully');
-      loadHeaderAndItems();
+      loadHeaderAndItems(headerInfo.indentId);
     } catch (err) {
       console.error('Failed to update item row:', err);
       setError('Failed to update item row: ' + (err.response?.data?.error || err.message));
@@ -438,7 +463,7 @@ export default function CreateNonEdlAnnualIndentPage() {
     try {
       await axios.delete(`/annual-indent/create/item/${anualIndentId}`);
       setMsg('Item deleted successfully');
-      loadHeaderAndItems();
+      loadHeaderAndItems(headerInfo.indentId);
     } catch (err) {
       console.error('Failed to delete item row:', err);
       setError('Failed to delete item row');
@@ -547,7 +572,7 @@ export default function CreateNonEdlAnnualIndentPage() {
                       className="w-full px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-100 text-xs font-bold focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none shadow-xs disabled:opacity-60"
                     >
                       {finYears.length === 0 ? (
-                        <option value="">No pending financial years</option>
+                        <option value="">{dropdownLoading ? 'Loading financial years...' : 'No financial years available'}</option>
                       ) : (
                         finYears.map(fy => (
                           <option key={fy.accYrSetId} value={fy.accYrSetId}>
@@ -556,11 +581,6 @@ export default function CreateNonEdlAnnualIndentPage() {
                         ))
                       )}
                     </select>
-                    {finYears.length === 0 && !dropdownLoading && (
-                      <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 mt-1">
-                        All active financial years already have an indent created for this facility.
-                      </p>
-                    )}
                   </div>
 
                   {/* Non EDL Annual Indent No */}

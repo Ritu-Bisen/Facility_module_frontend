@@ -235,7 +235,7 @@ export default function UploadForwardNonEdlIndentPage() {
                   </div>
                   <div>
                     <h1 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight drop-shadow-xs">
-                      Upload Excel File and Forward for Approval
+                      Upload and Forward NON EDL/Revise Indent for Approval
                     </h1>
                     <p className="text-xs text-blue-200/90 font-medium mt-0.5">
                       NON EDL Annual Indent | Facility ID: <span className="font-bold text-amber-300">{user?.facilityId || '22595'}</span>

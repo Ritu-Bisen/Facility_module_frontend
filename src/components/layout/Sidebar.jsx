@@ -174,7 +174,7 @@ export default function Sidebar() {
             { screenId: 'ai_download_format', screenUrl: '/annual-indent/download-format', screenName: 'Download AI Format', canView: true }
           ]),
           ...(isHod2Or3 && !isAyushUser && currentHodId !== 7 ? [
-            { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual Indent', canView: true }
+            { screenId: 'ai_upload_forward_dh', screenUrl: '/annual-indent/upload-forward-dh', screenName: 'Upload and Forward Annual/Revise Indent', canView: true }
           ] : []),
           ...(isChcFacility ? [
             { screenId: 'ai_chc_approval', screenUrl: '/annual-indent/chc-approval', screenName: 'Approval of Forwarded Indents(Only For Parent CHC/CH)', canView: true },
@@ -204,7 +204,7 @@ export default function Sidebar() {
         {
           screenId: 'non_edl_upload_forward',
           screenUrl: '/non-edl-annual-indent/upload-forward',
-          screenName: 'Upload and forward NON EDL indent for approval',
+          screenName: 'Upload and forward NON EDL/Revise indent for approval',
           canView: true
         },
         {
