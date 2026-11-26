@@ -39,7 +39,7 @@ export default function CreateAnnualIndentAyushPage() {
 
   const [headerInfo, setHeaderInfo] = useState({
     indentId: urlIndentId ? Number(urlIndentId) : 0,
-    indentNo: 'AUTO GENERATED',
+    indentNo: '',
     indentDate: 'System Generated',
     status: 'N',
     categoryId: 0,
@@ -814,8 +814,9 @@ export default function CreateAnnualIndentAyushPage() {
                         <input
                           type="text"
                           readOnly
-                          value={headerInfo.indentNo}
-                          className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-blue-900 dark:text-blue-300 text-xs font-extrabold outline-none shadow-sm min-w-[200px]"
+                          value={headerInfo.indentNo || ''}
+                          placeholder="Click Generate to create Indent No"
+                          className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-blue-900 dark:text-blue-300 text-xs font-extrabold outline-none shadow-sm min-w-[220px]"
                         />
                       </div>
 

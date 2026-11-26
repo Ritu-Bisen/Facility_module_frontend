@@ -38,7 +38,7 @@ export default function CreateAnnualIndentDhPage() {
 
   const [headerInfo, setHeaderInfo] = useState({
     indentId: urlIndentId ? Number(urlIndentId) : 0,
-    indentNo: 'AUTO GENERATED',
+    indentNo: '',
     indentDate: 'System Generated',
     status: 'N',
     categoryId: 0,
@@ -203,10 +203,29 @@ export default function CreateAnnualIndentDhPage() {
   // Load Header and Items when Selected Financial Year or IndentId changes
   useEffect(() => {
     if (!selectedFinYear) return;
-    loadIndentData();
+    if (urlIndentId) {
+      loadIndentData(urlIndentId);
+    } else {
+      // Add New Indent mode: show completely clear/blank state
+      setHeaderInfo({
+        indentId: 0,
+        indentNo: '',
+        indentDate: 'System Generated',
+        status: 'N',
+        categoryId: 0,
+        categoryName: '',
+        exists: false
+      });
+      setHeaderEditMode(true);
+      setItems([]);
+      setNoOfItems(0);
+      setAproxIndentValue('0.00');
+    }
   }, [selectedFinYear, urlIndentId]);
 
-  const loadIndentData = async () => {
+  const loadIndentData = async (targetIndentId) => {
+    const idToLoad = targetIndentId || urlIndentId;
+    if (!idToLoad) return;
     setLoading(true);
     setError('');
     try {
@@ -215,7 +234,7 @@ export default function CreateAnnualIndentDhPage() {
         params: {
           facilityId: currentFacId,
           finYearId: selectedFinYear,
-          indentId: urlIndentId || undefined
+          indentId: idToLoad
         }
       });
 
@@ -277,6 +296,9 @@ export default function CreateAnnualIndentDhPage() {
         if (hData.indentId) {
           setSearchParams({ finYearId: selectedFinYear, indentId: String(hData.indentId) }, { replace: true });
         }
+        setItems([]);
+        setNoOfItems(0);
+        setAproxIndentValue('0.00');
         setMsg('Indent Header Generated Successfully!');
         setTimeout(() => setMsg(''), 4000);
       } else {
@@ -873,8 +895,9 @@ export default function CreateAnnualIndentDhPage() {
                         <input
                           type="text"
                           readOnly
-                          value={headerInfo.indentNo}
-                          className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 text-xs font-extrabold outline-none shadow-sm min-w-[200px]"
+                          value={headerInfo.indentNo || ''}
+                          placeholder="Click Generate to create Indent No"
+                          className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-emerald-800 dark:text-emerald-300 text-xs font-extrabold outline-none shadow-sm min-w-[220px]"
                         />
                       </div>
 

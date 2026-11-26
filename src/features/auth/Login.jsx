@@ -111,21 +111,28 @@ export default function Login() {
     }
   };
 
-  const loadCaptcha = async () => {
+  const loadCaptcha = async (retryCount = 0) => {
     setCaptchaLoading(true);
     setCaptchaError(false);
     try {
       const res = await fetchCaptcha();
       if (res && res.success) {
         setCaptchaData(res.data);
+        setCaptchaLoading(false);
       } else {
-        setCaptchaError(true);
+        throw new Error(res?.message || 'Captcha generation failed');
       }
     } catch (err) {
       console.error('Failed to load captcha', err);
-      setCaptchaError(true);
-    } finally {
-      setCaptchaLoading(false);
+      if (retryCount < 1) {
+        // Retry once after 1 second in case backend worker is warming up
+        setTimeout(() => {
+          loadCaptcha(retryCount + 1);
+        }, 1000);
+      } else {
+        setCaptchaError(true);
+        setCaptchaLoading(false);
+      }
     }
   };
 
